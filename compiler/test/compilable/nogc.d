@@ -169,3 +169,22 @@ char[] test22671(int n) @nogc
     }
    return buf;
 }
+
+struct OpApply { int opApply(int delegate(int) dg); }
+
+int[] opApplyReturn(int n)
+{
+    foreach (s; OpApply())
+        return [s];
+    return null;
+}
+
+int[] opApplyReturnCtfe(int n) @nogc
+{
+    if (__ctfe)
+    {
+        foreach (s; OpApply())
+            return [s];
+    }
+    return null;
+}

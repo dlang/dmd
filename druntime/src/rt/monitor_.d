@@ -53,7 +53,7 @@ do
         atomicOp!"+="(m.refs, size_t(1));
     }
     // Assume the monitor is garbage collected and simply copy the reference.
-    ownee.__monitor = owner.__monitor;
+    setMonitor(cast(Object) cast(void*) ownee, m);
 }
 
 extern (C) void _d_monitordelete(Object h, bool det)

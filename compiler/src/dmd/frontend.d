@@ -13,12 +13,10 @@ module dmd.frontend;
 import dmd.astcodegen : ASTCodegen;
 import dmd.astenums : CHECKENABLE;
 import dmd.dmodule : Module;
+import dmd.errors : DiagnosticHandler, diagnosticHandler, FatalErrorHandler, fatalErrorHandler, Classification;
 import dmd.globals : DiagnosticReporting;
-import dmd.errors;
 import dmd.location;
 
-import std.range.primitives : isInputRange, ElementType;
-import std.traits : isNarrowString;
 import std.typecons : Tuple;
 import core.stdc.stdarg;
 
@@ -107,21 +105,17 @@ void initDMD(
     ContractChecks contractChecks = ContractChecks()
 )
 {
-    import std.algorithm : each;
-
     import dmd.root.ctfloat : CTFloat;
 
     version (CRuntime_Microsoft)
         import dmd.root.longdouble : initFPU;
 
-    import dmd.astenums : CHECKENABLE;
     import dmd.cond : VersionCondition;
     import dmd.dmodule : Module;
     import dmd.escape : EscapeState;
     import dmd.expression : Expression;
     import dmd.globals : global;
     import dmd.id : Id;
-    import dmd.identifier : Identifier;
     import dmd.mtype : Type;
     import dmd.objc : Objc;
     import dmd.target : target, defaultTargetOS, addDefaultVersionIdentifiers;
@@ -142,7 +136,8 @@ void initDMD(
         useSwitchError = contractChecks.switchError;
     }
 
-    versionIdentifiers.each!(VersionCondition.addGlobalIdent);
+    foreach (id; versionIdentifiers)
+        VersionCondition.addGlobalIdent(id);
 
     target.os = defaultTargetOS();
     target.isX86_64 = (size_t.sizeof == 8);
@@ -163,7 +158,6 @@ void initDMD(
 
     CTFloat.initialize();
 }
-
 /**
 Deinitializes the global variables of the DMD compiler.
 
@@ -295,7 +289,7 @@ string determineDefaultCompiler()
     import std.file : exists;
     import std.path : buildPath;
     import std.process : environment;
-    import std.range : front, empty, transposed;
+    import std.range : front, empty;
     // adapted from DUB: https://github.com/dlang/dub/blob/350a0315c38fab9d3d0c4c9d30ff6bb90efb54d6/source/dub/dub.d#L1183
 
     auto compilers = ["dmd", "gdc", "gdmd", "ldc2", "ldmd2"];
@@ -395,8 +389,6 @@ Tuple!(Module, "module_", Diagnostics, "diagnostics") parseModule(AST = ASTCodeg
     import dmd.tokens : TOK;
 
     import std.path : baseName, stripExtension;
-    import std.string : toStringz;
-    import std.typecons : tuple;
 
     auto id = Identifier.idPool(fileName.baseName.stripExtension);
     auto m = new Module(fileName, id, 1, 0);
@@ -461,7 +453,7 @@ string prettyPrint(Module m)
     HdrGenState hgs = { fullDump: 1 };
     moduleToBuffer2(m, buf, hgs);
 
-    import std.string : replace, fromStringz;
+    import std.string : replace;
     import std.exception : assumeUnique;
 
     auto generated = buf.extractSlice.replace("\t", "    ");

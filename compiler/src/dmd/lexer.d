@@ -47,7 +47,6 @@ struct CompileEnv
     const(char)[] vendor;    /// __VENDOR__
     const(char)[] timestamp; /// __TIMESTAMP__
 
-    bool tuples;             //// tuple unpacking syntax
     bool previewIn;          /// `in` means `[ref] scope const`, accepts rvalues
     bool transitionIn;       /// `-transition=in` is active, `in` parameters are listed
     bool ddocOutput;         /// collect embedded documentation comments
@@ -739,7 +738,7 @@ class Lexer
                     if (doDocComment && t.ptr[2] == '*' && p - 4 != t.ptr)
                     {
                         // if /** but not /**/
-                        getDocComment(t, lastLine == startLoc.linnum, startLoc.linnum - lastDocLine > 1);
+                        getDocComment(t, lastLine == startLoc.linnum && token.value != TOK.leftCurly, startLoc.linnum - lastDocLine > 1);
                         lastDocLine = linnum;
                     }
                     continue;
@@ -767,7 +766,7 @@ class Lexer
                             }
                             if (doDocComment && t.ptr[2] == '/')
                             {
-                                getDocComment(t, lastLine == startLoc.linnum, startLoc.linnum - lastDocLine > 1);
+                                getDocComment(t, lastLine == startLoc.linnum && token.value != TOK.leftCurly, startLoc.linnum - lastDocLine > 1);
                                 lastDocLine = linnum;
                             }
                             //p = end;
@@ -799,7 +798,7 @@ class Lexer
                     }
                     if (doDocComment && t.ptr[2] == '/')
                     {
-                        getDocComment(t, lastLine == startLoc.linnum, startLoc.linnum - lastDocLine > 1);
+                        getDocComment(t, lastLine == startLoc.linnum && token.value != TOK.leftCurly, startLoc.linnum - lastDocLine > 1);
                         lastDocLine = linnum;
                     }
                     p++;
@@ -871,7 +870,7 @@ class Lexer
                         if (doDocComment && t.ptr[2] == '+' && p - 4 != t.ptr)
                         {
                             // if /++ but not /++/
-                            getDocComment(t, lastLine == startLoc.linnum, startLoc.linnum - lastDocLine > 1);
+                            getDocComment(t, lastLine == startLoc.linnum && token.value != TOK.leftCurly, startLoc.linnum - lastDocLine > 1);
                             lastDocLine = linnum;
                         }
                         continue;
@@ -3363,7 +3362,7 @@ class Lexer
      * Params:
      *    sink = send characters in the line to this delegate
      */
-    final void skipToNextLine(void delegate(char c) nothrow sink = null)
+    final void skipToNextLine(scope void delegate(char c) nothrow sink = null)
     {
         while (1)
         {

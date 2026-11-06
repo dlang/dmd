@@ -10,9 +10,11 @@
 #     make -j$(nproc)
 # - Build compiler (optimized) and druntime using an LDC host compiler:
 #     make -j$(nproc) HOST_DMD=ldmd2 ENABLE_RELEASE=1 [ENABLE_LTO=1]
+# - Build heavily (LTO+PGO) optimized compiler, incl. druntime and Phobos as side-effects:
+#     make -j$(nproc) HOST_DMD=path/to/ldmd2 dmd-pgo
 # - Build and run druntime tests:
 #     make -j$(nproc) druntime-test
-# - Run compiler tests (needs a built Phobos as prerequisite):
+# - Run compiler tests (involving a Phobos build):
 #     make -j$(nproc) dmd-test
 #
 # See compiler/src/build.d for variables affecting the compiler build.
@@ -58,6 +60,7 @@ endif
 
 .PHONY: all clean test html install \
         dmd dmd-unittest dmd-test druntime druntime-test \
+        phobos dmd-pgo \
         auto-tester-build auto-tester-test buildkite-test \
         toolchain-info check-clean-git style
 
@@ -92,7 +95,7 @@ dmd: $(BUILD_EXE)
 dmd-unittest: $(BUILD_EXE)
 	$(BUILD_CMD) unittest
 
-dmd-test: dmd-unittest dmd druntime $(RUN_EXE)
+dmd-test: dmd-unittest dmd druntime phobos $(RUN_EXE)
 	$(RUN_EXE) --environment
 
 druntime: dmd
@@ -102,6 +105,12 @@ druntime-test: dmd
 	$(QUIET)$(MAKE) -C druntime unittest
 
 test: dmd-test druntime-test
+
+../phobos:
+	git clone --depth=1 https://github.com/dlang/phobos $@
+
+phobos: ../phobos druntime
+	$(MAKE) -C ../phobos
 
 html: $(BUILD_EXE)
 	$(BUILD_CMD) $@
@@ -135,6 +144,38 @@ check-clean-git:
 
 style: $(BUILD_EXE)
 	$(BUILD_CMD) $@
+
+# PGO+LTO'd compiler
+ifeq (,$(findstring ldmd2,$(notdir $(HOST_DMD))))
+
+dmd-pgo:
+	@echo "Error: dmd-pgo currently requires an ldmd2 host compiler, not $(notdir $(HOST_DMD)). Please set HOST_DMD appropriately, or activate an LDC compiler."
+	@exit 1
+
+else # ldmd2
+
+LDC_PROFDATA:=$(dir $(shell which $(if $(findstring $(OS),windows),$(shell cygpath --unix $(HOST_DMD)),$(HOST_DMD))))ldc-profdata$(EXE)
+ifeq (,$(wildcard $(LDC_PROFDATA)))
+    # if the ldc-profdata tool isn't found in the same dir as ldmd2, fall back to PATH
+    LDC_PROFDATA:=ldc-profdata
+endif
+
+dmd-pgo: $(BUILD_EXE) $(RUN_EXE) ../phobos
+	@echo "PGO step 1/4: Building instrumented compiler"
+	$(BUILD_EXE) ENABLE_RELEASE=1 DFLAGS='-fprofile-generate=$(abspath $(GENERATED))/%p.profraw $(HOST_DFLAGS)' dmd --force
+	@echo "PGO step 2/4: Gathering profiles by compiling druntime & phobos and running 'compilable' test suite"
+	$(MAKE) -C ../phobos
+	$(RUN_EXE) compilable
+	@echo "PGO step 3/4: Merging profiles"
+# using a response file with list of generated *.profraw files, to avoid cmdline-length problems with many files
+	cd $(GENERATED) && find . -maxdepth 1 -name '*.profraw' > profraw_list.rsp
+	cd $(GENERATED) && $(LDC_PROFDATA) merge --output=merged.profdata --input-files=profraw_list.rsp
+	cd $(GENERATED) && xargs $(RM) < profraw_list.rsp && $(RM) profraw_list.rsp
+	@echo "PGO step 4/4: Building PGO+LTO'd compiler"
+	$(BUILD_EXE) ENABLE_RELEASE=1 ENABLE_LTO=1 DFLAGS='-fprofile-use=$(abspath $(GENERATED))/merged.profdata $(HOST_DFLAGS)' dmd --force
+	$(RM) $(GENERATED)/merged.profdata
+
+endif # ldmd2
 
 .DELETE_ON_ERROR: # GNU Make directive (delete output files on error)
 

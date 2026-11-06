@@ -8,7 +8,7 @@ fail_compilation/nestedtempl2.d(34): Error: need `this` of type `B` to call func
 fail_compilation/nestedtempl2.d(35): Error: `this` is only defined in non-static member functions, not `test`
 fail_compilation/nestedtempl2.d(35): Error: need `this` of type `B` to make delegate from function `func`
 fail_compilation/nestedtempl2.d(37): Error: `this` is only defined in non-static member functions, not `test`
-fail_compilation/nestedtempl2.d(37): Error: need `this` of type `B` needed to `new` nested class `N`
+fail_compilation/nestedtempl2.d(37): Error: need `this` of type `B` to `new` nested class `N`
 ---
 */
 

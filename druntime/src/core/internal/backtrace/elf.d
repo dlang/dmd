@@ -44,6 +44,7 @@ else version (Hurd)
 
 version (LinuxOrBSD):
 
+import core.internal.backtrace.dwarf : DebugSections;
 import core.internal.elf.io;
 
 struct Image
@@ -72,19 +73,35 @@ struct Image
         return file != ElfFile.init;
     }
 
-    T processDebugLineSectionData(T)(scope T delegate(const(ubyte)[]) processor)
+    T processDebugSections(T)(scope T delegate(ref const DebugSections) processor)
     {
-        ElfSectionHeader dbgSectionHeader;
-        ElfSection dbgSection;
+        ElfSection line, info, abbrev, str, lineStr;
+        mapSection(".debug_line", line);
+        mapSection(".debug_info", info);
+        mapSection(".debug_abbrev", abbrev);
+        mapSection(".debug_str", str);
+        mapSection(".debug_line_str", lineStr);
 
-        if (file.findSectionHeaderByName(".debug_line", dbgSectionHeader))
+        const DebugSections sections = {
+            line: cast(const(ubyte)[]) line.data(),
+            info: cast(const(ubyte)[]) info.data(),
+            abbrev: cast(const(ubyte)[]) abbrev.data(),
+            str: cast(const(ubyte)[]) str.data(),
+            lineStr: cast(const(ubyte)[]) lineStr.data(),
+        };
+        return processor(sections);
+    }
+
+    private void mapSection(const(char)[] name, out ElfSection section)
+    {
+        ElfSectionHeader header;
+
+        if (file.findSectionHeaderByName(name, header))
         {
             // we don't support compressed debug sections
-            if (!(dbgSectionHeader.shdr.sh_flags & SHF_COMPRESSED))
-                dbgSection = ElfSection(file, dbgSectionHeader);
+            if (!(header.shdr.sh_flags & SHF_COMPRESSED))
+                section = ElfSection(file, header);
         }
-
-        return processor(cast(const(ubyte)[]) dbgSection.data());
     }
 
     @property size_t baseAddress()

@@ -445,6 +445,15 @@ else version (CRuntime_Musl)
         alias fenv_t = uint;
         alias fexcept_t = uint;
     }
+    else version (Emscripten)
+    {
+        struct fenv_t
+        {
+            uint __cw;
+        }
+
+        alias fexcept_t = ushort;
+    }
     else
     {
         static assert(false, "Architecture not supported.");
@@ -636,6 +645,17 @@ else version (Solaris)
     else
     {
         static assert(0, "Unimplemented architecture");
+    }
+}
+else version (Emscripten)
+{
+    enum
+    {
+        FE_ALL_EXCEPT   = 0, ///
+        FE_TONEAREST    = 0, ///
+        FE_DOWNWARD     = 0x400, ///
+        FE_UPWARD       = 0x800, ///
+        FE_TOWARDZERO   = 0xC00, ///
     }
 }
 else version (CRuntime_WASI)

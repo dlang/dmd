@@ -27,7 +27,6 @@ import dmd.dsymbol;
 import dmd.dsymbolsem : include;
 import dmd.templatesem : computeOneMember;
 import dmd.dtemplate;
-import dmd.errors;
 import dmd.expression;
 import dmd.func;
 import dmd.globals;
@@ -797,7 +796,10 @@ public:
         foreach (m; modules)
         {
             if (global.params.v.verbose)
-                message("json gen %s", m.toChars());
+            {
+                auto eSink = global.errorSink;
+                eSink.message(Loc.init, "json gen %s", m.toChars());
+            }
             m.accept(this);
         }
         arrayEnd();

@@ -11,6 +11,7 @@ Codegen: function uses, object.uses
 Codegen: module object, object
 Ctfe: add(4, 8), add(4, 8)
 Ctfe: call add, object.add(4, 8)
+Ctfe: copy add(4, 8), add(4, 8)
 DFA: add, object.add
 DFA: fun, object.fun
 DFA: id, object.id!int

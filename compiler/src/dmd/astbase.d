@@ -2095,7 +2095,6 @@ struct ASTBase
         Expression condition;
         Statement ifbody;
         Statement elsebody;
-        VarDeclaration match;   // for MatchExpression results
         Loc endloc;                 // location of closing curly bracket
 
         extern (D) this(Loc loc, Parameter param, Expression condition, Statement ifbody, Statement elsebody, Loc endloc)
@@ -2507,24 +2506,23 @@ struct ASTBase
 
     extern (C++) class CompoundStatement : Statement
     {
-        Statements* statements;
+        Statements statements;
 
-        final extern (D) this(Loc loc, Statements* statements)
+        final extern (D) this(Loc loc, Statements statements)
         {
             super(loc, STMT.Compound);
-            this.statements = statements;
+            this.statements = statements.move();
         }
 
-        final extern (D) this(Loc loc, Statements* statements, STMT stmt)
+        final extern (D) this(Loc loc, Statements statements, STMT stmt)
         {
             super(loc, stmt);
-            this.statements = statements;
+            this.statements = statements.move();
         }
 
         final extern (D) this(Loc loc, Statement[] sts...)
         {
             super(loc, STMT.Compound);
-            statements = new Statements();
             statements.reserve(sts.length);
             foreach (s; sts)
                 statements.push(s);
@@ -2552,9 +2550,9 @@ struct ASTBase
 
     extern (C++) final class CompoundDeclarationStatement : CompoundStatement
     {
-        final extern (D) this(Loc loc, Statements* statements)
+        final extern (D) this(Loc loc, Statements statements)
         {
-            super(loc, statements, STMT.CompoundDeclaration);
+            super(loc, statements.move(), STMT.CompoundDeclaration);
         }
 
         override void accept(Visitor v)
@@ -2567,9 +2565,9 @@ struct ASTBase
     {
         StorageClass stc;
 
-        final extern (D) this(Loc loc, Statements* s, StorageClass stc)
+        final extern (D) this(Loc loc, Statements s, StorageClass stc)
         {
-            super(loc, s, STMT.CompoundAsm);
+            super(loc, s.move(), STMT.CompoundAsm);
             this.stc = stc;
         }
 
@@ -4941,7 +4939,7 @@ struct ASTBase
             wchar* wstring; // if sz == 2
             dchar* dstring; // if sz == 4
         }                   // (const if ownedByCtfe == OwnedBy.code)
-        size_t len;         // number of code units
+        size_t length;      // number of code units
         ubyte sz = 1;       // 1: char, 2: wchar, 4: dchar
         char postfix = 0;   // 'c', 'w', 'd'
 
@@ -4954,7 +4952,7 @@ struct ASTBase
         {
             super(loc, EXP.string_, __traits(classInstanceSize, StringExp));
             this.string = cast(char*)string.ptr;
-            this.len = string.length;
+            this.length = string.length;
             this.sz = 1;                    // work around LDC bug #1286
         }
 
@@ -4962,7 +4960,7 @@ struct ASTBase
         {
             super(loc, EXP.string_, __traits(classInstanceSize, StringExp));
             this.string = cast(char*)string;
-            this.len = len;
+            this.length = len;
             this.postfix = postfix;
             this.sz = 1;                    // work around LDC bug #1286
             this.cMacro = cMacro;
@@ -4990,9 +4988,9 @@ struct ASTBase
             }
             if (sz == encSize)
             {
-                memcpy(dest, string, len * sz);
+                memcpy(dest, string, length * sz);
                 if (zero)
-                    memset(dest + len * sz, 0, sz);
+                    memset(dest + length * sz, 0, sz);
             }
             else
                 assert(0);
@@ -5000,7 +4998,7 @@ struct ASTBase
 
         extern (D) const(char)[] toStringz() const
         {
-            auto nbytes = len * sz;
+            auto nbytes = length * sz;
             char* s = cast(char*)mem.xmalloc_noscan(nbytes + sz);
             writeTo(s, true);
             return s[0 .. nbytes];
@@ -5538,12 +5536,9 @@ struct ASTBase
 
     extern (C++) final class DeleteExp : UnaExp
     {
-        bool isRAII;
-
-        extern (D) this(Loc loc, Expression e, bool isRAII)
+        extern (D) this(Loc loc, Expression e)
         {
             super(loc, EXP.delete_, __traits(classInstanceSize, DeleteExp), e);
-            this.isRAII = isRAII;
         }
 
         override void accept(Visitor v)
@@ -6585,7 +6580,7 @@ struct ASTBase
 
     extern (C++) final class ArrayInitializer : Initializer
     {
-        Expressions index;
+        Initializers index;
         Initializers value;
         uint dim;
         Type type;
@@ -6595,7 +6590,7 @@ struct ASTBase
             super(loc, InitKind.array);
         }
 
-        void addInit(Expression index, Initializer value)
+        void addInit(Initializer index, Initializer value)
         {
             this.index.push(index);
             this.value.push(value);

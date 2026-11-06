@@ -13,7 +13,6 @@ module dmd.errors;
 
 public import core.stdc.stdarg;
 public import dmd.root.string: fTuple;
-public import dmd.hdrgen : toErrMsg;
 import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
@@ -36,7 +35,7 @@ nothrow:
  * and delegates the actual output to the virtual $(D emit) method, which
  * subclasses such as $(D dmd.sarif.ErrorSinkSarif) override to change format.
  */
-class ErrorSinkCompiler : ErrorSink
+extern (C++) class ErrorSinkCompiler : ErrorSink
 {
     /// Maximum number of errors/deprecations to display before calling $(D fatal).
     /// 0 means unlimited.
@@ -59,7 +58,6 @@ class ErrorSinkCompiler : ErrorSink
     }
 
   nothrow:
-  extern (C++):
 
     // Overrides of the abstract ErrorSink methods convert Loc to SourceLoc
     // and dispatch to the SourceLoc-taking overload that holds the gating body.
@@ -100,7 +98,7 @@ class ErrorSinkCompiler : ErrorSink
     }
 
     // SourceLoc-taking entry points used directly by `error(filename,linnum,...)`,
-    // `errorBackend`, `tip()` and supplemental sites; also called by the Loc
+    // `errorBackend` and supplemental sites; also called by the Loc
     // overloads above.
 
     final void verror(const SourceLoc loc, const(char)* format, va_list ap)
@@ -175,13 +173,6 @@ class ErrorSinkCompiler : ErrorSink
         emit(loc, format, ap, ErrorKind.message, false, false);
     }
 
-    final void vtip(const(char)* format, va_list ap)
-    {
-        if (global.gag)
-            return;
-        emit(SourceLoc.init, format, ap, ErrorKind.tip, false, false);
-    }
-
     final void verrorSupplemental(const SourceLoc loc, const(char)* format, va_list ap)
     {
         if (global.gag)
@@ -233,7 +224,7 @@ class ErrorSinkCompiler : ErrorSink
      *      loc          = location of the diagnostic
      *      format       = printf-style format string
      *      ap           = arguments for `format`
-     *      kind         = error / warning / deprecation / tip / message
+     *      kind         = error / warning / deprecation / message
      *      supplemental = follow-on note, not a primary diagnostic
      *      gagged       = diagnostic occurred under speculative gagging
      */
@@ -269,7 +260,6 @@ private Classification classificationFor(ErrorKind kind) @safe @nogc pure nothro
         case ErrorKind.error:       return Classification.error;
         case ErrorKind.warning:     return Classification.warning;
         case ErrorKind.deprecation: return Classification.deprecation;
-        case ErrorKind.tip:         return Classification.tip;
         case ErrorKind.message:     return Classification.error; // unused (handled above)
     }
 }
@@ -284,43 +274,36 @@ enum Classification : Color
     gagged = Color.brightBlue,        /// for gagged errors
     warning = Color.brightYellow,     /// for warnings
     deprecation = Color.brightCyan,   /// for deprecations
-    tip = Color.brightGreen,          /// for tip messages
 }
 
 
-static if (__VERSION__ < 2092)
-    private extern (C++) void noop(Loc loc, const(char)* format, ...) {}
-else
-    pragma(printf) private extern (C++) void noop(Loc loc, const(char)* format, ...) {}
-
-
-package auto previewErrorFunc(bool isDeprecated, FeatureState featureState) @safe @nogc pure nothrow
+package auto previewErrorFunc(ErrorSink eSink, bool isDeprecated, FeatureState featureState) @trusted @nogc nothrow
 {
     with (FeatureState) final switch (featureState)
     {
         case enabled:
-            return &error;
+            return &eSink.error;
 
         case disabled:
-            return &noop;
+            return &global.errorSinkNull.error;
 
         case default_:
-            return isDeprecated ? &noop : &deprecation;
+            return isDeprecated ? &global.errorSinkNull.deprecation : &eSink.deprecation;
     }
 }
 
-package auto previewSupplementalFunc(bool isDeprecated, FeatureState featureState) @safe @nogc pure nothrow
+package auto previewSupplementalFunc(ErrorSink eSink, bool isDeprecated, FeatureState featureState) @trusted @nogc nothrow
 {
     with (FeatureState) final switch (featureState)
     {
         case enabled:
-            return &errorSupplemental;
+            return &eSink.errorSupplemental;
 
         case disabled:
-            return &noop;
+            return &global.errorSinkNull.errorSupplemental;
 
         case default_:
-            return isDeprecated ? &noop : &deprecationSupplemental;
+            return isDeprecated ? &global.errorSinkNull.deprecation : &eSink.deprecationSupplemental;
     }
 }
 
@@ -419,6 +402,8 @@ else
  *      format = printf-style format specification
  *      ...    = printf-style variadic arguments
  */
+version (LDC) // LDC needs updating to add eSink.warning instead of warning
+{
 static if (__VERSION__ < 2092)
     extern (C++) void warning(Loc loc, const(char)* format, ...)
     {
@@ -435,6 +420,7 @@ else
         global.errorSink.vwarning(loc, format, ap);
         va_end(ap);
     }
+}
 
 /**
  * Print additional details about a warning message.
@@ -573,30 +559,6 @@ alias DiagnosticHandler = bool delegate(const ref SourceLoc location, Color head
  */
 __gshared DiagnosticHandler diagnosticHandler;
 
-/**
- * Print a tip message with the prefix and highlighting.
- * Params:
- *      format = printf-style format specification
- *      ...    = printf-style variadic arguments
- */
-static if (__VERSION__ < 2092)
-    extern (C++) void tip(const(char)* format, ...)
-    {
-        va_list ap;
-        va_start(ap, format);
-        global.errorSink.vtip(format, ap);
-        va_end(ap);
-    }
-else
-    pragma(printf) extern (C++) void tip(const(char)* format, ...)
-    {
-        va_list ap;
-        va_start(ap, format);
-        global.errorSink.vtip(format, ap);
-        va_end(ap);
-    }
-
-
 // Encapsulates a diagnostic as described by its location, format message, and kind.
 private struct DiagnosticContext
 {
@@ -636,7 +598,6 @@ private void printDiagnostic(const(char)* format, va_list ap, ref DiagnosticCont
             case ErrorKind.error:       header = "Error: "; break;
             case ErrorKind.deprecation: header = "Deprecation: "; break;
             case ErrorKind.warning:     header = "Warning: "; break;
-            case ErrorKind.tip:         header = "  Tip: "; break;
             case ErrorKind.message:     assert(0);
         }
     }

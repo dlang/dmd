@@ -1,0 +1,4 @@
+`core.time.TickDuration` has been removed.
+
+The `TickDuration` type was deprecated in 2.104.0, and is now removed from
+druntime. Instead, you should use `core.time.MonoTime`

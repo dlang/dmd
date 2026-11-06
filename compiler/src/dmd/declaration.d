@@ -18,7 +18,7 @@ import dmd.arraytypes;
 import dmd.astenums;
 import dmd.dsymbol;
 import dmd.dtemplate;
-import dmd.errors;
+import dmd.errors : fatal;
 import dmd.errorsink;
 import dmd.expression;
 import dmd.func;
@@ -433,10 +433,43 @@ extern (C++) class VarDeclaration : Declaration
     Expression edtor;               // if !=null, does the destruction of the variable
     IntRange* range;                // if !=null, the variable is known to be within the range
 
-    uint endlinnum;                 // line number of end of scope that this var lives in
+    Loc endloc;                     // line number of end of scope that this var lives in
     uint offset;
     uint sequenceNumber;            // order the variables are declared
     structalign_t alignment;
+
+    /// Global ImportC `static` variables seen while parsing; their D
+    /// visibility gets forced back to private once dsymbolSemantic() has
+    /// run for every module, in fixImportCStaticVisibility(), since
+    /// dsymbolSemantic() itself unconditionally overwrites whatever
+    /// visibility the parser set with the enclosing scope's own default.
+    extern (D) __gshared VarDeclaration[] importCStaticGlobals;
+
+    /***********************************************************
+     * Register this as a global ImportC `static` variable whose D
+     * visibility needs forcing back to private after semantic analysis,
+     * since C's `static` at file scope means something dsymbolSemantic()
+     * does not otherwise preserve.
+     */
+    extern (D) final void registerImportCStaticGlobal()
+    {
+        importCStaticGlobals ~= this;
+    }
+
+    /***********************************************************
+     * Force D visibility back to private for every registered ImportC
+     * `static` global. Must run after dsymbolSemantic() has completed for
+     * every module, since that pass is what overwrites the visibility in
+     * the first place, and before semantic3 begins, since that is when
+     * expressions referencing these variables get their own access
+     * checked.
+     */
+    extern (D) static void fixImportCStaticVisibility()
+    {
+        foreach (vd; importCStaticGlobals)
+            vd.visibility = Visibility(Visibility.Kind.private_);
+        importCStaticGlobals = null;
+    }
 
     // When interpreting, these point to the value (NULL if value not determinable)
     // The index of this variable on the CTFE stack, AdrOnStackNone if not allocated
@@ -596,7 +629,10 @@ extern (C++) class VarDeclaration : Declaration
             Dsymbol parent = toParent();
             if (!parent && !(storage_class & STC.static_))
             {
-                .error(loc, "%s `%s` forward referenced", kind, toPrettyChars);
+                import dmd.globals : global;
+                import dmd.errorsink;
+                auto eSink = global.errorSink;
+                eSink.error(loc, "%s `%s` forward referenced", kind, toPrettyChars);
                 type = Type.terror;
             }
             else if (storage_class & (STC.static_ | STC.extern_ | STC.gshared) ||
@@ -733,6 +769,15 @@ private Identifier getTypeInfoIdent(Type t)
 extern (C++) class TypeInfoDeclaration : VarDeclaration
 {
     Type tinfo;
+
+    version (NoBackend) {}
+    else version (IN_GCC) {}
+    else version (IN_LLVM) {}
+    else // MARS
+    {
+        // FIXME: is there a nicer place for this bool, outside the frontend?
+        bool hadCodegen; // whether it was codegen'd already
+    }
 
     final extern (D) this(Type tinfo)
     {

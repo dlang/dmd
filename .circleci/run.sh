@@ -156,6 +156,7 @@ check_clean_git()
     # auto-removal of these files doesn't work on CirleCi
     rm -f compiler/test/compilable/vcg-ast.d.cg
     rm -f compiler/test/compilable/vcg-ast-arraylength.d.cg
+    rm -f compiler/test/compilable/issue23972.d.cg
     # Ensure that there are no untracked changes
     make check-clean-git HOST_DMD=dummy
 }

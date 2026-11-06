@@ -8,6 +8,9 @@
  */
 module core.sys.posix.aio;
 
+version (WASI) {}
+else:
+
 import core.stdc.config;
 import core.sys.posix.signal;
 import core.sys.posix.sys.types;

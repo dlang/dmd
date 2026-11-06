@@ -40,6 +40,7 @@ nothrow:
     trace         =  add profiling code
     nofloat       = do not pull in floating point code
     vasm          = print generated assembler for each function
+    vasmName      = file name for vasm
     verbose       = verbose compile
     optimize      = optimize code
     symdebug      = add symbolic debug information,
@@ -71,6 +72,7 @@ void out_config_init(
         bool trace,
         bool nofloat,
         bool vasm,      // print generated assembler for each function
+        const(char)[] vasmName,
         bool verbose,
         bool optimize,
         int symdebug,
@@ -201,9 +203,10 @@ void out_config_init(
         if (!exe)
         {
             cfg.flags3 |= CFG3pic;
-            if (model == 64)
+            if (0 && model == 64)
                 cfg.flags |= CFGalwaysframe; // autotester fails without this
                                                 // https://issues.dlang.org/show_bug.cgi?id=21042
+                                                // https://github/dlang/dmd/issues/19746
         }
         if (symdebug)
             cfg.flags |= CFGalwaysframe;
@@ -350,6 +353,7 @@ static if (0)
         cfg.flags3 |= CFG3wkfloat;
 
     cfg.vasm = vasm;
+    cfg.vasmName = vasmName;
     cfg.verbose = verbose;
 
     go.AArch64 = arm;

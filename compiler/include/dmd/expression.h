@@ -317,7 +317,11 @@ public:
     utf8_t postfix;      // 'c', 'w', 'd'
     OwnedBy ownedByCtfe;
     void *string;       // char, wchar, dchar, or long data
-    size_t len;         // number of chars, wchars, or dchars
+    union
+    {
+        size_t length;  // number of chars, wchars, or dchars
+        size_t len;     // deprecated old name
+    };
     unsigned char sz;   // 1: char, 2: wchar, 4: dchar
     d_bool committed;   // if type is committed
     d_bool hexString;   // if string is parsed from a hex string literal
@@ -336,7 +340,6 @@ class InterpExp final : public Expression
 {
 public:
     utf8_t postfix;   // 'c', 'w', 'd'
-    OwnedBy ownedByCtfe;
     void* interpolatedSet;
 
     void accept(Visitor* v) override { v->visit(this); }
@@ -833,7 +836,6 @@ public:
 class DeleteExp final : public UnaExp
 {
 public:
-    d_bool isRAII;
     void accept(Visitor *v) override { v->visit(this); }
 };
 
@@ -880,8 +882,6 @@ public:
     bool upperIsInBounds(bool v);
     bool lowerIsLessThanUpper() const; // true if lwr <= upr
     bool lowerIsLessThanUpper(bool v);
-    bool arrayop() const; // an array operation, rather than a slice
-    bool arrayop(bool v);
 private:
     uint8_t bitFields;
 

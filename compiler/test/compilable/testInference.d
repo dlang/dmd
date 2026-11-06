@@ -284,8 +284,8 @@ void test8504()
     auto fp1 = toDelegate8504a(&testC8504);
     auto fp2 = toDelegate8504b(&testC8504);
     static assert(is(typeof(fp1) == typeof(fp2)));
-    static assert(typeof(fp1).stringof == "extern (C) void function()");
-    static assert(typeof(fp2).stringof == "extern (C) void function()");
+    static assert(typeof(fp1).stringof == "extern(C) void function()");
+    static assert(typeof(fp2).stringof == "extern(C) void function()");
     static assert(typeof(fp1).mangleof == "PUZv");
     static assert(typeof(fp2).mangleof == "PUZv");
 }

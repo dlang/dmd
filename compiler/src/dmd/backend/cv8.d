@@ -36,7 +36,7 @@ import dmd.backend.oper;
 import dmd.backend.global : getFileContentsCallback;
 import dmd.common.outbuffer;
 import dmd.backend.rtlsym;
-import dmd.backend.symbol : globsym;
+import dmd.backend.symbol;
 import dmd.backend.ty;
 import dmd.backend.type;
 import dmd.backend.dvarstats;
@@ -237,7 +237,8 @@ void cv8_termfile(const(char)[] objfilename)
         buf.write16(cast(int)(2 + 4 + len + 1));
         buf.write16(S_OBJNAME_V3);
         buf.write32(0);                          // signature
-        buf.write(objfilename.ptr, cast(uint)(len + 1));
+        buf.write(objfilename.ptr, cast(uint)(len));
+        buf.writeByte(0);
     }
 
     // S_COMPILE3 record: honor the configured language and report the real
@@ -256,25 +257,6 @@ void cv8_termfile(const(char)[] objfilename)
     }
 
     cv8_writesection(seg, DEBUG_S_SYMBOLS, &buf);
-
-    // S_ENVBLOCK record: build environment (cwd), double-null terminated
-    {
-        auto ebuf = OutBuffer(128);
-        char[260] cwd = 0;
-        if (!getcwd(cwd.ptr, cwd.sizeof))
-            cwd[0] = 0;
-        size_t cwdlen = strlen(cwd.ptr);
-        uint rec = cast(uint)(2 + 1 + 4 + cwdlen + 1 + 4 + 1 + 1);
-        ebuf.write16(cast(int)rec);
-        ebuf.write16(S_ENVBLOCK);
-        ebuf.writeByte(0);                       // flags
-        ebuf.write("cwd\0".ptr, 4);
-        ebuf.write(cwd.ptr, cast(uint)(cwdlen + 1));
-        ebuf.write("cmd\0".ptr, 4);
-        ebuf.writeByte(0);                       // empty cmd value
-        ebuf.writeByte(0);                       // terminating double-null
-        cv8_writesection(seg, DEBUG_S_SYMBOLS, &ebuf);
-    }
 
     // S_BUILDINFO record referencing an LF_BUILDINFO id record
     {
@@ -565,7 +547,7 @@ void cv8_func_term(Symbol* sfunc)
 
     // Write function end symbol
     buf.write16(2);
-    buf.write16(S_END);
+    buf.write16(S_PROC_ID_END);
 
     currentfuncdata.f1buf = F1_buf;
     currentfuncdata.f1fixup = F1fixup;
@@ -674,12 +656,12 @@ L1:
     // Not present; append a checksum computed over the source file's content
     // so debuggers can verify the source matches.
     F4_buf.write32(off);
-    ubyte[16] hash = void;
+    ubyte[32] hash = void;
     if (cv8_filehash(filename, hash))
     {
-        F4_buf.writeByte(16);              // checksum size
-        F4_buf.writeByte(CHKSUM_MD5);      // 16-byte checksum slot
-        F4_buf.write(hash.ptr, 16);
+        F4_buf.writeByte(32);              // checksum size
+        F4_buf.writeByte(CHKSUM_SHA256);   // 32-byte checksum slot
+        F4_buf.write(hash.ptr, 32);
     }
     else
     {
@@ -1207,15 +1189,15 @@ idx_t cv8_daarray(type* t, idx_t keyidx, idx_t validx)
     return cv_debtyp(d);
 }
 
-/* Compute a blake3 hash over the *content* of the named source file, so that
- * debuggers can verify the source matches. The hash goes into the 16-byte
- * MD5 checksum slot of the file-checksums (F4) subsection.
+/* Compute a SHA-256 hash over the *content* of the named source file, so that
+ * debuggers can verify the source matches. The hash goes into the 32-byte
+ * SHA-256 checksum slot of the file-checksums (F4) subsection.
  * The content is fetched from the front-end FileManager cache (Module.src)
  * rather than re-read from disk, which would add significant I/O to every build.
  * Returns: true on success (hash filled in), false if the content is unavailable.
  */
 private @trusted
-bool cv8_filehash(const(char)* filename, ref ubyte[16] hash)
+bool cv8_filehash(const(char)* filename, ref ubyte[32] hash)
 {
     if (!getFileContentsCallback)
         return false;
@@ -1225,8 +1207,8 @@ bool cv8_filehash(const(char)* filename, ref ubyte[16] hash)
     if (!data)
         return false;
 
-    import dmd.common.md5;
-    MD5 md;
+    import dmd.common.sha;
+    SHA!(512, 256) md;
     md.start();
     md.put(data[0 .. length]);
     hash = md.finish();

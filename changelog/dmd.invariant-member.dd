@@ -1,0 +1,5 @@
+The generated invariant is now accessible as `__invariant`
+
+The function the compiler generates to run an aggregate's `invariant` blocks
+can now be referred to as `__invariant`, like the generated destructor as
+`__xdtor`, and is listed by `__traits(allMembers)`.

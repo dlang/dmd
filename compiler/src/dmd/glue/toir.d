@@ -50,11 +50,11 @@ import dmd.dsymbol;
 import dmd.dsymbolsem : followInstantiationContext, toParentP;
 import dmd.expressionsem : toInteger;
 import dmd.dtemplate;
-import dmd.errors;
 import dmd.errorsink;
 import dmd.func;
 import dmd.funcsem;
 import dmd.globals : Param;
+import dmd.hdrgen : toErrMsg;
 import dmd.identifier;
 import dmd.id;
 import dmd.location;
@@ -279,7 +279,6 @@ elem* getEthis(Loc loc, ref IRState irs, Dsymbol fd, Dsymbol fdp = null, Dsymbol
 
                 int offset;
                 cdp.isBaseOf(cd, &offset);
-                assert(offset != ClassDeclaration.OFFSET_RUNTIME);
                 //printf("%s to %s, offset = %d\n", cd.toChars(), cdp.toChars(), offset);
                 if (offset)
                 {

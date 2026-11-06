@@ -550,8 +550,7 @@ int ElfObj_string_literal_segment(uint sz)
     assert(sz != 0 && bsr(sz) == bsf(sz)); // sz must be power of 2
     static immutable char[4][4] name = [ "1.1", "2.2", "4.4", "8.8" ];
     const int i = bsr(sz);
-    // FIXME: can't use SHF_MERGE | SHF_STRINGS because of https://issues.dlang.org/show_bug.cgi?id=22483
-    const IDXSEC seg = ElfObj_getsegment(".rodata.str".ptr, name[i].ptr, SHT_PROGBITS, SHF_ALLOC, sz);
+    const IDXSEC seg = ElfObj_getsegment(".rodata.str".ptr, name[i].ptr, SHT_PROGBITS, SHF_ALLOC | SHF_MERGE | SHF_STRINGS, sz, sz);
     return seg;
 }
 
@@ -1570,11 +1569,11 @@ else
         {
             // Create a new COMDAT section group
             Pair* pidx2 = elf_addsectionname(".group");
-            groupseg = elf_addsegment(pidx2.start, SHT_GROUP, 0, (IDXSYM).sizeof);
+            groupseg = elf_addsegment(pidx2.start, SHT_GROUP, 0, (IDXSYM).sizeof, 0);
             MAP_SEG2SEC(groupseg).sh_link = SHN_SYMTAB;
             MAP_SEG2SEC(groupseg).sh_entsize = (IDXSYM).sizeof;
             // Create a new TEXT section for the comdat symbol with the SHF_GROUP bit set
-            s.Sseg = elf_addsegment(pidx.start, SHT_PROGBITS, SHF_ALLOC|SHF_EXECINSTR|SHF_GROUP, align_);
+            s.Sseg = elf_addsegment(pidx.start, SHT_PROGBITS, SHF_ALLOC|SHF_EXECINSTR|SHF_GROUP, align_, 0);
             // add TEXT section to COMDAT section group
             SegData[groupseg].SDbuf.write32(GRP_COMDAT);
             SegData[groupseg].SDbuf.write32(MAP_SEG2SECIDX(s.Sseg));
@@ -1794,16 +1793,17 @@ private segidx_t elf_addsegment2(IDXSEC shtidx, IDXSYM symidx, IDXSEC relidx)
  *     nameidx = string index of section name
  *        type = section header type, e.g. SHT_PROGBITS
  *       flags = section header flags, e.g. SHF_ALLOC
- *       align_ = section alignment
+ *      align_ = section alignment
+ *     entsize = entity size. For merging string literals with SHF_MERGE, should be size of char/wchar/dchar
  * Returns:
  *      SegData index of newly created section.
  */
-private segidx_t elf_addsegment(IDXSTR namidx, int type, int flags, int align_)
+private segidx_t elf_addsegment(IDXSTR namidx, int type, int flags, int align_, int entsize)
 {
     //dbg_printf("\tNew segment - %d size %d\n", seg,SegData[seg].SDbuf);
-    IDXSEC shtidx = elf_newsection2(namidx,type,flags,0,0,0,0,0,0,0);
+    IDXSEC shtidx = elf_newsection2(namidx,type,flags,0,0,0,0,0,0,entsize);
     elfobj.SecHdrTab[shtidx].sh_addralign = align_;
-    IDXSYM symidx = elf_addsym(0, 0, 0, STT_SECTION, STB_LOCAL, shtidx);
+    IDXSYM symidx = elf_addsym(0, 0, 0, flags & SHF_MERGE ? STT_NOTYPE : STT_SECTION, STB_LOCAL, shtidx);
     segidx_t seg = elf_addsegment2(shtidx, symidx, 0);
     //printf("-ElfObj_getsegment() = %d\n", seg);
     return seg;
@@ -1838,14 +1838,15 @@ private int elf_getsegment(IDXSTR namidx)
  *      suffix = append to name
  *        type = section header type, e.g. SHT_PROGBITS
  *       flags = section header flags, e.g. SHF_ALLOC
- *       align_ = section alignment
+ *      align_ = section alignment
+ *     entsize = entity size, 0 for default
  * Returns:
  *      SegData index of found or newly created section.
  */
 segidx_t ElfObj_getsegment(const(char)* name, const(char)* suffix, int type, int flags,
-        int align_)
+        int align_, int entsize = 0)
 {
-    //printf("ElfObj_getsegment(%s,%s,flags %x, align_ %d)\n",name,suffix,flags,align_);
+    //printf("ElfObj_getsegment(%s,%s,flags %x, align_ %d)\n",name,suffix,flags,align_,entsize);
     bool added = false;
     Pair* pidx = elf_addsectionname(name, suffix, &added);
     if (!added)
@@ -1857,7 +1858,7 @@ segidx_t ElfObj_getsegment(const(char)* name, const(char)* suffix, int type, int
     }
     else
         // New segment, cache the segment index in the hash table
-        pidx.end = elf_addsegment(pidx.start, type, flags, align_);
+        pidx.end = elf_addsegment(pidx.start, type, flags, align_, entsize);
     return pidx.end;
 }
 
@@ -3007,8 +3008,11 @@ static if (0)
                         { }
                         else
                         {
-                            refseg = MAP_SEG2SYMIDX(s.Sseg);    // use segment symbol table entry
-                            val += s.Soffset;
+                            if (!(MAP_SEG2SEC(s.Sseg).sh_flags & SHF_MERGE))
+                            {
+                                refseg = MAP_SEG2SYMIDX(s.Sseg);    // use segment symbol table entry
+                                val += s.Soffset;
+                            }
                             if (!(config.flags3 & CFG3pic) ||       // all static refs from normal code
                                  segtyp == DATA)    // or refs from data from posi indp
                             {
@@ -3256,7 +3260,7 @@ static if (0)
                 {       // code to code code to data, data to code, data to data refs
                     if (s.Sclass == SC.static_)
                     {                           // offset into .data or .bss seg
-                        if (!isTLS)
+                        if (!isTLS && !(MAP_SEG2SEC(s.Sseg).sh_flags & SHF_MERGE))
                             refseg = MAP_SEG2SYMIDX(s.Sseg);    // use segment symbol table entry
                         //val += s.Soffset;
 

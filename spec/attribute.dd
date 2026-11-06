@@ -705,7 +705,7 @@ void main()
 
     $(UL
         $(LI $(DDSUBLINK spec/struct, disable_default_construction, `@disable this();`)
-        inside a struct disallows default construction.
+        inside a struct disallows default initialization.
         )
         $(LI $(DDSUBLINK spec/struct, disable-copy, Disabling a struct copy constructor)
         makes the struct not copyable.

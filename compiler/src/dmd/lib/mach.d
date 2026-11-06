@@ -359,9 +359,11 @@ private:
             MachObjSymbol* os = objsymbols[i];
             moffset += 8 + os.name.length + 1;
         }
-        moffset = (moffset + 3) & ~3;
-        //if (moffset & 4)
-        //    moffset += 4;
+        /* Align the first member to 8 bytes: ld requires embedded Mach-O
+         * objects to be 8-byte aligned, and the header + "#1/<len>" name +
+         * padding is always a multiple of 8, so the rest stays aligned.
+         */
+        moffset = (moffset + 7) & ~7;
         uint hoffset = moffset;
         static if (LOG)
         {
@@ -439,10 +441,8 @@ private:
             libbuf.writestring(os.name);
             libbuf.writeByte(0);
         }
-        while (libbuf.length & 3)
+        while (libbuf.length & 7)
             libbuf.writeByte(0);
-        //if (libbuf.length & 4)
-        //    libbuf.write(pad[0 .. 4]);
         static if (LOG)
         {
             printf("\tlibbuf.moffset = x%x\n", libbuf.length);

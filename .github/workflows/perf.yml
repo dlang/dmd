@@ -10,27 +10,26 @@ on:
     branches: [master]
 
 concurrency:
-  group: perf-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  group: perf-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
 
 jobs:
   perf:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 60
     env:
       OS_NAME: linux
       MODEL: 64
       FULL_BUILD: false
       HOST_DMD: ldc-1.42.0
-      ENABLE_LTO: 1
     defaults:
       run:
         shell: bash
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -42,11 +41,23 @@ jobs:
         run: |
           set -uexo pipefail
           HEAD_SHA="${{ github.event.pull_request.head.sha || github.sha }}"
-          git fetch --no-tags origin master
-          BASE_SHA="$(git merge-base "$HEAD_SHA" origin/master)"
-          echo "head=$HEAD_SHA"     >> "$GITHUB_OUTPUT"
-          echo "base=$BASE_SHA"     >> "$GITHUB_OUTPUT"
+          echo "head=$HEAD_SHA" >> "$GITHUB_OUTPUT"
           echo "branch=${GITHUB_BASE_REF:-master}" >> "$GITHUB_OUTPUT"
+
+          # A pushed commit is its own merge-base with master, so nothing
+          # to diff against there. Measure alone and record it as history.
+          if [ "${{ github.event_name }}" = pull_request ]; then
+            git fetch --no-tags origin master
+            echo "base=$(git merge-base "$HEAD_SHA" origin/master)" >> "$GITHUB_OUTPUT"
+          else
+            BEFORE="${{ github.event.before }}"
+            # All zeroes on the first push to a branch.
+            git rev-parse -q --verify "$BEFORE^{commit}" > /dev/null || BEFORE="$HEAD_SHA~"
+            echo "base=" >> "$GITHUB_OUTPUT"
+            echo "before=$BEFORE" >> "$GITHUB_OUTPUT"
+            echo "commits=$(git rev-list --count "$BEFORE..$HEAD_SHA")" >> "$GITHUB_OUTPUT"
+            echo "date=$(TZ=UTC git show -s --format=%cd --date=iso-strict-local "$HEAD_SHA")" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Install prerequisites
         run: |
@@ -65,55 +76,74 @@ jobs:
         run: |
           set -uexo pipefail
           source ~/dlang/*/activate
-          built=generated/$OS_NAME/release/$MODEL
-          profile="$RUNNER_TEMP/pgo/merged.data"
-          mkdir -p "$RUNNER_TEMP/pgo"
+          BASE_SHA="${{ steps.refs.outputs.base }}"
 
-          # Check out a ref and build a plain dmd + phobos
+          # Check out a ref in an isolated temp dir and clone phobos.
           setup_ref() {
             local dir="$RUNNER_TEMP/$2/dmd"
             mkdir -p "$RUNNER_TEMP/$2"
             git worktree add --force "$dir" "$1"
             ( cd "$dir" && ci/run.sh setup_repos "${{ steps.refs.outputs.branch }}" )
-            ( cd "$dir" && $DMD -of=generated/build -g compiler/src/build.d )
-            ( cd "$dir" && generated/build HOST_DMD=$DMD MODEL=$MODEL -j$N )
-            ( cd "$dir/../phobos" && make -j$N MODEL=$MODEL )
           }
 
-          # Rebuild dmd against the shared profile so that base and head got identical PGO guidance.
-          build_with_profile() {
-            local dir="$RUNNER_TEMP/$1/dmd"
-            ( cd "$dir" && generated/build HOST_DMD=$DMD MODEL=$MODEL \
-                ENABLE_RELEASE=1 ENABLE_LTO=1 \
-                DFLAGS="-fprofile-instr-use=$profile -wi" -j$N --force )
+          # Build LTO+PGO'd dmd, druntime and phobos, Lines are tagged with the ref.
+          build_ref() {
+            make -C "$RUNNER_TEMP/$1/dmd" -j$N HOST_DMD=$DMD MODEL=$MODEL dmd-pgo 2>&1 | sed -u "s/^/[$1] /"
           }
 
-          setup_ref "${{ steps.refs.outputs.base }}" base
+          # Both build in parallel
           setup_ref "${{ steps.refs.outputs.head }}" head
-
-          # Train PGO once, then reuse the profile for both refs.
-          ( cd "$RUNNER_TEMP/base/dmd" && generated/build HOST_DMD=$DMD MODEL=$MODEL dmd-pgo -j$N --force )
-          cp "$RUNNER_TEMP/base/dmd/$built/dmd_profdata/merged.data" "$profile"
-          build_with_profile base
-          build_with_profile head
+          if [ -n "$BASE_SHA" ]; then
+            setup_ref "$BASE_SHA" base
+            build_ref base & base_pid=$!
+          fi
+          build_ref head
+          if [ -n "$BASE_SHA" ]; then
+            wait $base_pid
+          fi
           deactivate
+
+      - name: Cache dub packages
+        uses: actions/cache@v6
+        with:
+          path: ~/.dub/packages
+          key: dub-packages-${{ hashFiles('tools/perfrunner/workloads/vibed/dub.selections.json') }}
 
       - name: Measure
         run: |
           set -uexo pipefail
           source ~/dlang/*/activate
           built=generated/$OS_NAME/release/$MODEL/dmd
-          cd tools/perfrunner
-          dub run -- \
-            --base-dmd "$RUNNER_TEMP/base/dmd/$built" \
-            --head-dmd "$RUNNER_TEMP/head/dmd/$built" \
-            --base-phobos "$RUNNER_TEMP/base/phobos" \
-            --head-phobos "$RUNNER_TEMP/head/phobos" \
-            --base-sha "${{ steps.refs.outputs.base }}" \
-            --head-sha "${{ steps.refs.outputs.head }}" \
-            --pr "${{ github.event.pull_request.number || 0 }}" \
-            --host-dmd "$HOST_DMD" \
+          BASE_SHA="${{ steps.refs.outputs.base }}"
+
+          args=(
+            --head-dmd "$RUNNER_TEMP/head/dmd/$built"
+            --head-phobos "$RUNNER_TEMP/head/phobos"
+            --head-src "$RUNNER_TEMP/head/dmd"
+            --head-sha "${{ steps.refs.outputs.head }}"
+            --os ubuntu-24.04
+            --host-dmd "$HOST_DMD"
+            --host-dmd-bin "$DMD"
             --out "$GITHUB_WORKSPACE/results.json"
+          )
+          if [ -n "$BASE_SHA" ]; then
+            args+=(
+              --base-dmd "$RUNNER_TEMP/base/dmd/$built"
+              --base-phobos "$RUNNER_TEMP/base/phobos"
+              --base-src "$RUNNER_TEMP/base/dmd"
+              --base-sha "$BASE_SHA"
+              --pr "${{ github.event.pull_request.number || 0 }}"
+            )
+          else
+            args+=(
+              --before "${{ steps.refs.outputs.before }}"
+              --commits "${{ steps.refs.outputs.commits }}"
+              --committed-at "${{ steps.refs.outputs.date }}"
+            )
+          fi
+
+          cd tools/perfrunner
+          dub run -- "${args[@]}"
 
       - name: Show results
         run: cat "$GITHUB_WORKSPACE/results.json"
@@ -121,7 +151,16 @@ jobs:
       # perf-comment.yml picks this up and posts the comment.
       - name: Upload results
         if: github.event_name == 'pull_request'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: perf-results
           path: results.json
+
+      - name: Publish to the history repo
+        if: github.event_name == 'push' && vars.PERF_DATA_REPO != ''
+        env:
+          PERF_DATA_REPO: ${{ vars.PERF_DATA_REPO }}
+          PERF_DATA_KEY: ${{ secrets.PERF_DATA_KEY }}
+          SHA: ${{ steps.refs.outputs.head }}
+          COMMITTED_AT: ${{ steps.refs.outputs.date }}
+        run: .github/scripts/perf_publish.sh "$GITHUB_WORKSPACE/results.json"

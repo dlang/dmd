@@ -41,6 +41,7 @@ import dmd.backend.debugprint : oper_str;
 import dmd.backend.evalu8 : boolres, evalu8, iffalse;
 import dmd.backend.util2 : ispow2;
 import dmd.backend.oper;
+import dmd.backend.symbol;
 import dmd.backend.ty;
 import dmd.backend.evalu8 : el_toreald;
 import dmd.backend.x86.xmm;
@@ -1604,6 +1605,8 @@ void cdmulass(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             opr = uns ? 4 : 5;              // MUL/IMUL
             resreg = AX;                    // result register for *
         }
+        // The final store also modifies EA when it is a register.
+        modEA(cdb, &cs);
         code_newreg(&cs,opr);
         cdb.gen(&cs);
 

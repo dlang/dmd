@@ -388,6 +388,23 @@ void testEvaluationOrder()
 }
 
 /************************************************/
+// https://github.com/dlang/dmd/issues/24090
+
+struct S24090
+{
+    int[string] aa;
+}
+
+immutable S24090 s24090 = S24090(["a": 1]);
+// Compiles when you remove this line
+immutable S24090[] a24090 = [s24090];
+
+void test24090()
+{
+    assert(a24090[0].aa["a"] == 1);
+}
+
+/************************************************/
 
 int main()
 {
@@ -399,7 +416,8 @@ int main()
     testinout();
     testinenum();
     test21258();
-	testEvaluationOrder();
+    testEvaluationOrder();
+    test24090();
 
     printf("Success\n");
     return 0;

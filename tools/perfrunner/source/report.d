@@ -27,6 +27,20 @@ struct Report
     MetricResult[] metrics;
     Trace helloBase, helloHead;
     Trace phobosBase, phobosHead;
+    Trace ctregexBase, ctregexHead;
+}
+
+// One master commit measured on its own.
+struct CommitRecord
+{
+    string sha;
+    string committedAt;
+    string before;
+    long commits;
+    string os;
+    string hostDmd;
+    long[string] metrics;
+    Trace hello, phobos, ctregex;
 }
 
 // Serialise a report to the initial schema
@@ -55,6 +69,31 @@ string render(Report rep)
         "time_trace": JSONValue([
             "hello":  traceJson(rep.helloBase, rep.helloHead),
             "phobos": traceJson(rep.phobosBase, rep.phobosHead),
+            "ctregex": traceJson(rep.ctregexBase, rep.ctregexHead),
+        ]),
+    ];
+
+    return root.toPrettyString();
+}
+
+// Serialise a single-commit measurement for the history repo
+string renderCommit(CommitRecord rec)
+{
+    JSONValue[string] metrics;
+    foreach (id, value; rec.metrics)
+        metrics[id] = JSONValue(value);
+
+    JSONValue root = [
+        "schema_version": JSONValue(3),
+        "commit":       JSONValue(rec.sha),
+        "committed_at": JSONValue(rec.committedAt),
+        "push":    JSONValue(["before": JSONValue(rec.before), "commits": JSONValue(rec.commits)]),
+        "runner":  JSONValue(["os": JSONValue(rec.os), "host_dmd": JSONValue(rec.hostDmd)]),
+        "metrics": JSONValue(metrics),
+        "time_trace": JSONValue([
+            "hello":  traceJson(rec.hello),
+            "phobos": traceJson(rec.phobos),
+            "ctregex": traceJson(rec.ctregex),
         ]),
     ];
 
@@ -78,6 +117,18 @@ private JSONValue traceJson(Trace b, Trace h)
     ]);
 }
 
+private JSONValue traceJson(Trace t)
+{
+    JSONValue[string] phases;
+    foreach (id; phaseIds)
+        phases[id] = JSONValue(t.phase(id));
+
+    return JSONValue([
+        "total_us": JSONValue(t.total),
+        "phases":   JSONValue(phases),
+    ]);
+}
+
 unittest
 {
     auto rep = Report("base1", "merge-base", "head1", 7, "ubuntu-latest", "2.112.0",
@@ -96,4 +147,18 @@ unittest
 
     import std.math : isClose;
     assert(isClose(m["delta_pct"].floating, 1.0));
+}
+
+unittest
+{
+    auto rec = CommitRecord("head1", "2026-07-30T09:12:44Z", "before1", 3,
+        "ubuntu-latest", "ldc-1.42.0", ["compile_hello_debug_instr": 1000L]);
+
+    auto j = parseJSON(renderCommit(rec));
+    assert(j["schema_version"].integer == 3);
+    assert(j["commit"].str == "head1");
+    assert(j["push"]["commits"].integer == 3);
+    assert(j["metrics"]["compile_hello_debug_instr"].integer == 1000);
+    assert(j["time_trace"]["hello"]["total_us"].integer == 0);
+    assert(j["time_trace"]["ctregex"]["total_us"].integer == 0);
 }

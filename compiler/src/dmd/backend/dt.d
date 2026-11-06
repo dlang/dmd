@@ -22,8 +22,8 @@ import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.global : size;
 import dmd.backend.dout : outdata;
-import dmd.backend.symbol : symbol_calloc;
 import dmd.backend.mem;
+import dmd.backend.symbol;
 import dmd.backend.ty;
 import dmd.backend.type;
 

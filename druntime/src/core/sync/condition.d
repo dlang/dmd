@@ -21,6 +21,7 @@ public import core.sync.mutex;
 public import core.time;
 
 import core.exception : AssertError, staticError;
+import core.thread : isSingleThreaded;
 
 
 version (Windows)
@@ -40,10 +41,6 @@ else version (Posix)
     import core.sys.posix.pthread : pthread_cond_broadcast, pthread_cond_destroy, pthread_cond_init,
         pthread_cond_signal, pthread_cond_t, pthread_cond_timedwait, pthread_cond_wait;
     import core.sys.posix.time : timespec;
-}
-else version (WASI)
-{
-    // Dummy no-ops
 }
 else
 {
@@ -254,10 +251,6 @@ class Condition
             if ( rc )
                 throw staticError!AssertError("Unable to wait for condition", __FILE__, __LINE__);
         }
-        else version (WASI)
-        {
-            throw staticError!AssertError("Unable to wait for condition", __FILE__, __LINE__);
-        }
     }
 
     /**
@@ -323,10 +316,6 @@ class Condition
                 return false;
             throw staticError!AssertError("Unable to wait for condition", __FILE__, __LINE__);
         }
-        else version (WASI)
-        {
-            throw staticError!AssertError("Unable to wait for condition", __FILE__, __LINE__);
-        }
     }
 
     /**
@@ -375,10 +364,6 @@ class Condition
             if ( rc )
                 throw staticError!AssertError("Unable to notify condition", __FILE__, __LINE__);
         }
-        else version (WASI)
-        {
-            throw staticError!AssertError("Unable to notify condition", __FILE__, __LINE__);
-        }
     }
 
     /**
@@ -426,10 +411,6 @@ class Condition
             } while ( rc == EAGAIN );
             if ( rc )
                 throw staticError!AssertError("Unable to notify condition", __FILE__, __LINE__);
-        }
-        else version (WASI)
-        {
-            throw staticError!AssertError("Unable to notify condition", __FILE__, __LINE__);
         }
     }
 
@@ -636,10 +617,6 @@ private:
         Mutex               m_assocMutex;
         pthread_cond_t      m_hndl;
     }
-    else version (WASI)
-    {
-        Mutex               m_assocMutex;
-    }
 }
 
 
@@ -647,10 +624,10 @@ private:
 // Unit Tests
 ////////////////////////////////////////////////////////////////////////////////
 
-version (WASI) {} // WASI is single-threaded
-else
+static if(!isSingleThreaded)
 unittest
 {
+    import core.atomic : atomicLoad;
     import core.sync.mutex;
     import core.sync.semaphore;
     import core.thread;
@@ -815,10 +792,10 @@ unittest
     testWaitTimeout();
 }
 
-version (WASI) {} // WASI is single-threaded
-else
+static if(!isSingleThreaded)
 unittest
 {
+    import core.atomic : atomicLoad;
     import core.sync.mutex;
     import core.sync.semaphore;
     import core.thread;
@@ -827,7 +804,7 @@ unittest
     void testNotify()
     {
         auto mutex      = new shared Mutex;
-        auto condReady  = new shared Condition( mutex );
+        auto condReady  = new shared Condition( atomicLoad(mutex) );
         auto semDone    = new Semaphore;
         auto synLoop    = new Object;
         int  numWaiters = 10;
@@ -841,7 +818,7 @@ unittest
         {
             for ( int i = 0; i < numTries; ++i )
             {
-                synchronized( mutex )
+                synchronized( atomicLoad(mutex) )
                 {
                     while ( numReady < 1 )
                     {
@@ -868,7 +845,7 @@ unittest
         {
             for ( int j = 0; j < numWaiters; ++j )
             {
-                synchronized( mutex )
+                synchronized( atomicLoad(mutex) )
                 {
                     ++numReady;
                     condReady.notify();
@@ -897,7 +874,7 @@ unittest
     void testNotifyAll()
     {
         auto mutex      = new shared Mutex;
-        auto condReady  = new shared Condition( mutex );
+        auto condReady  = new shared Condition( atomicLoad(mutex) );
         int  numWaiters = 10;
         int  numReady   = 0;
         int  numDone    = 0;
@@ -905,7 +882,7 @@ unittest
 
         void waiter()
         {
-            synchronized( mutex )
+            synchronized( atomicLoad(mutex) )
             {
                 ++numReady;
                 while ( !alert )
@@ -921,7 +898,7 @@ unittest
 
         while ( true )
         {
-            synchronized( mutex )
+            synchronized( atomicLoad(mutex) )
             {
                 if ( numReady >= numWaiters )
                 {
@@ -940,14 +917,14 @@ unittest
     void testWaitTimeout()
     {
         auto mutex      = new shared Mutex;
-        auto condReady  = new shared Condition( mutex );
+        auto condReady  = new shared Condition( atomicLoad(mutex) );
         bool waiting    = false;
         bool alertedOne = true;
         bool alertedTwo = true;
 
         void waiter()
         {
-            synchronized( mutex )
+            synchronized( atomicLoad(mutex) )
             {
                 waiting    = true;
                 // we never want to miss the notification (30s)
@@ -962,7 +939,7 @@ unittest
 
         while ( true )
         {
-            synchronized( mutex )
+            synchronized( atomicLoad(mutex) )
             {
                 if ( waiting )
                 {

@@ -74,18 +74,16 @@ When you're not familiar yet with the code base, it can be hard to find where to
 
 ### Creating the fix
 
-Check out the `master` or `stable` branch, and pull in the latest changes.
+Check out the `master` branch, and pull in the latest changes.
 If you just forked the repository, you're probably already up to date.
 If it's been a while and you don't update, you might get merge conflicts and spurious test suite failures.
 
 ```
-git checkout stable
-git pull --ff-only upstream stable
+git checkout master
+git pull --ff-only upstream master
 ```
 
-- Make sure to target the right branch.
-Regressions and bug fixes go to stable, new features go to master.
-See also: [our release process](https://wiki.dlang.org/DIP75).
+- Regressions, bug fixes and new features go to `master`. Regressions and bug fixes and should be labelled with `Backport:2.xxx` where applicable.
 
 Create a new branch, and commit your code changes on there.
 ```

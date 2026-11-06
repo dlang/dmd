@@ -337,7 +337,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         auto next = peek(t);
         if (next.value != TOK.leftParenthesis)
             return false;
-        if (compileEnv.tuples && isTupleNotation(next))
+        if (isTupleNotation(next))
             return false;
         return true;
     }
@@ -845,7 +845,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 {
                     auto next = peek(&token);
                     if (next.value != TOK.leftParenthesis ||
-                        compileEnv.tuples && peekPastParen(next).value == TOK.assign)
+                        peekPastParen(next).value == TOK.assign)
                     {
                         stc = STC.extern_;
                         goto Lstc;
@@ -1098,7 +1098,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
             case TOK.leftParenthesis:
                 // confirm unpacking for better error messages:
-                if (compileEnv.tuples && peekPastParen(&token).value == TOK.assign)
+                if (peekPastParen(&token).value == TOK.assign)
                     goto Ldeclaration;
                 goto default;
 
@@ -1288,7 +1288,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
      * Parse auto declarations of the form:
      *   storageClass ident = init, ident = init, ... ;
      * and return the array of them.
-     * Starts with token on the first ident, or '(' with -preview=tuples.
+     * Starts with token on the first ident, or '('
      * Ends with scanner past closing ';'
      */
     private AST.Dsymbols* parseAutoDeclarations(STC storageClass, const(char)* comment)
@@ -1302,7 +1302,6 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             AST.Dsymbol s;
             if (token.value == TOK.leftParenthesis)
             {
-                assert(compileEnv.tuples);
                 s = parseUnpackDeclaration(storageClass, true);
                 if (!storageClass && token.value == TOK.comma)
                 {
@@ -3239,7 +3238,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                             if (tpl && !*tpl && hasAutoRefParam)
                                 *tpl = new AST.TemplateParameters();
 
-                            if (compileEnv.tuples && tpl && token.value == TOK.leftParenthesis)
+                            if (tpl && token.value == TOK.leftParenthesis)
                             {
                                 const tv2 = peekPastParen(&token).value;
                                 if (tv2 == TOK.comma || tv2 == TOK.rightParenthesis || tv2 == TOK.dotDotDot)
@@ -4643,7 +4642,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 {
                     auto next = peek(&token);
                     if (next.value != TOK.leftParenthesis ||
-                        compileEnv.tuples && peekPastParen(next).value == TOK.assign)
+                        peekPastParen(next).value == TOK.assign)
                     {
                         stc = STC.extern_;
                         goto L1;
@@ -4804,7 +4803,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
              *  (int x, auto y) = initializer;
              *  storage_class (a, b, ...) = initializer;
              */
-            if (compileEnv.tuples && token.value == TOK.leftParenthesis &&
+            if (token.value == TOK.leftParenthesis &&
                 isTupleNotation(&token))
             {
                 // TODO: can we merge this with the branch below?
@@ -5133,7 +5132,17 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
     /// The parser is expected to sit on the next token after the type.
     private void noIdentifierForDeclarator(AST.Type t, Token tok)
     {
-        error("variable name expected after type `%s`, not `%s`", t.toChars(), tok.toChars);
+        import core.stdc.string : strchr;
+        // The type may embed a broken default argument (e.g. a malformed
+        // function literal produced during error recovery), whose printed
+        // form can contain newlines and leak internal placeholders like
+        // `__error__` into this message. Fall back to a generic string
+        // in that case instead of reproducing the raw internal AST dump.
+        // See https://github.com/dlang/dmd/issues/19824
+        const(char)* ts = t.toChars();
+        if (strchr(ts, '\n'))
+            ts = "<error type>";
+        error("variable name expected after type `%s`, not `%s`", ts, tok.toChars);
 
         // A common mistake is to use a reserved keyword as an identifier, e.g. `in` or `out`
         if (token.isKeyword)
@@ -5952,7 +5961,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     goto Larg;
                 }
             }
-            else if (compileEnv.tuples && token.value == TOK.leftParenthesis)
+            else if (token.value == TOK.leftParenthesis)
             {
                 TOK after = peekPastParen(&token).value;
                 if (after == TOK.comma || after == TOK.semicolon)
@@ -6414,7 +6423,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 AST.Dsymbols* a = parseDeclarations(false, null, null);
                 if (a.length > 1)
                 {
-                    auto as = new AST.Statements();
+                    AST.Statements as;
                     as.reserve(a.length);
                     foreach (i; 0 .. a.length)
                     {
@@ -6422,7 +6431,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                         s = new AST.ExpStatement(loc, d);
                         as.push(s);
                     }
-                    s = new AST.CompoundDeclarationStatement(loc, as);
+                    s = new AST.CompoundDeclarationStatement(loc, as.move());
                 }
                 else if (a.length == 1)
                 {
@@ -6503,7 +6512,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 nextToken();
                 //if (token.value == TOK.semicolon)
                 //    error("use `{ }` for an empty statement, not `;`");
-                auto statements = new AST.Statements();
+                AST.Statements statements;
                 while (token.value != TOK.rightCurly && token.value != TOK.endOfFile)
                 {
                     statements.push(parseStatement(ParseStatementFlags.curlyScope | ParseStatementFlags.semiOk));
@@ -6516,7 +6525,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     *pEndloc = token.loc;
                     pEndloc = null; // don't set it again
                 }
-                s = new AST.CompoundStatement(loc, statements);
+                s = new AST.CompoundStatement(loc, statements.move());
                 if (flags & (ParseStatementFlags.scope_ | ParseStatementFlags.curlyScope))
                     s = new AST.ScopeStatement(loc, s, token.loc);
                 if (token.value != TOK.rightCurly)
@@ -6660,7 +6669,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         case TOK.scope_:
             auto next = peek(&token);
             if (next.value != TOK.leftParenthesis ||
-                compileEnv.tuples && peekPastParen(next).value == TOK.assign)
+                peekPastParen(next).value == TOK.assign)
                 goto Ldeclaration; // scope used as storage class
             nextToken();
             check(TOK.leftParenthesis);
@@ -6808,7 +6817,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
                 if (flags & ParseStatementFlags.curlyScope)
                 {
-                    auto statements = new AST.Statements();
+                    AST.Statements statements;
                     while (token.value != TOK.case_ && token.value != TOK.default_ && token.value != TOK.endOfFile && token.value != TOK.rightCurly)
                     {
                         auto cur = parseStatement(ParseStatementFlags.curlyScope);
@@ -6822,7 +6831,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                         if (cur && cur.isBreakStatement())
                             break;
                     }
-                    s = new AST.CompoundStatement(loc, statements);
+                    s = new AST.CompoundStatement(loc, statements.move());
                 }
                 else
                 {
@@ -6852,12 +6861,12 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
                 if (flags & ParseStatementFlags.curlyScope)
                 {
-                    auto statements = new AST.Statements();
+                    AST.Statements statements;
                     while (token.value != TOK.case_ && token.value != TOK.default_ && token.value != TOK.endOfFile && token.value != TOK.rightCurly)
                     {
                         statements.push(parseStatement(ParseStatementFlags.curlyScope));
                     }
-                    s = new AST.CompoundStatement(loc, statements);
+                    s = new AST.CompoundStatement(loc, statements.move());
                 }
                 else
                     s = parseStatement(0);
@@ -6995,10 +7004,8 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     nextToken();
                     if (token.value != TOK.leftParenthesis)
                     {
-                        deprecation("`catch` statement without an exception specification is deprecated");
-                        deprecationSupplemental("use `catch(Throwable)` for old behavior");
-                        t = null;
-                        id = null;
+                        error("`catch` statement without an exception specification is disallowed");
+                        errorSupplemental("use `catch(Throwable)` for old behavior");
                     }
                     else
                     {
@@ -7285,7 +7292,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     if (--brackets == 0)
                     {
                         t = peek(t);
-                        if (t.value != TOK.semicolon && t.value != TOK.comma && t.value != TOK.rightBracket && t.value != TOK.rightCurly)
+                        if (t.value != TOK.semicolon && t.value != TOK.colon && t.value != TOK.comma && t.value != TOK.rightBracket && t.value != TOK.rightCurly)
                             return parseExpInitializer(loc);
                         break;
                     }
@@ -7319,18 +7326,15 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     if (!e)
                         break;
 
-                    AST.Initializer value;
+                    AST.Initializer value = new AST.ExpInitializer(e.loc, e);
+                    AST.Initializer index;
                     if (token.value == TOK.colon)
                     {
                         nextToken();
+                        index = value;
                         value = parseInitializer();
                     }
-                    else
-                    {
-                        value = new AST.ExpInitializer(e.loc, e);
-                        e = null;
-                    }
-                    ia.addInit(e, value);
+                    ia.addInit(index, value);
                     commaExpected = true;
                     continue;
 
@@ -7339,20 +7343,15 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     if (commaExpected)
                         error("comma expected separating array initializers, not `%s`", token.toChars());
                     auto value = parseInitializer();
-                    AST.Expression e;
+                    AST.Initializer index;
 
                     if (token.value == TOK.colon)
                     {
                         nextToken();
-                        if (auto ei = value.isExpInitializer())
-                        {
-                            e = ei.exp;
-                            value = parseInitializer();
-                        }
-                        else
-                            error("initializer expression expected following colon, not `%s`", token.toChars());
+                        index = value;
+                        value = parseInitializer();
                     }
-                    ia.addInit(e, value);
+                    ia.addInit(index, value);
                     commaExpected = true;
                     continue;
 
@@ -7424,7 +7423,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         Token* toklist = null;
         Token** ptoklist = &toklist;
         Identifier label = null;
-        auto statements = new AST.Statements();
+        AST.Statements statements;
         size_t nestlevel = 0;
         while (1)
         {
@@ -7508,7 +7507,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         nextToken();
         if (token.value == TOK.endOfLine)
             nextToken();
-        auto s = new AST.CompoundAsmStatement(loc, statements, stc);
+        auto s = new AST.CompoundAsmStatement(loc, statements.move(), stc);
         return s;
     }
 
@@ -8628,7 +8627,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                             postfix = token.postfix;
                         }
 
-                        error("implicit string concatenation is error-prone and disallowed in D");
+                        error("implicit string concatenation is disallowed");
                         eSink.errorSupplemental(token.loc, "Use the explicit syntax instead " ~
                              "(concatenating literals is `@nogc`): %s ~ %s",
                              prev.toChars(), token.toChars());
@@ -8987,8 +8986,9 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             }
         case TOK.leftBracket:
             {
-                /* Parse array literals and associative array literals:
+                /* Parse (sparse) array literals and associative array literals:
                  *  [ value, value, value ... ]
+                 *  [ value, index: value, value ... ]
                  *  [ key:value, key:value, key:value ... ]
                  */
                 auto values = new AST.Expressions();
@@ -9008,13 +9008,17 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     }
                     else if (keys)
                     {
-                        error("`key:value` expected for associative array literal");
-                        keys = null;
+                        keys.push(null);
                     }
                     values.push(e);
                     if (token.value == TOK.rightBracket)
                         break;
-                    check(TOK.comma);
+                    if (token.value != TOK.comma)
+                    {
+                        check(TOK.comma);
+                        break;
+                    }
+                    nextToken();
                 }
                 check(loc, TOK.rightBracket);
 
@@ -9039,7 +9043,11 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         Lerr:
             // Anything for e, as long as it's not NULL
             e = new AST.ErrorExp();
-            nextToken();
+            // don't skip tokens that are unlikely to be part of the current expression
+            if (token.value != TOK.rightBracket &&
+                token.value != TOK.rightCurly &&
+                token.value != TOK.semicolon)
+                nextToken();
             break;
         }
         return e;
@@ -9431,7 +9439,12 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                             arguments.push(index);
                         if (token.value == TOK.rightBracket)
                             break;
-                        check(TOK.comma);
+                        if (token.value != TOK.comma)
+                        {
+                            check(TOK.comma);
+                            break;
+                        }
+                        nextToken();
                     }
                     check(TOK.rightBracket);
                     inBrackets--;
@@ -10021,7 +10034,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
     {
         if (mod.edition >= Edition.v2024)
         {
-            eSink.error(token.loc, "usage of identifer `body` as a keyword is obsolete. Use `do` instead.");
+            eSink.error(token.loc, "usage of identifier `body` as a keyword is obsolete. Use `do` instead.");
         }
     }
 }

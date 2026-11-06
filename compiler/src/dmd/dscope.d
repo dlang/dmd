@@ -47,7 +47,6 @@ enum Contract : ubyte
 /// Bitfield for settable/copyable flags, see `copyFlagsFrom`, `resetAllFlags`
 private extern (D) struct FlagBitFields
 {
-    bool ctor;              /// constructor type
     bool noAccessCheck;     /// don't do access checks
     bool condition;         /// inside static if/assert condition
     bool debug_;            /// inside debug conditional
@@ -157,7 +156,6 @@ extern (C++) struct Scope
     Statement scontinue;            /// enclosing statement that supports "continue"
     ForeachStatement fes;           /// if nested function for ForeachStatement, this is it
     Scope* callsc;                  /// used for __FUNCTION__, __PRETTY_FUNCTION__ and __MODULE__
-    Loc callLoc;                    /// call-site location for __FILE__, __LINE__, and __FILE_FULL_PATH__
     Dsymbol inunion;                /// != null if processing members of a union
     VarDeclaration lastVar;         /// Previous symbol used to prevent goto-skips-init
     ErrorSink eSink;                /// sink for error messages
@@ -184,6 +182,8 @@ extern (C++) struct Scope
     /// mangle type
     CPPMANGLE cppmangle = CPPMANGLE.def;
 
+    Loc callLoc;                    /// call-site location for __FILE__, __LINE__, and __FILE_FULL_PATH__
+
     /// inlining strategy for functions
     PragmaDeclaration inlining;
 
@@ -206,10 +206,6 @@ extern (C++) struct Scope
     void* lastdc;              /// documentation comment for last symbol at this scope (DocComment*)
     uint[void*] anchorCounts;  /// lookup duplicate anchor name count
     Identifier prevAnchor;     /// qualified symbol name of last doc anchor
-
-    AliasDeclaration aliasAsg; /// if set, then aliasAsg is being assigned a new value,
-                               /// do not set wasRead for it
-    StructDeclaration argStruct;    /// elimiate recursion when looking for rvalue construction
 
     extern (D) __gshared Scope* freelist;
 
@@ -521,7 +517,7 @@ extern (C++) struct Scope
      */
     extern (D) bool needsCodegen()
     {
-        return !this.ctfe && !this.ctfeBlock && !this.traitsCompiles;
+        return !this.ctfe && !this.ctfeBlock && !this.traitsCompiles && !(this.func && this.func.skipCodegen);
     }
 
     /// Returns: whether to raise DIP1000 warnings (FeatureStabe.default) or errors (FeatureState.enabled)

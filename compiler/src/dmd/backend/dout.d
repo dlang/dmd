@@ -24,6 +24,7 @@ import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.cgcv;
 import dmd.backend.code;
+import dmd.backend.debugprint;
 import dmd.backend.x86.code_x86;
 import dmd.backend.dt;
 import dmd.backend.el;
@@ -87,7 +88,7 @@ void outdata(Symbol* s)
     debug
     debugy && printf("outdata('%s')\n",s.Sident.ptr);
 
-    //printf("outdata('%s', ty=%s)\n",s.Sident.ptr,tym_str(s.Stype.Tty));
+    //printf("\noutdata('%s', ty=%s)\n",s.Sident.ptr,tym_str(s.Stype.Tty));
     //symbol_print(*s);
 
     // Data segment variables are always live on exit from a function
@@ -1002,7 +1003,7 @@ void writefunc2(Symbol* sfunc, ref GlobalOptimizer go, ref BlockOpt bo)
     else
     {
         //printf("blockopt()\n");
-        blockopt(go, bo);                   /* optimize                     */
+        blockopt(go, bo, go.changes);       /* optimize                     */
     }
 
     assert(funcsym_p == sfunc);

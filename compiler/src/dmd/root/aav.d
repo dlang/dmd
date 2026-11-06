@@ -33,22 +33,18 @@ alias Value = void*;
 
 alias KeyValue = KeyValueTemplate!(Key, Value);
 
-private struct aaA
-{
-private:
-    aaA* next;
-    KeyValue keyValue;
-    alias keyValue this;
-}
+private enum KEY_EMPTY = cast(Key)~cast(size_t)0; // support null as key
+// deletion not supported
 
 private struct AA
 {
 private:
-    aaA** b;
-    size_t b_length;
     size_t nodes; // total number of aaA nodes
-    aaA*[4] binit; // initial value of b[]
-    aaA aafirst; // a lot of these AA's have only one entry
+    union
+    {
+        KeyValue binit; // modes <= 1: most AAs have only one entry
+        KeyValue[] b;
+    }
 }
 
 /****************************************************
@@ -67,46 +63,42 @@ private size_t dmd_aaLen(const AA* aa) pure nothrow @nogc @safe
 private Value* dmd_aaGet(AA** paa, Key key) pure nothrow
 {
     //printf("paa = %p\n", paa);
-    if (!*paa)
+    assert(key != KEY_EMPTY);
+    auto aa = *paa;
+    if (!aa)
     {
-        AA* a = cast(AA*)mem.xmalloc(AA.sizeof);
-        a.b = cast(aaA**)a.binit;
-        a.b_length = 4;
-        a.nodes = 0;
-        a.binit[0] = null;
-        a.binit[1] = null;
-        a.binit[2] = null;
-        a.binit[3] = null;
-        *paa = a;
-        assert((*paa).b_length == 4);
+        *paa = aa = cast(AA*)mem.xmalloc(AA.sizeof);
+        aa.nodes = 1;
+        aa.binit.key = key;
+        aa.binit.value = null;
+        return &aa.binit.value;
     }
     //printf("paa = %p, *paa = %p\n", paa, *paa);
-    assert((*paa).b_length);
-    size_t i = hash(cast(size_t)key) & ((*paa).b_length - 1);
-    aaA** pe = &(*paa).b[i];
-    aaA* e;
-    while ((e = *pe) !is null)
+    assert(aa.nodes);
+    if (aa.nodes == 1)
     {
-        if (key == e.key)
-            return &e.value;
-        pe = &e.next;
+        if (key == aa.binit.key)
+            return &aa.binit.value;
+        aa.b = dmd_aaRehash((&aa.binit)[0..1]);
+    }
+    else if (aa.nodes * 2 > aa.b.length)
+        aa.b = dmd_aaRehash(aa.b[]);
+
+    size_t mask = aa.b.length - 1;
+    size_t i = hash(cast(size_t)key) & mask;
+    for (size_t j = 1;; i = (i + j) & mask, j++)
+    {
+        auto bkey = aa.b[i].key;
+        if (key == bkey)
+            return &aa.b[i].value;
+        else if (bkey == KEY_EMPTY)
+            break;
     }
     // Not found, create new elem
     //printf("create new one\n");
-    size_t nodes = ++(*paa).nodes;
-    e = (nodes != 1) ? cast(aaA*)mem.xmalloc(aaA.sizeof) : &(*paa).aafirst;
-    //e = new aaA();
-    e.next = null;
-    e.key = key;
-    e.value = null;
-    *pe = e;
-    //printf("length = %d, nodes = %d\n", (*paa)->b_length, nodes);
-    if (nodes > (*paa).b_length * 2)
-    {
-        //printf("rehash\n");
-        dmd_aaRehash(paa);
-    }
-    return &e.value;
+    ++aa.nodes;
+    aa.b[i].key = key;
+    return &aa.b[i].value;
 }
 
 /*************************************************
@@ -116,20 +108,22 @@ private Value* dmd_aaGet(AA** paa, Key key) pure nothrow
 private Value dmd_aaGetRvalue(AA* aa, Key key) pure nothrow @nogc
 {
     //printf("_aaGetRvalue(key = %p)\n", key);
-    if (aa)
+    assert(key != KEY_EMPTY);
+    if (!aa)
+        return null;
+    if (aa.nodes == 1)
+        return key == aa.binit.key ? aa.binit.value : null;
+
+    size_t mask = aa.b.length - 1;
+    size_t i = hash(cast(size_t)key) & mask;
+    for (size_t j = 1;; i = (i + j) & mask, j++)
     {
-        size_t i;
-        size_t len = aa.b_length;
-        i = hash(cast(size_t)key) & (len - 1);
-        aaA* e = aa.b[i];
-        while (e)
-        {
-            if (key == e.key)
-                return e.value;
-            e = e.next;
-        }
+        auto bkey = aa.b[i].key;
+        if (key == bkey)
+            return aa.b[i].value;
+        else if (bkey == KEY_EMPTY)
+            return null;
     }
-    return null; // not found
 }
 
 /**
@@ -147,49 +141,39 @@ private struct AARange(K,V)
     AA* aa;
     // current index into bucket array `aa.b`
     size_t bIndex;
-    aaA* current;
 
-    this(AA* aa) pure nothrow @nogc scope
+    this(AA* aa_) pure nothrow @nogc scope
     {
-        if (aa)
-        {
-            this.aa = aa;
-            toNext();
-        }
+        aa = aa_;
+        toNext();
     }
 
     @property bool empty() const pure nothrow @nogc @safe
     {
-        return current is null;
+        return bIndex >= buckets().length;
     }
 
     @property auto front() const pure nothrow @nogc
     {
-        return cast(KeyValueTemplate!(K,V))current.keyValue;
+        return cast(KeyValueTemplate!(K, V))(buckets()[bIndex]);
     }
 
     void popFront() pure nothrow @nogc
     {
-        if (current.next)
-            current = current.next;
-        else
-        {
-            bIndex++;
-            toNext();
-        }
+        bIndex++;
+        toNext();
+    }
+
+    private const(KeyValue[]) buckets() const pure nothrow @nogc @trusted
+    {
+        return !aa ? null : aa.nodes == 1 ? (&aa.binit)[0..1] : aa.b;
     }
 
     private void toNext() pure nothrow @nogc
     {
-        for (; bIndex < aa.b_length; bIndex++)
-        {
-            if (auto next = aa.b[bIndex])
-            {
-                current = next;
-                return;
-            }
-        }
-        current = null;
+        auto b = buckets();
+        while (bIndex < b.length && b[bIndex].key == KEY_EMPTY)
+            bIndex++;
     }
 }
 
@@ -225,39 +209,32 @@ unittest
 /********************************************
  * Rehash an array.
  */
-private void dmd_aaRehash(AA** paa) pure nothrow
+private KeyValue[] dmd_aaRehash(KeyValue[] b) pure nothrow
 {
     //printf("Rehash\n");
-    if (*paa)
+    size_t len = b.length * 4;
+    auto newb = cast(KeyValue*)mem.xmalloc(KeyValue.sizeof * len);
+    newb[0..len] = KeyValue(KEY_EMPTY, null);
+    size_t mask = len - 1;
+    for (size_t k = 0; k < b.length; k++)
     {
-        AA* aa = *paa;
-        if (aa)
+        auto key = b[k].key;
+        if (key != KEY_EMPTY)
         {
-            size_t len = aa.b_length;
-            if (len == 4)
-                len = 32;
-            else
-                len *= 4;
-            aaA** newb = cast(aaA**)mem.xmalloc(aaA.sizeof * len);
-            memset(newb, 0, len * (aaA*).sizeof);
-            for (size_t k = 0; k < aa.b_length; k++)
+            size_t i = hash(cast(size_t)key) & mask;
+            for (size_t j = 1;; i = (i + j) & mask, j++)
             {
-                aaA* e = aa.b[k];
-                while (e)
+                if (newb[i].key == KEY_EMPTY)
                 {
-                    aaA* enext = e.next;
-                    size_t j = hash(cast(size_t)e.key) & (len - 1);
-                    e.next = newb[j];
-                    newb[j] = e;
-                    e = enext;
+                    newb[i] = b[k];
+                    break;
                 }
             }
-            if (aa.b != cast(aaA**)aa.binit)
-                mem.xfree(aa.b);
-            aa.b = newb;
-            aa.b_length = len;
         }
     }
+    if (b.length > 1)
+        mem.xfree(b.ptr);
+    return newb[0..len];
 }
 
 unittest

@@ -25,7 +25,7 @@ void main()
 
         sigprocmask(SIG_BLOCK, &m, null); // block SIGHUP from delivery to main thread
 
-        auto parent_pid = getpid();
+        auto parent_pid = core.thread.getpid();
         auto child_pid = fork();
         assert(child_pid >= 0);
         if (child_pid == 0)

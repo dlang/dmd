@@ -60,7 +60,13 @@ When an unrelated failure persists, ask a maintainer for help.
 
 ## Overview of checks
 
-There are currently 49 checks.
+### GHA Main
+
+**Config**: [main.yml](https://github.com/dlang/dmd/blob/master/.github/workflows/main.yml)
+
+**Checks**: Main / …
+
+Tests DMD, druntime and Phobos on multiple platforms, using various D host compilers (for building DMD).
 
 ### Azure pipelines
 
@@ -109,7 +115,7 @@ The auto tester tests DMD on various Posix platforms.
 
 ### C++ interop tests
 
-**Config**: [azure-pipelines.yml](https://github.com/dlang/dmd/blob/master/.github/workflows/runnable_cxx.yml)
+**Config**: [runnable_cxx.yml](https://github.com/dlang/dmd/blob/master/.github/workflows/runnable_cxx.yml)
 
 **Checks**:
 - C++ interop tests / Run (macos-13, clang-13.0.0)
@@ -142,34 +148,6 @@ This is the reason why we have this action: we have full control over the toolch
 Codecov checks code coverage, meaning that the lines of code you modified are executed at least once in the test suite.
 While there are currently no hard constraints on coverage for a Pull Request to pass the check, it does emit warnings for modified lines that are not covered into the "Files Changed" tab.
 These should be taken seriously, since untested code is likely to introduce bugs, and can easily be accidentally broken by future changes.
-
-### CirrusCI
-
-**Config**: [.cirrus.yml](https://github.com/dlang/dmd/blob/master/.cirrus.yml)
-
-**Checks**:
-- FreeBSD 14.3 x64, DMD (bootstrap)
-- FreeBSD 14.3 x64, DMD (coverage)
-- FreeBSD 14.3 x64, DMD (latest)
-- Ubuntu 22.04 x64, DMD (bootstrap)
-- Ubuntu 22.04 x64, DMD (latest)
-- Ubuntu 22.04 x64, GDC
-- Ubuntu 22.04 x64, LDC
-- Ubuntu 22.04 x86, DMD (bootstrap)
-- Ubuntu 22.04 x86, DMD (coverage)
-- Ubuntu 22.04 x86, DMD (latest)
-- macOS 12.x x64 (M1), DMD (bootstrap)
-- macOS 13.x x64 (M1), DMD (coverage)
-- macOS 13.x x64 (M1), DMD (latest)
-
-Cirrus tests DMD on Posix platforms.
-
-Since DMD is written in D, a "Host D Compiler" is needed to compile it.
-Various host compilers are tested, such as GDC, LDC, the latest DMD, and an older verison of DMD (bootstrap).
-Note that the GDC and LDC targets do not run any tests, the simply build the latest version of the dmd frontend.
-
-Sometimes the macOS VMs get corrupted.
-When that happens, you can file an issue on Cirrus' issue tracker, [like this one](https://github.com/cirruslabs/macos-image-templates/issues/43).
 
 ### pre-commit
 

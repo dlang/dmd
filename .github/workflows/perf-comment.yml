@@ -22,12 +22,12 @@ jobs:
       github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           sparse-checkout: .github/scripts
 
       - name: Download results
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: perf-results
           run-id: ${{ github.event.workflow_run.id }}

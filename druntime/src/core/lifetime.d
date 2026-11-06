@@ -2147,7 +2147,8 @@ private T trustedMoveImpl(T)(return scope ref T source) @trusted
 private enum bool hasContextPointers(T) = {
     static if (__traits(isStaticArray, T))
     {
-        return hasContextPointers!(typeof(T.init[0]));
+        import core.internal.traits : lvalueOf;
+        return hasContextPointers!(typeof(lvalueOf!T[0]));
     }
     else static if (is(T == struct))
     {
@@ -2662,15 +2663,15 @@ if (is(T == class))
     }
     else
     {
-        BlkAttr attr = BlkAttr.NONE;
-
+        enum attr = GC.convertAlignmentToBlkAttr(__traits(classInstanceAlignment, T))
         /* `extern(C++)`` classes don't have a classinfo pointer in their vtable,
          * so the GC can't finalize them.
+         * `__dtor` only exists for a user-declared destructor; `__xdtor` also
+         * covers destructors generated for fields that need destruction.
          */
-        static if (__traits(hasMember, T, "__dtor") && __traits(getLinkage, T) != "C++")
-            attr |= BlkAttr.FINALIZE;
-        static if (!hasIndirections!T)
-            attr |= BlkAttr.NO_SCAN;
+            | ((__traits(hasMember, T, "__dtor") || __traits(hasMember, T, "__xdtor"))
+               && __traits(getLinkage, T) != "C++" ? BlkAttr.FINALIZE : 0)
+            | (!hasIndirections!T ? BlkAttr.NO_SCAN : 0);
 
         version(D_TypeInfo)
             p = GC.malloc(init.length, attr, typeid(T));
@@ -2726,10 +2727,10 @@ T* _d_newitemT(T)() @trusted
     import core.internal.traits : hasIndirections;
     import core.memory : GC;
 
-    auto flags = !hasIndirections!T ? GC.BlkAttr.NO_SCAN : GC.BlkAttr.NONE;
     immutable itemSize = T.sizeof;
-    if (TypeInfoSize!T)
-        flags |= GC.BlkAttr.FINALIZE;
+    enum flags = (!hasIndirections!T ? GC.BlkAttr.NO_SCAN : GC.BlkAttr.NONE)
+               | (TypeInfoSize!T ? GC.BlkAttr.FINALIZE : 0)
+               | GC.convertAlignmentToBlkAttr(T.alignof);
 
     version(D_TypeInfo)
         auto p = GC.malloc(itemSize, flags, typeid(T));
@@ -2767,6 +2768,27 @@ T* _d_newitemT(T)() @trusted
         assert(c.x == 2);
         assert(c.y == 3);
     }
+}
+
+// Test that classes needing destruction are allocated as finalizable,
+// including when the only destructors come from fields (no `~this()`)
+@system unittest
+{
+    import core.memory : GC;
+
+    static struct S { ~this() {} }
+    static class FieldDtor { S s; }
+    static class Dtor { ~this() {} }
+    static class Plain { int x; }
+
+    static bool finalizes(Object o)
+    {
+        return (GC.getAttr(cast(void*) o) & GC.BlkAttr.FINALIZE) != 0;
+    }
+
+    assert(finalizes(_d_newclassT!FieldDtor()));
+    assert(finalizes(_d_newclassT!Dtor()));
+    assert(!finalizes(_d_newclassT!Plain()));
 }
 
 // Test allocation

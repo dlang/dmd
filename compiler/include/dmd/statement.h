@@ -211,7 +211,7 @@ public:
 class CompoundStatement : public Statement
 {
 public:
-    Statements *statements;
+    Statements statements;
 
     static CompoundStatement *create(Loc loc, Statement *s1, Statement *s2);
     CompoundStatement *syntaxCopy() override;
@@ -234,7 +234,7 @@ public:
 class UnrolledLoopStatement final : public Statement
 {
 public:
-    Statements *statements;
+    Statements statements;
 
     UnrolledLoopStatement *syntaxCopy() override;
     bool hasBreak() const override;
@@ -368,7 +368,6 @@ public:
     Expression *condition;
     Statement *ifbody;
     Statement *elsebody;
-    VarDeclaration *match;      // for MatchExpression results
     Loc endloc;                 // location of closing curly bracket
 
     IfStatement *syntaxCopy() override;

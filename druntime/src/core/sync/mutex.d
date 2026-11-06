@@ -17,6 +17,7 @@ module core.sync.mutex;
 
 
 public import core.sync.exception;
+import core.thread : isSingleThreaded;
 
 version (Windows)
 {
@@ -30,10 +31,6 @@ else version (Posix)
         PTHREAD_MUTEX_RECURSIVE, pthread_mutex_trylock, pthread_mutex_unlock, pthread_mutexattr_destroy,
         pthread_mutexattr_init, pthread_mutexattr_settype;
     import core.sys.posix.sys.types : pthread_mutex_t, pthread_mutexattr_t;
-}
-else version (WASI)
-{
-    // Dummy no-op
 }
 else
 {
@@ -279,10 +276,6 @@ class Mutex :
         {
             return pthread_mutex_trylock(&self.m_hndl) == 0;
         }
-        else version (WASI)
-        {
-            return true;
-        }
     }
 
 
@@ -317,8 +310,7 @@ package:
 ///
 /* @safe nothrow -> see druntime PR 1726 */
 // Test regular usage.
-version (WASI) {} // WASI is single-threaded
-else
+static if(!isSingleThreaded)
 unittest
 {
     import core.thread : Thread;
@@ -337,8 +329,17 @@ unittest
         void useResource() shared @trusted nothrow @nogc
         {
             mtx.lock_nothrow();
-            (cast() cargo) += 1;
+            // Mutex protects cargo, but -preview=nosharedaccess cannot infer
+            // the lock-based invariant from this shared method.
+            (cast(Resource) this).cargo += 1;
             mtx.unlock_nothrow();
+        }
+
+        int getCargo() shared @trusted nothrow @nogc
+        {
+            mtx.lock_nothrow();
+            scope (exit) mtx.unlock_nothrow();
+            return (cast(Resource) this).cargo;
         }
     }
 
@@ -355,7 +356,7 @@ unittest
 
     otherThread.join();
 
-    assert (res.cargo == 20042);
+    assert (res.getCargo() == 20042);
 }
 
 // Test @nogc usage.
@@ -364,8 +365,11 @@ unittest
     import core.lifetime : emplace;
     import core.stdc.stdlib : free, malloc;
 
-    auto mtx = cast(shared Mutex) malloc(__traits(classInstanceSize, Mutex));
-    emplace(mtx);
+    // This test manually constructs raw class storage; keep that storage
+    // unshared until construction is complete, then test the shared methods.
+    auto rawMtx = cast(Mutex) malloc(__traits(classInstanceSize, Mutex));
+    emplace(rawMtx);
+    auto mtx = cast(shared Mutex) rawMtx;
 
     mtx.lock_nothrow();
 
@@ -381,23 +385,23 @@ unittest
     // of Mutex is Object and it doesn't have a dtor
     // we can simply call the non-virtual __dtor() here.
 
-    // Ok to cast away shared because destruction
-    // should happen only from a single thread.
-    (cast(Mutex) mtx).__dtor();
+    // Destruction only happens from this thread. Keep using rawMtx so the
+    // manual teardown does not access the raw storage through shared.
+    rawMtx.__dtor();
 
     // Verify that the underlying implementation has been destroyed by checking
     // that locking is not possible. This assumes that the underlying
     // implementation is well behaved and makes the object non-lockable upon
-    // destruction. The Bionic, DragonFly, Musl, and Solaris C runtimes don't
-    // appear to do so, so skip this test.
+    // destruction. The Bionic, DragonFly, Musl, Solaris, and WASI C runtimes
+    // don't appear to do so, so skip this test.
     version (CRuntime_Bionic) {} else
     version (CRuntime_Musl) {} else
     version (DragonFlyBSD) {} else
     version (Solaris) {} else
-    version (WASI) {} else
+    version (CRuntime_WASI) {} else
     assert(!mtx.tryLock_nothrow());
 
-    free(cast(void*) mtx);
+    free(cast(void*) rawMtx);
 }
 
 // Test single-thread (non-shared) use.
@@ -413,8 +417,7 @@ unittest
     m.unlock();
 }
 
-version (WASI) {} // WASI is single-threaded
-else
+static if(!isSingleThreaded)
 unittest
 {
     import core.thread;

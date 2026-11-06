@@ -1007,7 +1007,7 @@ public:
             return;
         TypeFunction *tf = func->type->toTypeFunction();
         Type *type = func->tintro != NULL ? func->tintro->nextOf() : tf->nextOf();
-        if ((func->isMain() || func->isCMain()) && type->toBasetype()->ty == TY::Tvoid)
+        if ((func->isDMain() || func->isCMain()) && type->toBasetype()->ty == TY::Tvoid)
             type = Type::tint32;
         if (func->shidden)
         {
@@ -1055,23 +1055,19 @@ public:
     }
     void visit(CompoundStatement *s) override
     {
-        if (s->statements == NULL)
-            return;
-        for (size_t i = 0; i < s->statements->length; i++)
+        for (size_t i = 0; i < s->statements.length; i++)
         {
-            Statement *statement = (*s->statements)[i];
+            Statement *statement = s->statements[i];
             if (statement)
                 statement->accept(this);
         }
     }
     void visit(UnrolledLoopStatement *s) override
     {
-        if (s->statements == NULL)
-            return;
         s->getRelatedLabeled()->accept(this);
-        for (size_t i = 0; i < s->statements->length; i++)
+        for (size_t i = 0; i < s->statements.length; i++)
         {
-            Statement *statement = (*s->statements)[i];
+            Statement *statement = s->statements[i];
             if (statement != NULL)
                 statement->accept(this);
         }
@@ -1497,7 +1493,7 @@ public:
             {
                 if (vd->_init && !vd->_init->isVoidInitializer())
                 {
-                    Expression *ie = dmd::initializerToExpression(vd->_init);
+                    Expression *ie = dmd::initializerToExpression(vd->_init, nullptr, nullptr);
                     ie->accept(this);
                 }
             }
@@ -1561,7 +1557,7 @@ public:
             {
                 if (!d->_init->isVoidInitializer())
                 {
-                    Expression *e = dmd::initializerToExpression(d->_init, d->type);
+                    Expression *e = dmd::initializerToExpression(d->_init, nullptr, d->type);
                     e->accept(this);
                 }
             }
@@ -1577,7 +1573,7 @@ public:
             if (d->_init && !d->_init->isVoidInitializer())
             {
                 ExpInitializer *vinit = d->_init->isExpInitializer();
-                dmd::initializerToExpression(vinit)->accept(this);
+                dmd::initializerToExpression(vinit, nullptr, nullptr)->accept(this);
                 if (d->needsScopeDtor())
                     d->edtor->accept(this);
             }
@@ -1791,7 +1787,7 @@ void hdrgen_h(Module *m, OutBuffer &buf, Modules &ms, ParameterList pl,
 
 void init_h(Initializer *i, Type *t, Scope *sc, NeedInterpret ni)
 {
-    dmd::initializerToExpression(i, t, true);
+    dmd::initializerToExpression(i, sc, t);
     dmd::initializerSemantic(i, sc, t, ni);
 }
 
@@ -1879,7 +1875,6 @@ void typinf_h(Expression *e, Loc loc, Type *t, Scope *sc)
 {
     dmd::genTypeInfo(e, loc, t, sc);
     ::getTypeInfoType(loc, t, sc);
-    dmd::isSpeculativeType(t);
     dmd::builtinTypeInfo(t);
     dmd::makeNakedAssociativeArray(t->isTypeAArray());
     dmd::getTypeInfoAssocArrayDeclaration(t->isTypeAArray(), sc);

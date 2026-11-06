@@ -360,10 +360,7 @@ nothrow:
                 hasTrailingSlash = true;
         }
         const pathlen = str.length - n.length - (hasTrailingSlash ? 1 : 0);
-        char* path = cast(char*)mem.xmalloc_noscan(pathlen + 1);
-        memcpy(path, str.ptr, pathlen);
-        path[pathlen] = 0;
-        return path[0 .. pathlen];
+        return xarraydup(str[0..pathlen]);
     }
 
     unittest
@@ -575,7 +572,10 @@ nothrow:
             }
             if (buf.length) // if path is not empty
             {
-                if (sink(buf.extractChars()))
+                // Make sure we mem.xmalloc thing - OutBuffer uses plain malloc
+                // Failure to do so would result in random memory corruption
+                // when using the bump allocator.
+                if (sink(xarraydup(buf[]).ptr))
                     break;
             }
         } while (c);

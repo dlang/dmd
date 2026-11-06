@@ -14,6 +14,9 @@
  */
 module core.sys.posix.semaphore;
 
+version (CRuntime_WASI) {}
+else:
+
 import core.sys.posix.config;
 import core.sys.posix.time;
 

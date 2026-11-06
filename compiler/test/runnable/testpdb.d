@@ -714,14 +714,14 @@ void test21665(IDiaSession session, IDiaSymbol globals)
 
 ///////////////////////////////////////////////
 // Tests for the modern CodeView records emitted by the CV8 debug info
-// generator: blake3 source-file checksums (DEBUG_S_FILECHKSMS), S_COMPILE3
+// generator: SHA256 source-file checksums (DEBUG_S_FILECHKSMS), S_COMPILE3
 // (compiland language/version) and S_FRAMEPROC (per-function frame info).
 
 // Each source file now carries a checksum; the legacy emitter wrote none.
 void testSourceChecksums(IDiaSession session, IDiaSymbol globals)
 {
     // DIA checksum type; the emitter stores a MD5 hash in a 16-byte slot.
-    enum CV_CHKSUM_MD5 = 1;
+    enum CV_CHKSUM_SHA256 = 3;
 
     IDiaSymbol funcsym = searchSymbol(globals, "testpdb.test15432");
     funcsym || assert(false, "testpdb.test15432 not found");
@@ -746,9 +746,9 @@ void testSourceChecksums(IDiaSession session, IDiaSymbol globals)
         {
             DWORD cktype;
             src.get_checksumType(&cktype) == S_OK || assert(false, "source file has no checksum type");
-            // The emitter stores a MD5 hash in the 16-byte checksum
+            // The emitter stores a SHA256 hash in the 32-byte checksum
             // slot; the legacy emitter wrote CV_CHKSUM_NONE (0).
-            cktype == CV_CHKSUM_MD5 || assert(false, "source file checksum is not the MD5 slot");
+            cktype == CV_CHKSUM_SHA256 || assert(false, "source file checksum is not the SHA256 slot");
             checkedAny = true;
             src.Release();
         }

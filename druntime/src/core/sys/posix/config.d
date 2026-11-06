@@ -97,6 +97,28 @@ else version (CRuntime_Musl)
     else
         enum __WORDSIZE = 32;
 }
+else version (CRuntime_WASI)
+{
+    enum _GNU_SOURCE         = false;
+    enum _DEFAULT_SOURCE     = false;
+    enum _ATFILE_SOURCE      = false;
+
+    // off_t is always 64 bits on WASI
+    enum _FILE_OFFSET_BITS   = 64;
+
+    // Not present in WASI sources
+    enum __REDIRECT          = false;
+
+    // Always use code paths that are compatible with 64 bits off_t
+    enum __USE_FILE_OFFSET64 = true;
+    enum __USE_LARGEFILE     = __USE_FILE_OFFSET64 && !__REDIRECT;
+    enum __USE_LARGEFILE64   = __USE_FILE_OFFSET64 && !__REDIRECT;
+
+    version (D_LP64)
+        enum __WORDSIZE = 64;
+    else
+        enum __WORDSIZE = 32;
+}
 else version (CRuntime_UClibc)
 {
     enum _GNU_SOURCE         = false;

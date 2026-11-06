@@ -2,7 +2,9 @@ TESTS:=attributes sentinel printf memstomp invariant logging \
        precise precisegc \
        recoverfree collect nocollect
 
-ifneq ($(OS),windows)
+ifeq ($(OS),windows)
+    TESTS+=stacklimit
+else
     # some .d files are for Posix only
     TESTS+=sentinel1 sentinel2 forkgc sigmaskgc startbackgc issue23081
     # and some tests require the `fork` GC, only supported on Posix
@@ -60,10 +62,6 @@ $(ROOT)/invariant$(DOTEXE): $(src_lifetime)
 $(ROOT)/invariant$(DOTEXE): private extra_sources = $(src_lifetime)
 $(ROOT)/invariant$(DOTEXE): extra_dflags += $(core_ut) \
     -debug -debug=INVARIANT -check=invariant -debug=PTRCHECK -debug=PTRCHECK2 -main
-
-$(ROOT)/logging$(DOTEXE): $(src_lifetime)
-$(ROOT)/logging$(DOTEXE): private extra_sources = $(src_lifetime)
-$(ROOT)/logging$(DOTEXE): extra_dflags += -debug=LOGGING -main $(core_ut)
 
 $(ROOT)/precise$(DOTEXE): $(src_lifetime)
 $(ROOT)/precise$(DOTEXE): private extra_sources = $(src_lifetime)

@@ -14,7 +14,7 @@ module rt.dmain2;
 import core.atomic;
 import core.internal.parseoptions : rt_parseOption;
 import core.stdc.errno : errno;
-import core.stdc.stdio : fflush, fprintf, fwrite, stderr, stdout;
+import core.stdc.stdio : fflush, fprintf, fwrite, stderr, stdout, printf;
 import core.stdc.stdlib : alloca, EXIT_FAILURE, EXIT_SUCCESS, free, malloc, realloc;
 import core.stdc.string : strerror;
 import rt.config : rt_cmdline_enabled, rt_configOption;
@@ -27,8 +27,8 @@ version (Windows)
     import core.stdc.wchar_ : wcslen;
     import core.sys.windows.basetsd : HANDLE;
     import core.sys.windows.shellapi : CommandLineToArgvW;
-    import core.sys.windows.winbase : FreeLibrary, GetCommandLineW, GetProcAddress, IsDebuggerPresent, LoadLibraryW,
-        LocalFree, WriteFile;
+    import core.sys.windows.winbase : FreeLibrary, GetCommandLineW, GetProcAddress, IsDebuggerPresent, LoadLibraryExW,
+        LocalFree, WriteFile, LOAD_LIBRARY_SEARCH_SYSTEM32;
     import core.sys.windows.wincon : CONSOLE_SCREEN_BUFFER_INFO, GetConsoleOutputCP,
         GetConsoleScreenBufferInfo;
     import core.sys.windows.winnls : CP_UTF8, MultiByteToWideChar, WideCharToMultiByte;
@@ -266,6 +266,7 @@ private alias MainFunc = extern(C) int function(char[][] args);
  */
 extern (C) int _d_run_main(int argc, char** argv, MainFunc mainFunc)
 {
+    //printf("_d_run_main()\n");
     // Set up _cArgs and array of D char[] slices, then forward to _d_run_main2
 
     // Remember the original C argc/argv
@@ -695,7 +696,7 @@ extern (C) void _d_print_throwable(Throwable t)
 
                 // Avoid static user32.dll dependency for console applications
                 // by loading it dynamically as needed
-                if (auto user32 = LoadLibraryW("user32.dll"))
+                if (auto user32 = LoadLibraryExW("user32.dll", null, LOAD_LIBRARY_SEARCH_SYSTEM32))
                 {
                     alias PMessageBoxW = typeof(&MessageBoxW) ;
                     if (auto pMessageBoxW = cast(PMessageBoxW) GetProcAddress(user32, "MessageBoxW"))

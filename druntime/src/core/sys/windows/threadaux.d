@@ -17,8 +17,10 @@ import core.sys.windows.winbase/+ : CloseHandle, GetCurrentThreadId, GetCurrentP
     GetModuleHandleA, GetProcAddress+/;
 import core.sys.windows.windef/+ : BOOL, DWORD, FALSE, HRESULT+/;
 import core.stdc.stdlib;
+import core.memory;
 
 public import core.thread;
+public import core.thread.windows_impl : thread_attachByAddr;
 
 extern(Windows)
 HANDLE OpenThread(DWORD dwDesiredAccess, BOOL bInheritHandle, DWORD dwThreadId) nothrow @nogc;
@@ -217,6 +219,13 @@ struct thread_aux
         return teb[1];
     }
 
+    // get the stack limit (the lowest address) of the thread that is mapped into memory
+    static void* getThreadStackLimit( HANDLE hnd ) nothrow @nogc
+    {
+        void** teb = getTEB( hnd );
+        return teb[2];
+    }
+
     // create a thread handle with full access to the thread with the given identifier
     static HANDLE OpenThreadHandle( uint id ) nothrow @nogc
     {
@@ -343,6 +352,7 @@ public:
 // forward as few symbols as possible into the "global" name space
 alias getTEB = thread_aux.getTEB;
 alias getThreadStackBottom = thread_aux.getThreadStackBottom;
+alias getThreadStackLimit = thread_aux.getThreadStackLimit;
 alias OpenThreadHandle = thread_aux.OpenThreadHandle;
 alias enumProcessThreads = thread_aux.enumProcessThreads;
 alias impersonate_thread = thread_aux.impersonate_thread;
@@ -371,6 +381,7 @@ void* GetTlsDataAddress( uint id ) nothrow
 // run rt_moduleTlsCtor in the context of the given thread
 void thread_moduleTlsCtor( uint id )
 {
+    GC.disable(); scope(exit) GC.enable();
     thread_aux.impersonate_thread(id, &rt_moduleTlsCtor);
 }
 
@@ -378,5 +389,6 @@ void thread_moduleTlsCtor( uint id )
 // run rt_moduleTlsDtor in the context of the given thread
 void thread_moduleTlsDtor( uint id )
 {
+    GC.disable(); scope(exit) GC.enable();
     thread_aux.impersonate_thread(id, &rt_moduleTlsDtor);
 }

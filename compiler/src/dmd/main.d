@@ -30,6 +30,7 @@ import dmd.compiler;
 import dmd.cond;
 import dmd.console;
 import dmd.cpreprocess;
+import dmd.declaration;
 import dmd.deps;
 import dmd.dinifile;
 import dmd.dinterpret;
@@ -44,7 +45,7 @@ import dmd.dmodule;
 import dmd.dmsc : backend_init, backend_term;
 import dmd.doc;
 import dmd.dsymbol;
-import dmd.errors;
+import dmd.errors : fatal;
 import dmd.expression;
 import dmd.file_manager;
 import dmd.hdrgen;
@@ -205,7 +206,6 @@ private int tryMain(const(char)[][] argv, out Param params)
     }
     global.errorSink.errorLimit = global.params.v.errorLimit;
 
-    global.compileEnv.tuples           = params.tuples == FeatureState.enabled;
     global.compileEnv.previewIn        = params.previewIn;
     global.compileEnv.transitionIn     = params.v.vin;
     global.compileEnv.ddocOutput       = params.ddoc.doOutput;
@@ -517,7 +517,7 @@ private int tryMain(const(char)[][] argv, out Param params)
     {
         Module m = modules[modi];
         if (params.v.verbose)
-            message("parse     %s", m.toChars());
+            eSink.message(Loc.init, "parse     %s", m.toChars());
         if (!Module.rootModule)
             Module.rootModule = m;
         m.importedFrom = m; // m.isRoot() == true
@@ -652,6 +652,12 @@ private int tryMain(const(char)[][] argv, out Param params)
         //fatal();
     }
 
+    // Must run after dsymbolSemantic() above, which is what overwrites an
+    // ImportC `static` global's visibility, and before semantic2/3 below,
+    // which is where code referencing such a variable would otherwise be
+    // allowed to access it.
+    VarDeclaration.fixImportCStaticVisibility();
+
     // Do pass 2 semantic analysis
     foreach (m; modules)
     {
@@ -687,6 +693,12 @@ private int tryMain(const(char)[][] argv, out Param params)
     runDeferredSemantic3();
     if (global.errors)
         removeHdrFilesAndFail(params.dihdr.doOutput, modules);
+
+    // Must run before the inline scans below: they rewrite call sites of
+    // always-inline functions in place, erasing the very call references
+    // this needs to see to tell whether an ImportC inline/__forceinline
+    // function is genuinely unused.
+    scanImportCInlineUsage(&modules);
 
     {
     timeTraceBeginEvent(TimeTraceEventType.inlineGeneral);
@@ -725,12 +737,9 @@ private int tryMain(const(char)[][] argv, out Param params)
     if (global.errors || global.warnings)
         removeHdrFilesAndFail(params.dihdr.doOutput, modules);
 
-    // inlineScan incrementally run semantic3 of each expanded functions.
     // So deps file generation should be moved after the inlining stage.
     if (OutBuffer* ob = params.moduleDeps.buffer)
     {
-        foreach (i; 1 .. modules[0].aimports.length)
-            semantic3OnDependencies(modules[0].aimports[i]);
         runDeferredSemantic3();
 
         const data = (*ob)[];

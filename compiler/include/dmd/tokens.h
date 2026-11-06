@@ -430,6 +430,9 @@ enum class EXP : unsigned char
     _Generic_,
     interval,
 
+    loweredAssignExp,
+    rvalue,
+
     MAX
 };
 

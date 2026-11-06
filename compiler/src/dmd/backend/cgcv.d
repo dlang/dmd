@@ -17,7 +17,7 @@ module dmd.backend.cgcv;
 
 // Online documentation: https://dlang.org/phobos/dmd_backend_cgcv.html
 
-import dmd.backend.cc : Classsym, Symbol;
+import dmd.backend.cc : Classsym;
 import dmd.backend.type;
 
 public import dmd.backend.cv8;
@@ -37,7 +37,6 @@ import dmd.backend.dvec;
 import dmd.backend.el;
 import dmd.backend.global : err_nomem;
 import dmd.backend.debugprint : tym_str;
-import dmd.backend.symbol : symbol_print, symbol_reset, globsym;
 import dmd.backend.mem;
 import dmd.backend.obj;
 import dmd.backend.symbol;

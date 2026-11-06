@@ -7,6 +7,25 @@
  * Standards: The Open Group Base Specifications Issue 7, IEEE Std 1003.1-2008
  */
 module core.sys.posix.sys.resource;
+
+version (CRuntime_WASI)
+{
+    version (WASI_EMULATED_PROCESS_CLOCKS)
+    {
+        version = Supported;
+    }
+    else
+    {
+        pragma(msg, "WASI lacks process-associated clocks; to enable"~
+                    " emulation of the `getrusage` function using the wall"~
+                    " clock, which isn't sensitive to whether the program is"~
+                    " running or suspended, compile with"~
+                    " --d-version=WASI_EMULATED_PROCESS_CLOCKS and link with"~
+                    " -lwasi-emulated-process-clocks");
+    }
+} else version = Supported;
+
+version (Supported):
 version (Posix):
 
 public import core.sys.posix.sys.time;
@@ -535,6 +554,51 @@ else version (Hurd)
         RLIMIT_AS     = 10,
     }
 }
+else version (Emscripten)
+{
+    alias rlim_t = ulong;
+
+    struct rusage
+    {
+        timeval ru_utime;
+        timeval ru_stime;
+        c_long ru_maxrss;
+        c_long ru_ixrss;
+        c_long ru_idrss;
+        c_long ru_isrss;
+        c_long ru_minflt;
+        c_long ru_majflt;
+        c_long ru_nswap;
+        c_long ru_inblock;
+        c_long ru_oublock;
+        c_long ru_msgsnd;
+        c_long ru_msgrcv;
+        c_long ru_nsignals;
+        c_long ru_nvcsw;
+        c_long ru_nivcsw;
+        c_long[16] __reserved;
+    }
+
+    enum
+    {
+        RUSAGE_SELF     =  0,
+        RUSAGE_CHILDREN =  -1,
+    }
+}
+else version (CRuntime_WASI)
+{
+    struct rusage
+    {
+        timeval ru_utime;
+        timeval ru_stime;
+    }
+
+    enum
+    {
+        RUSAGE_SELF     =  1,
+        RUSAGE_CHILDREN =  2,
+    }
+}
 else
     static assert (false, "Unsupported platform");
 
@@ -552,10 +616,14 @@ int setpriority(int, id_t, int);
 int setrlimit(int, const rlimit*);
 */
 
-struct rlimit
+version (CRuntime_WASI) {}
+else
 {
-    rlim_t rlim_cur;
-    rlim_t rlim_max;
+    struct rlimit
+    {
+        rlim_t rlim_cur;
+        rlim_t rlim_max;
+    }
 }
 
 version (CRuntime_Glibc)
@@ -625,6 +693,10 @@ else version (CRuntime_Musl)
     alias getrlimit64 = getrlimit;
     alias setrlimit64 = setrlimit;
     pragma(mangle, muslRedirTime64Mangle!("getrusage", "__getrusage_time64"))
+    int getrusage(int, rusage*);
+}
+else version (CRuntime_WASI)
+{
     int getrusage(int, rusage*);
 }
 else version (Solaris)

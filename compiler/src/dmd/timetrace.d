@@ -151,7 +151,7 @@ void timeTraceEndEvent(TimeTraceEventType eventType, Dsymbol sym, scope const(ch
         timeTraceProfiler.endScope(
             eventType,
             () => sym.isImport() ? sym.toPrettyChars().toDString() : sym.toChars().toDString(),
-            detail ? detail : () => sym.toPrettyChars().toDString(),
+            () => detail ? detail() : sym.toPrettyChars().toDString(),
             sym.loc
         );
     }
@@ -190,6 +190,8 @@ enum TimeTraceEventType
     dfa,
     ctfe,
     ctfeCall,
+    ctfeCopy,
+    ctfeLiteralCopy,
     codegenGlobal,
     codegenModule,
     codegenFunction,
@@ -219,6 +221,8 @@ private immutable string[] eventPrefixes = [
     "DFA: ",
     "Ctfe: ",
     "Ctfe: call ",
+    "Ctfe: copy ",
+    "Ctfe: literal copy ",
     "Code generation",
     "Codegen: module ",
     "Codegen: function ",
@@ -334,7 +338,8 @@ private struct TimeTraceProfiler
         else
         {
             counters.allocatedMemory = dmd.root.rmem.heapTotal;
-            counters.memoryInUse = dmd.root.rmem.heapTotal - dmd.root.rmem.heapleft;
+            counters.memoryInUse = dmd.root.rmem.heapTotal -
+                (dmd.root.rmem.CHUNK_SIZE - dmd.root.rmem.heappos);
         }
         counters.timepoint = timepoint;
         return counters;

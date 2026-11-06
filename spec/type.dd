@@ -234,11 +234,10 @@ assert(*p == 6);
         or point to a valid instance of type $(I T).)
 
         $(IMPLEMENTATION_DEFINED
-        $(OL
-        $(LI The behavior when a $(I null) pointer is dereferenced. Typically the program
+        The behavior when a $(I null) pointer is dereferenced. Typically the program
         will be aborted - $(DDSUBLINK spec/function, null-dereferences, that is required)
         in `@safe` code.)
-        ))
+        )
 
         $(UNDEFINED_BEHAVIOR dereferencing a pointer that is not $(I null) and does not point
         to a valid instance of type $(I T).)
@@ -257,14 +256,20 @@ assert(*p == 2);
 assert(i == 4);
 ---------
 )
+        $(P The `.` operator will dereference a
+        $(DDSUBLINK spec/struct, struct-pointer, pointer to an aggregate type) instance
+        and access a member of it.)
+
+        $(NOTE There is no `->` operator as in C.)
+
         $(P See also:)
         * $(DDSUBLINK spec/expression, pointer_arithmetic, Pointer Arithmetic)
         * $(DDSUBLINK spec/expression, slice_expressions, Pointer Slicing)
         * $(RELATIVE_LINK2 pointer-conversions, Pointer Conversions)
 
-        $(BEST_PRACTICE Use a $(DDSUBLINK spec/function, ref-params,
+        $(BEST_PRACTICE Consider using a $(DDSUBLINK spec/function, ref-params,
         `ref` function parameter) or a $(DDSUBLINK spec/declaration, ref-variables,
-        `ref` local variable) when the address doesn't escape.)
+        `ref` local variable) instead when the pointer address doesn't escape.)
 
 
 $(H2 $(LEGACY_LNAME2 User Defined Types, user-defined-types, User-Defined Types))
@@ -281,9 +286,6 @@ $(H2 $(LNAME2 type-conversions, Type Conversions))
     See also: $(GLINK2 expression, CastExpression).
 
 $(H3 $(LEGACY_LNAME2 Pointer Conversions, pointer-conversions, Pointer Conversions))
-
-    $(P Any $(RELATIVE_LINK2 pointers, pointer) implicitly converts to a `void` pointer -
-    see below.)
 
     $(P $(DDSUBLINK spec/expression, cast_pointers, Casting between)
     pointers and non-pointers is allowed. Some pointer casts
@@ -309,17 +311,20 @@ $(H3 $(LEGACY_LNAME2 Implicit Conversions, implicit-conversions, Implicit Conver
     $(LI An enum can be $(DDSUBLINK spec/enum, named_enums, implicitly converted) to its base
     type (but going the other way requires an explicit conversion).)
     $(LI $(RELATIVE_LINK2 noreturn, `noreturn`) implicitly converts to any type.)
-    $(LI Static and dynamic arrays implicitly convert to $(DDSUBLINK spec/arrays, void_arrays, `void` arrays).
-        The `void` element type for the array may need a
-        $(DDLINK spec/const3, Type Qualifiers, type qualifier), depending on the source
-        element type:
-    )
-        * An array with non-mutable elements will implicitly convert to `const(void)[]`, but not `void[]`.
-        * An array with `shared` elements will implicitly convert to `shared(void)[]`, but not `void[]`.
-    $(LI Any pointer implicitly converts to a void pointer. As for void arrays, the
-        `void` element type may need a type qualifier.)
+    $(LI A struct may implicitly convert to the target of its
+        $(GLINK2 struct, AliasThis).)
+    $(LI A class instance implicitly converts to its
+        $(DDSUBLINK spec/class, super_class, inherited types).)
+    $(LI An interface instance $(DDSUBLINK spec/interface, declarations,
+        implicitly converts) to any inherited interfaces.)
+    $(LI A static array $(DDSUBLINK spec/arrays, implicit-conversions, implicitly
+        converts) to a dynamic array.)
+    $(LI Static arrays, dynamic arrays and pointers implicitly
+        $(DDSUBLINK spec/arrays, void-element-conversion, convert to void element type).)
+    $(LI Static arrays, dynamic arrays and pointers of class element type may have
+        $(RELATIVE_LINK2 class-conversions, implicit conversions).)
     $(LI $(DDSUBLINK spec/function, function-pointers-delegates, Function pointers and delegates)
-        can convert to covariant types.)
+        can convert to $(RELATIVE_LINK2 covariance, covariant types).)
     )
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
@@ -332,11 +337,6 @@ void test(bool b)
 
     noreturn n();
     i = n();
-    void* p = &i;
-
-    const int[] a;
-    const(void)[] cv = a;
-    //void[] va = a; // error
 }
 
 void f(int x) pure;
@@ -349,50 +349,54 @@ void function(int) fp = &f; // pure is covariant with non-pure
       Implicit Qualifier Conversions)
     - $(DDSUBLINK spec/expression, cast_integers, Casting Integers)
 
-$(H4 $(LNAME2 class-conversions, Class Conversions))
+$(H3 $(LNAME2 class-conversions, Class Element Conversion))
 
-    $(P A derived class can be implicitly converted to its base class, but going
-    the other way requires an $(DDSUBLINK spec/expression, cast_class, explicit cast).
-    For example:)
+    $(P Given class types `T` and `U`, and `U` inherits from `T`, the following
+    rules apply.)
 
-$(SPEC_RUNNABLE_EXAMPLE_RUN
--------------------
-class Base {}
-class Derived : Base {}
-Base bd = new Derived();              // implicit conversion
-Derived db = cast(Derived)new Base(); // explicit conversion
--------------------
+    $(P A pointer $(D T*) can be implicitly converted to `U*` if both:)
+
+    - `U` is not mutable
+    - `U` has $(DDSUBLINK spec/const3, implicit_qualifier_conversions, compatible type qualifiers)
+      with `T`
+
+    $(P Likewise, a dynamic array `T[]` can be implicitly converted to `U[]` if both:)
+
+    - `U` is not mutable
+    - `U` has $(DDSUBLINK spec/const3, implicit_qualifier_conversions, compatible type qualifiers)
+      with `T`
+
+    $(P A static array `T[dim]` can be implicitly converted to `U[dim]` if either:)
+
+    - `U` and `T` are both mutable
+    - `U` has $(DDSUBLINK spec/const3, implicit_qualifier_conversions, compatible type qualifiers)
+      with `T`
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+class C; // inherits from Object
+
+void test()
+{
+    C* pc;
+    //Object* po = pc; // error
+    const(Object)* po = pc; // OK, `*po` is const
+    immutable C* pic;
+    po = pic;
+
+    C[1] sc;
+    Object[1] so = sc; // OK, `so` can be mutable
+
+    C[] ac = sc;
+    //Object[] ao = ac; // error
+    const Object[] ao = ac;
+}
+---
 )
+    $(RATIONALE These rules prevent a derived class element from being
+    overwritten by a base class instance.)
 
-    $(P A dynamic array, say `x`, of a derived class can be implicitly converted
-    to a dynamic array, say `y`, of a base class iff elements of `x` and `y` are
-    qualified as being either both `const` or both `immutable`.)
-
-$(SPEC_RUNNABLE_EXAMPLE_RUN
--------------------
-class Base {}
-class Derived : Base {}
-const(Base)[] ca = (const(Derived)[]).init; // `const` elements
-immutable(Base)[] ia = (immutable(Derived)[]).init; // `immutable` elements
--------------------
-)
-
-    $(P A static array, say `x`, of a derived class can be implicitly converted
-    to a static array, say `y`, of a base class iff elements of `x` and `y` are
-    qualified as being either both `const` or both `immutable` or both mutable
-    (neither `const` nor `immutable`).)
-
-$(SPEC_RUNNABLE_EXAMPLE_RUN
--------------------
-class Base {}
-class Derived : Base {}
-Base[3] ma = (Derived[3]).init; // mutable elements
-const(Base)[3] ca = (const(Derived)[3]).init; // `const` elements
-immutable(Base)[3] ia = (immutable(Derived)[3]).init; // `immutable` elements
--------------------
-)
-
-$(H4 $(LNAME2 covariance, Function Pointer Conversions))
+$(H3 $(LNAME2 covariance, Function Pointer Conversions))
 
     $(P A function pointer type `Source` implicitly converts to another type `Target` if:)
 

@@ -21,7 +21,7 @@ double[]
 {}
 AliasSeq!("m")
 true
-TFunction1: extern (C) void function()
+TFunction1: extern(C) void function()
 ---
 */
 
@@ -1135,11 +1135,13 @@ class A59 {
 
 void test60()
 {
+    import core.stdc.config : c_long_double;
+
     enum real ONE = 1.0;
     real x;
     for (x=0.0; x<10.0; x+=ONE)
-        printf("%Lg\n", x);
-    printf("%Lg\n", x);
+        printf("%Lg\n", cast(c_long_double)x);
+    printf("%Lg\n", cast(c_long_double)x);
     assert(x == 10);
 }
 
@@ -4782,8 +4784,8 @@ void test2997()
 
 extern (C) int function() pfunc6596;
 extern (C) int cfunc6596(){ return 0; }
-static assert(typeof(pfunc6596).stringof == "extern (C) int function()");
-static assert(typeof(cfunc6596).stringof == "extern (C) int()");
+static assert(typeof(pfunc6596).stringof == "extern(C) int function()");
+static assert(typeof(cfunc6596).stringof == "extern(C) int()");
 
 
 /***************************************************/

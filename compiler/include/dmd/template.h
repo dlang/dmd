@@ -113,8 +113,8 @@ public:
 class TemplateParameter : public ASTNode
 {
 public:
-    Loc loc;
     Identifier *ident;
+    Loc loc;
 
     /* True if this is a part of precedent parameter specialization pattern.
      *

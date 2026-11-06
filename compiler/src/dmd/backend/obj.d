@@ -20,6 +20,7 @@ import dmd.backend.cdef;
 import dmd.backend.cc;
 import dmd.backend.code;
 import dmd.backend.el;
+import dmd.backend.symbol;
 
 import dmd.common.outbuffer;
 

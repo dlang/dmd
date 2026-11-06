@@ -17,8 +17,9 @@ module dmd.backend.cdef;
 
 import dmd.common.int128;
 
-import dmd.backend.cc: Classsym, Symbol, param_t, config;
+import dmd.backend.cc: Classsym, param_t, config;
 import dmd.backend.el;
+import dmd.backend.symbol;
 import dmd.backend.ty : I32;
 import dmd.backend.global : REGSIZE;
 
@@ -180,23 +181,6 @@ enum REGMAX = 57;      // registers are numbered 0...63
 enum reg_t NOREG = REGMAX;  // no register
 
 alias tym_t = uint;    // data type big enough for type masks
-
-/**********************************
- * Configuration
- */
-
-/* Linkage type         */
-enum linkage_t
-{
-    LINK_C,                     /* C style                              */
-    LINK_CPP,                   /* C++ style                            */
-    LINK_PASCAL,                /* Pascal style                         */
-    LINK_FORTRAN,
-    LINK_SYSCALL,
-    LINK_STDCALL,
-    LINK_D,                     // D code
-    LINK_MAXDIM                 /* array dimension                      */
-}
 
 /**********************************
  * Exception handling method
@@ -469,32 +453,16 @@ enum
 enum config_flags4_t CFG4optimized  = CFG4speed | CFG4space;
 enum config_flags4_t CFG4stackalign = CFG4speed;       // align stack to 8 bytes
 
-// Configuration flags for HTOD executable
-alias htod_flags_t = uint;
-enum
-{
-    HTODFinclude    = 1,      // -hi drill down into #include files
-    HTODFsysinclude = 2,      // -hs drill down into system #include files
-    HTODFtypedef    = 4,      // -ht drill down into typedefs
-    HTODFcdecl      = 8,      // -hc skip C declarations as comments
-}
-
 // This part of the configuration is saved in the precompiled header for use
 // in comparing to make sure it hasn't changed.
 
 struct Config
 {
-    char language;              // 'C' = C, 'D' = C++
     string _version;            /// Compiler version
-    char[3] exetype;            // distinguish exe types so PH
-                                // files are distinct (= SUFFIX)
 
     cpu_target_t target_cpu;       // instruction selection
     cpu_target_t target_scheduler; // instruction scheduling (normally same as selection)
 
-    short versionint;           // intermediate file version (= VERSIONINT)
-    int defstructalign;         // struct alignment specified by command line
-    short hxversion;            // HX version number
     symbolic_debug_t fulltypes; // format of symbolic debug info
 
     windows_flags_t wflags;     // flags for Windows code generation
@@ -514,16 +482,10 @@ struct Config
     config_flags3_t flags3;
     config_flags4_t flags4;
 
-    htod_flags_t htodFlags;     // configuration for htod
-    ubyte ansi_c;               // strict ANSI C
-                                // 89 for ANSI C89, 99 for ANSI C99
-    ubyte asian_char;           // 0: normal, 1: Japanese, 2: Chinese
-                                // and Taiwanese, 3: Korean
     uint threshold;             // data larger than threshold is assumed to
                                 // be far (16 bit models only)
                                 // if threshold == THRESHMAX, all data defaults
                                 // to near
-    linkage_t linkage;          // default function call linkage
     EHmethod ehmethod;          // exception handling method
     bool useModuleInfo;         // implement ModuleInfo
     bool useTypeInfo;           // implement TypeInfo
@@ -537,9 +499,7 @@ struct Config
     ubyte verbose;              // 0: compile quietly (no messages)
                                 // 1: show progress to DLL (default)
                                 // 2: full verbosity
-    char* csegname;             // code segment name
-    char* deflibname;           // default library name
-    int errmax;                 // max error count
+    const(char)[] vasmName;     // name of file to vasm
 }
 
 enum THRESHMAX = 0xFFFF;
@@ -677,8 +637,6 @@ enum SC : ubyte
     funcalias,      /// alias to another function symbol
     stack,          /// offset from stack pointer (not frame pointer)
 }
-
-enum SCMAX = SC.max + 1;
 
 int ClassInline(int c) { return c == SC.inline || c == SC.sinline || c == SC.einline; }
 int SymInline(Symbol* s) { return ClassInline(s.Sclass); }

@@ -36,6 +36,7 @@ import dmd.backend.global : REGSIZE, mask;
 import dmd.backend.debugprint : fl_str, oper_str, tym_str;
 import dmd.backend.util2 : ispow2;
 import dmd.backend.oper;
+import dmd.backend.symbol;
 import dmd.backend.ty;
 import dmd.backend.type;
 import dmd.backend.arm.cod2;
@@ -2896,7 +2897,7 @@ void cdshift(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
                         if (I64 && sz == 1 && resreg >= 4)
                             cdb.last().Irex |= REX;
                         // See if we need operand size prefix
-                        if (!I16 && oper != OPshl && sz == 2)
+                        if (!I16 && sz == 2)
                             cdb.last().Iflags |= CF.opsize;
                         if (forccs)
                             cdb.last().Iflags |= CF.psw;         // need flags result
@@ -3370,7 +3371,7 @@ void cdind(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             cs.Iop = 0xFF;
             cs.Irm |= modregrm(0,6,0);
             cs.IEV1.Voffset += 8 - REGSIZE;
-            cg.stackchanged = 1;
+            cg.stackchanged = true;
             i = 8 - REGSIZE;
             do
             {
@@ -3867,7 +3868,7 @@ void cdstrcpy(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         POP     DS
     */
 
-    cg.stackchanged = 1;
+    cg.stackchanged = true;
     regm_t retregs = mDI;
     tym_t ty2 = tybasic(e.E2.Ety);
     if (!tyreg(ty2))
@@ -4356,8 +4357,10 @@ private void cdmemsetn(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pr
 
     freenode(e2);
 
-    // Get s into ES:DI
-    regm_t mregidx = IDXREGS & ~(mregcx | retregs3);
+    // Only 16-bit addressing requires an index register. Restricting wider
+    // targets to IDXREGS can leave only register variables as candidates,
+    // which allocreg interprets as an explicit variable destination.
+    regm_t mregidx = (I16 ? IDXREGS : cg.allregs) & ~(mregcx | retregs3);
     assert(mregidx);
     tym_t ty1 = tybasic(e.E1.Ety);
     if (!tyreg(ty1))
@@ -4850,7 +4853,7 @@ void getoffset(ref CGstate cg, ref CodeBuilder cdb,elem* e,reg_t reg)
             {
                 cdb.genpush(reg);        // PUSH reg
                 cdb.genadjesp(REGSIZE);
-                cg.stackchanged = 1;
+                cg.stackchanged = true;
             }
             break;
         }
@@ -4898,7 +4901,7 @@ void getoffset(ref CGstate cg, ref CodeBuilder cdb,elem* e,reg_t reg)
             cs.IEV2.Voffset = e.Voffset;
         L3:
             if (reg == STACK)
-            {   cg.stackchanged = 1;
+            {   cg.stackchanged = true;
                 cs.Iop = 0x68;              /* PUSH immed16                 */
                 cdb.genadjesp(REGSIZE);
             }
@@ -4948,7 +4951,7 @@ void getoffset(ref CGstate cg, ref CodeBuilder cdb,elem* e,reg_t reg)
                     code_orrex(cdb.last(), REX_W);
                 cdb.genpush(reg);               // PUSH reg
                 cdb.genadjesp(REGSIZE);
-                cg.stackchanged = 1;
+                cg.stackchanged = true;
             }
             else
             {
@@ -5230,7 +5233,7 @@ if (config.exe & EX_windos)
         regm_t idxregs = idxregm(&cs);  // mask of index regs used
         cs.Iop = 0x8B;                  /* MOV DOUBLEREGS,EA            */
         fltregs(cdb,&cs,tyml);
-        cg.stackchanged = 1;
+        cg.stackchanged = true;
         int stackpushsave = cg.stackpush;
         regm_t retregs;
         if (sz == 8)

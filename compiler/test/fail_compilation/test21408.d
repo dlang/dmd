@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/test21408.d(12): Error: can't infer return type in function `opEquals`
+fail_compilation/test21408.d(12): Error: failed to lower array comparison between types `A[]` and `A[]`
 fail_compilation/test21408.d(19): Error: can't infer return type in function `opEquals`
 ---
 */

@@ -18,6 +18,7 @@ version(WebAssembly) {} else:
 package:
 
 import core.thread.fiber;
+import core.thread : isSingleThreaded;
 import core.thread.threadbase;
 import core.thread.threadgroup;
 import core.thread.types;
@@ -768,6 +769,7 @@ unittest
 
 
 // Multiple threads running separate fibers
+static if(!isSingleThreaded)
 unittest
 {
     auto group = new ThreadGroup();
@@ -780,6 +782,7 @@ unittest
 
 
 // Multiple threads running shared fibers
+static if(!isSingleThreaded)
 unittest
 {
     shared bool[10] locks;
@@ -790,16 +793,16 @@ unittest
         bool cont;
         do {
             cont = false;
-            foreach (idx; 0 .. 10)
+            foreach (idx, ref lock; locks)
             {
-                if (cas(&locks[idx], false, true))
+                if (cas(&lock, false, true))
                 {
                     if (fibs[idx].state == Fiber.State.HOLD)
                     {
                         fibs[idx].call();
                         cont |= fibs[idx].state != Fiber.State.TERM;
                     }
-                    locks[idx] = false;
+                    atomicStore(lock, false);
                 }
                 else
                 {
@@ -977,6 +980,7 @@ unittest
 }
 
 // stress testing GC stack scanning
+static if(!isSingleThreaded)
 unittest
 {
     import core.memory;

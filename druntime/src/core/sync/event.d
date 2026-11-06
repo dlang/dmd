@@ -26,10 +26,6 @@ else version (Posix)
     import core.sys.posix.sys.types : pthread_cond_t, pthread_mutex_t;
     import core.sys.posix.time : timespec;
 }
-else version (WASI)
-{
-    // Dummy no-op
-}
 else
 {
     static assert(false, "Platform not supported");
@@ -37,6 +33,7 @@ else
 
 import core.internal.abort : abort;
 import core.time;
+import core.thread : isSingleThreaded;
 
 /**
  * represents an event. Clients of an event are suspended while waiting
@@ -137,10 +134,6 @@ nothrow @nogc:
             m_manualReset = manualReset;
             m_initalized = true;
         }
-        else version (WASI)
-        {
-            abort("Error: Cannot initialize Event on WASI.");
-        }
     }
 
     // copying not allowed, can produce resource leaks
@@ -200,10 +193,6 @@ nothrow @nogc:
                 pthread_mutex_unlock(&m_mutex);
             }
         }
-        else version (WASI)
-        {
-            abort("Error: Cannot deinitialize Event on WASI.");
-        }
     }
 
     /// Reset the event manually
@@ -240,11 +229,6 @@ nothrow @nogc:
         else version (Posix)
         {
             return wait(Duration.max);
-        }
-        else version (WASI)
-        {
-            abort("Error: Cannot wait for Event on WASI.");
-            return false;
         }
     }
 
@@ -286,7 +270,12 @@ nothrow @nogc:
             int result = 0;
             if (!m_state)
             {
-                if (tmout == Duration.max)
+                version (Emscripten)
+                {
+                    // pthread_cond_[timed]wait() seems to be a stub always returning 0
+                    result = -1;
+                }
+                else if (tmout == Duration.max)
                 {
                     result = pthread_cond_wait(&m_cond, &m_mutex);
                 }
@@ -297,7 +286,10 @@ nothrow @nogc:
                     timespec t = void;
                     mktspec(t, tmout);
 
-                    result = pthread_cond_timedwait(&m_cond, &m_mutex, &t);
+                    version (WASI)   // wasi-libc traps for single-thread futex
+                        result = -1;
+                    else
+                        result = pthread_cond_timedwait(&m_cond, &m_mutex, &t);
                 }
             }
             if (result == 0 && !m_manualReset)
@@ -306,11 +298,6 @@ nothrow @nogc:
             pthread_mutex_unlock(&m_mutex);
 
             return result == 0;
-        }
-        else version (WASI)
-        {
-            abort("Error: Cannot wait for Event on WASI.");
-            return false;
         }
     }
 
@@ -330,8 +317,6 @@ private:
 }
 
 // Test single-thread (non-shared) use.
-version (WASI) {} // WASI is single-threaded
-else
 @nogc nothrow unittest
 {
     // auto-reset, initial state false
@@ -349,8 +334,7 @@ else
     assert(!ev2.wait(1.dur!"msecs"));
 }
 
-version (WASI) {} // WASI is single-threaded
-else
+static if(!isSingleThreaded)
 unittest
 {
     import core.atomic;
@@ -372,12 +356,12 @@ unittest
         group.create(&testFn);
 
     auto start = MonoTime.currTime;
-    assert(numRunning == 0);
+    assert(atomicLoad(numRunning) == 0);
 
     event.setIfInitialized();
     group.joinAll();
 
-    assert(numRunning == numThreads);
+    assert(atomicLoad(numRunning) == numThreads);
 
     assert(MonoTime.currTime - start < 5.dur!"seconds");
 }

@@ -15,11 +15,12 @@ import core.stdc.ctype;
 import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
+import core.stdc.stdarg;
 
 import dmd.astenums;
 import dmd.compiler : includeImports;
 import dmd.dmdparams;
-import dmd.errors;
+import dmd.errors : ErrorSinkCompiler;
 import dmd.errorsink;
 import dmd.globals;
 import dmd.location;
@@ -297,6 +298,7 @@ public int runLINK(bool verbose, ErrorSink eSink)
             // legacy `msvcrtNNN` such as `msvcrt120` — do not detect Visual Studio; use
             // lld-link with the MinGW libraries instead.
             const isMingwRuntime = driverParams.mscrtlib == "ucrtbase" ||
+                driverParams.mscrtlib == "vcruntime140" || // legacy name for ucrtbase
                 (driverParams.mscrtlib.length > 6 &&
                  driverParams.mscrtlib[0 .. 6] == "msvcrt" && isdigit(driverParams.mscrtlib[6]));
             if (!isMingwRuntime)
@@ -320,6 +322,10 @@ public int runLINK(bool verbose, ErrorSink eSink)
             // /DEFAULTLIB directive; it also needs the VC runtime library.
             if (driverParams.mscrtlib == "ucrtbase")
                 cmdbuf.writestring(" vcruntime140.lib");
+            // And legacy_stdio_definitions.lib, as the printf/scanf family is defined
+            // inline in the MSVC 2015+ headers.
+            if (driverParams.mscrtlib == "ucrtbase" || driverParams.mscrtlib == "vcruntime140")
+                cmdbuf.writestring(" legacy_stdio_definitions.lib");
 
             if (const(char)* lflags = vsopt.linkOptions(target.isX86_64))
             {
@@ -835,7 +841,7 @@ version (Windows)
             else
             {
                 eSink.error(Loc.initial, "linker exited with status %d", status);
-                errorSupplemental(Loc.initial, "%s %s", cmd, args);
+                eSink.errorSupplemental(Loc.initial, "%s %s", cmd, args);
             }
         }
         return status;
@@ -968,6 +974,7 @@ public int runProgram(const char[] exefile, const char*[] runargs, bool verbose,
  *    cpp = name of C preprocessor program
  *    filename = C source file name
  *    importc_h = filename of importc.h
+ *    includePath = path passed to the preprocessor as an include path
  *    cppswitches = array of switches to pass to C preprocessor
  *    verbose = print progress to eSink
  *    eSink = for verbose messages and error messages
@@ -976,7 +983,7 @@ public int runProgram(const char[] exefile, const char*[] runargs, bool verbose,
  * Returns:
  *    error status, 0 for success
  */
-public int runPreprocessor(Loc loc, const(char)[] cpp, const(char)[] filename, const(char)* importc_h, ref Array!(const(char)*) cppswitches,
+public int runPreprocessor(Loc loc, const(char)[] cpp, const(char)[] filename, const(char)* importc_h, const(char)[] includePath, ref Array!(const(char)*) cppswitches,
     bool verbose, ErrorSink eSink, ref OutBuffer defines, out DArray!ubyte text)
 {
     //printf("runPreprocessor() cpp: %.*s filename: %.*s\n", cast(int)cpp.length, cpp.ptr, cast(int)filename.length, filename.ptr);
@@ -1025,6 +1032,13 @@ public int runPreprocessor(Loc loc, const(char)[] cpp, const(char)[] filename, c
                 buf.writestring(cpp);
                 buf.printf(" /std:c11 /P /Zc:preprocessor /PD /nologo /utf-8 \"%.*s\" \"/FI%s\" \"/Fi%.*s\"",
                     cast(int)filename.length, filename.ptr, importc_h, cast(int)output.length, output.ptr);
+
+                /* Append the include path, if it was provided
+                 */
+                if (includePath)
+                {
+                    buf.printf(` "/I%.*s"`, cast(int)includePath.length, includePath.ptr);
+                }
 
                 /* Append preprocessor switches to command line
                  */
@@ -1196,6 +1210,13 @@ public int runPreprocessor(Loc loc, const(char)[] cpp, const(char)[] filename, c
         // need to redefine some macros in importc.h
         argv.push("-Wno-builtin-macro-redefined");
 
+        // append the include path, if it was provided
+        if (includePath)
+        {
+            argv.push("-I");
+            argv.push(includePath.xarraydup.ptr);
+        }
+
         if (target.os == Target.OS.OSX)
         {
             argv.push("-fno-blocks");       // disable clang blocks extension
@@ -1320,7 +1341,7 @@ public int runPreprocessor(Loc loc, const(char)[] cpp, const(char)[] filename, c
  *      https://github.com/dlang/visuald/blob/master/tools/pipedmd.d#L252
  */
 version (Windows)
-int runProcessCollectStdout(const(wchar)* szCommand, ubyte[] buffer, void delegate(ubyte[]) sink)
+int runProcessCollectStdout(const(wchar)* szCommand, ubyte[] buffer, scope void delegate(ubyte[]) sink)
 {
     //printf("runProcess() command: %ls\n", szCommand);
     // Set the bInheritHandle flag so pipe handles are inherited.

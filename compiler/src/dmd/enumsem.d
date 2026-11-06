@@ -37,7 +37,7 @@ import dmd.dsymbol;
 import dmd.dsymbolsem;
 import dmd.dtemplate;
 import dmd.dversion;
-import dmd.errors;
+import dmd.errorsink;
 import dmd.escape;
 import dmd.expression;
 import dmd.expressionsem;
@@ -89,10 +89,13 @@ void enumSemantic(Scope* sc, EnumDeclaration ed)
     //printf("EnumDeclaration::semantic() %p %s\n", ed, ed.toChars());
     if (ed.semanticRun >= PASS.semanticdone)
         return; // semantic() already completed
+
+    auto eSink = global.errorSink;
+
     if (ed.semanticRun == PASS.semantic)
     {
         assert(ed.memtype);
-        error(ed.loc, "circular reference to enum base type `%s`", ed.memtype.toErrMsg());
+        eSink.error(ed.loc, "circular reference to enum base type `%s`", ed.memtype.toErrMsg());
         ed.errors = true;
         ed.semanticRun = PASS.semanticdone;
         return;
@@ -138,7 +141,6 @@ void enumSemantic(Scope* sc, EnumDeclaration ed)
      *  5. enum ident : memtype;
      *  6. enum ident;
      */
-
     if (ed.memtype)
     {
         ed.memtype = ed.memtype.typeSemantic(ed.loc, sc);
@@ -165,7 +167,7 @@ void enumSemantic(Scope* sc, EnumDeclaration ed)
         }
         if (ed.memtype.ty == Tvoid)
         {
-            .error(ed.loc, "%s `%s` base type must not be `void`", ed.kind, ed.toPrettyChars);
+            eSink.error(ed.loc, "%s `%s` base type must not be `void`", ed.kind, ed.toPrettyChars);
             ed.memtype = Type.terror;
         }
         if (ed.memtype.ty == Terror)
@@ -188,7 +190,7 @@ void enumSemantic(Scope* sc, EnumDeclaration ed)
 
     if (ed.members.length == 0)
     {
-        .error(ed.loc, "%s `%s` enum `%s` must have at least one member", ed.kind, ed.toPrettyChars, ed.toErrMsg());
+        eSink.error(ed.loc, "%s `%s` enum `%s` must have at least one member", ed.kind, ed.toPrettyChars, ed.toErrMsg());
         ed.errors = true;
         ed.semanticRun = PASS.semanticdone;
         return;
@@ -276,6 +278,9 @@ Expression getDefaultValue(EnumDeclaration ed, Loc loc)
         dsymbolSemantic(ed, ed._scope);
     if (ed.errors)
         return handleErrors();
+
+    auto eSink = global.errorSink;
+
     if (!ed.members)
     {
         if (ed.isSpecial())
@@ -285,7 +290,7 @@ Expression getDefaultValue(EnumDeclaration ed, Loc loc)
             return ed.defaultval = ed.memtype.defaultInit(loc);
         }
 
-        error(loc, "%s `%s` is opaque and has no default initializer", ed.kind, ed.toPrettyChars);
+        eSink.error(loc, "%s `%s` is opaque and has no default initializer", ed.kind, ed.toPrettyChars);
         return handleErrors();
     }
 
@@ -295,7 +300,7 @@ Expression getDefaultValue(EnumDeclaration ed, Loc loc)
         {
             if (em.semanticRun < PASS.semanticdone)
             {
-                error(loc, "%s `%s` forward reference of `%s.init`", ed.kind, ed.toPrettyChars, ed.toErrMsg());
+                eSink.error(loc, "%s `%s` forward reference of `%s.init`", ed.kind, ed.toPrettyChars, ed.toErrMsg());
                 return handleErrors();
             }
 
@@ -330,8 +335,9 @@ Type getMemtype(EnumDeclaration ed, Loc loc)
             ed.memtype = Type.tint32;
         else
         {
+            auto eSink = global.errorSink;
             Loc locx = loc.isValid() ? loc : ed.loc;
-            error(locx, "is forward referenced looking for base type");
+            eSink.error(locx, "is forward referenced looking for base type");
             return Type.terror;
         }
     }
@@ -353,9 +359,12 @@ void enumMemberSemantic(Scope* sc, EnumMember em)
 
     if (em.errors || em.semanticRun >= PASS.semanticdone)
         return;
+
+    auto eSink = global.errorSink;
+
     if (em.semanticRun == PASS.semantic)
     {
-        .error(em.loc, "%s `%s` circular reference to `enum` member", em.kind, em.toPrettyChars);
+        eSink.error(em.loc, "%s `%s` circular reference to `enum` member", em.kind, em.toPrettyChars);
         return errorReturn();
     }
     assert(em.ed);
@@ -411,7 +420,7 @@ void enumMemberSemantic(Scope* sc, EnumMember em)
         Expression e = em.value;
         assert(e.dyncast() == DYNCAST.expression);
         if (em.ed.memtype)
-            e = inferType(e, em.ed.memtype);
+            e = inferExpType(e, em.ed.memtype);
         e = e.expressionSemantic(sc);
         e = resolveProperties(sc, e);
         e = e.ctfeInterpret();
@@ -510,7 +519,7 @@ void enumMemberSemantic(Scope* sc, EnumMember em)
         e = e.ctfeInterpret();
         if (global.endGagging(errors) || terror)
         {
-            error(em.loc, "cannot generate 0 value of type `%s` for `%s`",
+            eSink.error(em.loc, "cannot generate 0 value of type `%s` for `%s`",
                 em.ed.memtype.toErrMsg(), em.toErrMsg());
         }
         // save origValue for better json output
@@ -548,7 +557,7 @@ void enumMemberSemantic(Scope* sc, EnumMember em)
         {
             if (!te.sym.isSpecial())
             {
-                error(em.loc,
+                eSink.error(em.loc,
                       "cannot automatically assign value to enum member `%s` because base type `%s` is an enum; provide an explicit value",
                       em.toPrettyChars(), em.ed.memtype.toErrMsg());
                 return errorReturn();
@@ -584,7 +593,7 @@ void enumMemberSemantic(Scope* sc, EnumMember em)
         if (global.endGagging(errors))
         {
             // display an introductory error before showing what actually failed
-            error(em.loc, "cannot check `%s` value for overflow", em.toPrettyChars());
+            eSink.error(em.loc, "cannot check `%s` value for overflow", em.toPrettyChars());
             // rerun to show errors
             Expression e2 = DotIdExp.create(em.ed.loc, new TypeExp(em.ed.loc, tprev), Id.max);
             e2 = e2.expressionSemantic(sc);
@@ -599,7 +608,7 @@ void enumMemberSemantic(Scope* sc, EnumMember em)
             auto mt = em.ed.memtype;
             if (!mt)
                 mt = eprev.type;
-            .error(em.loc, "%s `%s` initialization with `%s.%s+1` causes overflow for type `%s`", em.kind, em.toPrettyChars,
+            eSink.error(em.loc, "%s `%s` initialization with `%s.%s+1` causes overflow for type `%s`", em.kind, em.toPrettyChars,
                 emprev.ed.toErrMsg(), emprev.toErrMsg(), mt.toErrMsg());
             return errorReturn();
         }
@@ -611,7 +620,7 @@ void enumMemberSemantic(Scope* sc, EnumMember em)
         e = e.ctfeInterpret();
         if (global.endGagging(errors))
         {
-            error(em.loc, "cannot generate value for `%s`", em.toPrettyChars());
+            eSink.error(em.loc, "cannot generate value for `%s`", em.toPrettyChars());
             // rerun to show errors
             Expression e2 = new AddExp(em.loc, eprev, IntegerExp.literal!1);
             e2 = e2.expressionSemantic(sc);
@@ -637,7 +646,7 @@ void enumMemberSemantic(Scope* sc, EnumMember em)
             etest = etest.ctfeInterpret();
             if (etest.toInteger())
             {
-                .error(em.loc, "%s `%s` has inexact value due to loss of precision", em.kind, em.toPrettyChars);
+                eSink.error(em.loc, "%s `%s` has inexact value due to loss of precision", em.kind, em.toPrettyChars);
                 return errorReturn();
             }
         }

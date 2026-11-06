@@ -149,15 +149,14 @@ static assert(Foo.init.b == 7);
 ----------------
 )
 
-$(H3 $(LNAME2 init-vs-construction, `.init` vs Default Construction))
+$(H3 $(LNAME2 init-vs-construction, `.init` vs Default Initialization))
 
-    $(P Note that $(D .init) produces a default initialized object, not a
-    default constructed one. If there is a default constructor for an object,
-    it may produce a different value.)
+    $(P Note that $(D .init) produces a statically initialized object, which may be
+    different from default initialization for value types:)
 
     $(OL
-        $(LI If $(D T) is a nested struct, the context pointer in $(D T.init)
-        is $(D null).)
+        $(LI For a $(DDSUBLINK spec/struct, nested, nested struct) `S`, the context
+        pointer in $(D S.init) is $(D null):)
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ----------------
@@ -168,17 +167,17 @@ void main()
     {
         void foo() { x = 1; }  // access x in enclosing scope via context pointer
     }
-    S s1;           // OK. S() correctly initialize its context pointer.
-    S s2 = S();     // OK. same as s1
+    S s1;           // OK, s1 correctly initializes its context pointer
+    S s2 = S();     // OK, same as s1
     s1.foo();       // OK
 
-    S s3 = S.init;  // Bad. the context pointer in s3 is null
+    S s3 = S.init;  // Beware, the context pointer in s3 is null
     s3.foo();       // Access violation
 }
 ----------------
 )
-        $(LI If $(D T) is a struct which has $(CODE @disable this();), $(D T.init)
-        might return a logically incorrect object.)
+        $(LI If a struct `S` has $(DDSUBLINK spec/struct, disable_default_construction,
+        `@disable this();`), $(D T.init) might return a logically incorrect object:)
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ----------------
@@ -202,6 +201,8 @@ void main()
 ----------------
 )
     )
+    $(P Similarly, a static array of structs may have different behaviour
+    for `.init` vs default initialization.)
 
 
 $(H2 $(LNAME2 stringof, .stringof Property))

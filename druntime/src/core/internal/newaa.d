@@ -450,9 +450,8 @@ pure nothrow @nogc unittest
  */
 V[K] _d_aaNew(K, V)()
 {
-    AA!(K, V) aa;
-    aa.impl = new Impl!(K,V)(INIT_NUM_BUCKETS);
-    return *cast(V[K]*)&aa;
+    auto impl = new Impl!(K,V)(INIT_NUM_BUCKETS);
+    return () @trusted { return *cast(V[K]*)&impl; }();
 }
 
 /// Determine number of entries in associative array.

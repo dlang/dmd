@@ -8,7 +8,7 @@ myBool bool
 i
 s
 C6test42__T4T219TiZ1C
-C6test427test219FZ16__mixin_L3577_C31C
+C6test427test219FZ16__mixin_L3578_C31C
 ---
 */
 
@@ -1665,9 +1665,10 @@ void test100()
 {
     static void check(ulong value)
     {
+        import core.stdc.config;
         real r = value;
         ulong d = cast(ulong)r;
-        printf("ulong: %llu => real: %Lg => ulong: %llu\n", value, r, d);
+        printf("ulong: %llu => real: %Lg => ulong: %llu\n", value, cast(c_long_double)r, d);
         assert(d == value);
     }
 
@@ -2735,13 +2736,13 @@ class Class171 : Address {
 
     struct FwdStruct  {  }
 
-    override int nameLen()    { return 0; }
+    override int nameLen()    { return 42; }
 }
 
 void test171 ()
 {
-    Class171 xxx = new Class171;
-    assert(typeid(Class171).vtbl.length - typeid(Object).vtbl.length == 1);
+    Address xxx = new Class171;
+    assert(xxx.nameLen() == 42);
 }
 
 /***************************************************/
@@ -3995,6 +3996,7 @@ static immutable real[13] postab =
 
 float parse(ref string p)
 {
+    import core.stdc.config;
     printf("test1\n");
 
     real ldval = 0.0;
@@ -4005,7 +4007,7 @@ float parse(ref string p)
     exp = 2;
 
     ldval = msdec;
-    printf("ldval = %Lg\n", ldval);
+    printf("ldval = %Lg\n", cast(c_long_double)ldval);
     if (ldval)
     {
         uint u = 0;
@@ -5903,17 +5905,18 @@ abstract class B10628
     }
 
     private bool _bar;
-    public void foo();
+    public int foo();
 }
 
 class D10628 : B10628
 {
-    public override void foo() {}
+    public override int foo() { return 42; }
 }
 
 void test10628()
 {
-    assert(typeid(D10628).vtbl.length - typeid(Object).vtbl.length == 1);
+    B10628 o = new D10628;
+    assert(o.foo() == 42);
 }
 
 /***************************************************/

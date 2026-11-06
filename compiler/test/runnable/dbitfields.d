@@ -207,6 +207,29 @@ void test24257()
 }
 
 /******************************************/
+// https://github.com/dlang/dmd/issues/24024
+
+struct S24024
+{
+    uint a : 3;
+    uint b : 3;
+    int c : 3;
+}
+
+static assert(S24024(9, 2, 5).a == 1);
+static assert(S24024(9, 2, 5).b == 2);
+static assert(S24024(9, 2, 5).c == -3);
+static assert(new S24024(9, 2, 5).a == 1);
+static assert({ S24024 s; uint v = 9; s.a = v; return v; }() == 9);
+
+void test24024()
+{
+    assert(S24024(9, 2, 5).a == 1);
+    assert(S24024(9, 2, 5).b == 2);
+    assert(S24024(9, 2, 5).c == -3);
+}
+
+/******************************************/
 
 int main()
 {
@@ -218,6 +241,7 @@ int main()
     test6();
     test7();
     test24257();
+    test24024();
 
     return 0;
 }

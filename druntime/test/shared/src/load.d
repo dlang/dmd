@@ -1,3 +1,5 @@
+import core.atomic : atomicLoad;
+import core.internal.thread : isSingleThreaded;
 import core.runtime;
 import core.stdc.string : strrchr;
 import core.thread;
@@ -88,22 +90,22 @@ void testGC()
 void testInit()
 {
 
-    assert(*libStaticCtor == 1);
-    assert(*libStaticDtor == 0);
+    assert(atomicLoad(*libStaticCtor) == 1);
+    assert(atomicLoad(*libStaticDtor) == 0);
     static void run()
     {
-        assert(*libSharedStaticCtor == 1);
-        assert(*libSharedStaticDtor == 0);
-        assert(*libStaticCtor == 2);
-        assert(*libStaticDtor == 0);
+        assert(atomicLoad(*libSharedStaticCtor) == 1);
+        assert(atomicLoad(*libSharedStaticDtor) == 0);
+        assert(atomicLoad(*libStaticCtor) == 2);
+        assert(atomicLoad(*libStaticDtor) == 0);
     }
     auto thr = new Thread(&run);
     thr.start();
     thr.join();
-    assert(*libSharedStaticCtor == 1);
-    assert(*libSharedStaticDtor == 0);
-    assert(*libStaticCtor == 2);
-    assert(*libStaticDtor == 1);
+    assert(atomicLoad(*libSharedStaticCtor) == 1);
+    assert(atomicLoad(*libSharedStaticDtor) == 0);
+    assert(atomicLoad(*libStaticCtor) == 2);
+    assert(atomicLoad(*libStaticDtor) == 1);
 }
 
 const(ModuleInfo)* findModuleInfo(string name)
@@ -121,7 +123,9 @@ void runTests(string libName)
 
     testEH();
     testGC();
-    testInit();
+
+    static if(!isSingleThreaded)
+        testInit();
 
     closeLib(handle);
     assert(findModuleInfo("lib") is null);

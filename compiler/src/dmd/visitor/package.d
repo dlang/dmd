@@ -126,7 +126,7 @@ extern (C++) class SemanticTimeTransitiveVisitor : SemanticTimePermissiveVisitor
 
     override void visit(ASTCodegen.UnrolledLoopStatement s)
     {
-        foreach(sx; *s.statements)
+        foreach(sx; s.statements)
         {
             if (sx)
                 sx.accept(this);

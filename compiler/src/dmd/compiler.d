@@ -17,11 +17,11 @@ import dmd.astenums;
 import dmd.arraytypes;
 import dmd.ctfeexpr;
 import dmd.dmodule;
-import dmd.errors;
 import dmd.expression;
 import dmd.expressionsem : toInteger, toReal;
 import dmd.id;
 import dmd.identifier;
+import dmd.location;
 import dmd.mtype;
 import dmd.typesem;
 import dmd.root.array;
@@ -145,7 +145,10 @@ extern (C++) struct Compiler
             {
                 import dmd.globals;
                 if (global.params.v.verbose)
-                    message("compileimport (%s)", m.srcfile.toChars);
+                {
+                    auto eSink = global.errorSink;
+                    eSink.message(Loc.init, "compileimport (%s)", m.srcfile.toChars);
+                }
                 compiledImports.push(m);
                 return true; // this import will be compiled
             }

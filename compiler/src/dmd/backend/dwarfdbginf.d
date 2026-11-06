@@ -41,6 +41,7 @@ import core.stdc.errno;
 import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.code;
+import dmd.backend.symbol;
 import dmd.backend.arm.instr;
 
 version(Windows)
@@ -70,7 +71,7 @@ static if (1)
     import dmd.backend.mem;
     import dmd.backend.el;
     import dmd.backend.elfobj : addSegmentToComdat;
-    import dmd.backend.machobj : getsegment2;
+    import dmd.backend.machobj : getsegment2, MachObj_reftoident;
     import dmd.backend.global;
     import dmd.backend.symbol : symbol_name, symbol_reset, globsym;
     import dmd.backend.obj;
@@ -94,6 +95,7 @@ static if (1)
             int except_table_num = 0;       // sequence number for GCC_except_table%d symbols
             int eh_frame_seg = UNKNOWN;     // __eh_frame segment
             Symbol* eh_frame_sym = null;    // past end of __eh_frame
+            int compact_unwind_seg = UNKNOWN; // __compact_unwind segment
 
         uint CIE_offset_unwind;     // CIE offset for unwind data
         uint CIE_offset_no_unwind;  // CIE offset for no unwind data
@@ -111,7 +113,7 @@ static if (1)
      */
     bool doUnwindEhFrame()
     {
-        if (funcsym_p.Sfunc.Fflags3 & Feh_none)
+        if (funcsym_p.Sfunc.Fflags & Feh_none)
         {
             return (config.exe & (EX_FREEBSD | EX_FREEBSD64 | EX_OPENBSD | EX_OPENBSD64 | EX_DRAGONFLYBSD64)) != 0;
         }
@@ -198,6 +200,22 @@ static if (1)
                 Obj.pubdef(seg, eh_frame_sym, 0);
                 symbol_keep(eh_frame_sym);
             }
+            return seg;
+        }
+        assert(0);
+    }
+
+    /*****************
+     * Returns the __compact_unwind segment number, create segment if necessary.
+     * Returns:
+     *  segment index of compact_unwind
+     */
+    IDXSEC dwarf_compact_unwind_alloc()
+    {
+        if (config.objfmt == OBJ_MACH && AArch64())
+        {
+            int flags = S_REGULAR | S_ATTR_DEBUG;
+            int seg = getsegment2(compact_unwind_seg, "__compact_unwind", "__LD", 3, flags);
             return seg;
         }
         assert(0);
@@ -828,7 +846,7 @@ static if (1)
             {
                 length           : 20 + cast(uint)cfa_buf.length(),
                 CIE_pointer      : cast(int)sfunc.Ssize,
-                initial_location : 0, // sfunc.Soffset ?
+                initial_location : 0, //sfunc.Soffset,
                 address_range    : sfunc.Ssize,
             };
 
@@ -864,7 +882,7 @@ static if (1)
             {
                 length           : 12 + cast(uint)cfa_buf.length(),
                 CIE_pointer      : 0,
-                initial_location : 0, // sfunc.Soffset?
+                initial_location : 0, //cast(uint)sfunc.Soffset, ?
                 address_range    : cast(uint)sfunc.Ssize,
             };
 
@@ -1007,6 +1025,7 @@ static if (1)
 //symbol_print(*sfunc);
 //symbol_print(*fdesym);
             dwarf_eh_frame_fixup(dfseg, buf.length(), sfunc, 0, fdesym); // PC Begin
+            //dwarf_eh_frame_fixup(dfseg, buf.length(), sfunc, sfunc.Soffset, fdesym); // PC Begin
 
             if (I64)
                 buf.write64(sfunc.Ssize);                     // PC Range
@@ -1048,6 +1067,35 @@ static if (1)
         assert(startsize + length + 4 == buf.length());
     }
 
+    /****************************
+     * Append compact unwind entry to buf.
+     * Params:
+     *      dfseg = SegData[] index for __compact_unwind
+     *      buf = write raw data here
+     *      personality = "__dmd_personality_v0"
+     *      ehunwind = will have EH unwind table
+     * Returns:
+     *      offset of start of this header
+     */
+    private
+    void writeCompactUnwindEntry(ref OutBuffer buf, IDXSEC dfseg, Symbol* sfunc, Symbol* personality, bool ehunwind)
+    {
+        MachObj_reftoident(dfseg, buf.length(), sfunc, 0, CF.offset64);
+
+        buf.write32(cast(uint)sfunc.Ssize);             // functionLength
+
+        uint functionEncoding = funcsym_p.Sfunc.Fflags & Fhasframe
+                    ? UNWIND_ARM64_MODE_FRAME           // standard stack frame
+                    : UNWIND_ARM64_MODE_FRAMELESS;      // no stack frame
+        buf.write32(functionEncoding);                  // functionEncoding
+
+        //mach_dwarf_reftoident(dfseg, buf.length(), personality, 0);   // personality
+        buf.write64(0);
+
+        //mach_dwarf_reftoident(dfseg, buf.length(), sfunc.Sfunc.LSDAsym, 0, sfunc);    // LSDA
+        buf.write64(0);
+    }
+
     public
     void dwarf_initfile(const(char)* filename)
     {
@@ -1065,11 +1113,15 @@ static if (1)
                 except_table_num = 0;
                 eh_frame_seg = UNKNOWN;
                 eh_frame_sym = null;
+                compact_unwind_seg = UNKNOWN;
             }
             CIE_offset_unwind = ~0;
             CIE_offset_no_unwind = ~0;
             //dwarf_except_table_alloc();
-            dwarf_eh_frame_alloc();
+            if (config.objfmt == OBJ_MACH && AArch64())
+                dwarf_compact_unwind_alloc();
+            else
+                dwarf_eh_frame_alloc();
         }
         if (!config.fulltypes)
             return;
@@ -1419,6 +1471,19 @@ static if (1)
     }
 
     /*************************************
+     * Add a file to `infoFileName_table`, and return its index in the
+     * line number program's file_names table, as used by `DW_LNS_set_file`
+     * and `DW_AT_decl_file`.
+     * The table is 1-based for DWARF < 5, but 0-based for DWARF 5.
+     */
+    uint dwarf_line_fileindex(const(char)* path)
+    {
+        const id = dwarf_line_addfile(path);
+        assert(id != 0);
+        return config.dwarf >= 5 ? id - 1 : id;
+    }
+
+    /*************************************
      * Adds `str` to `aachars`, and assigns a new index if none
      *
      * Params:
@@ -1527,7 +1592,7 @@ static if (1)
                     }
                     else
                     {
-                        ld.filenumber = dwarf_line_addfile(filename);
+                        ld.filenumber = dwarf_line_fileindex(filename);
                         dwarf_line_add_directory(filename);
 
                         last_filenumber = ld.filenumber;
@@ -1810,18 +1875,30 @@ static if (1)
 
         if (config.ehmethod == EHmethod.EH_DWARF)
         {
-            bool ehunwind = doUnwindEhFrame();
+            if (config.objfmt == OBJ_MACH && AArch64())
+            {
+                bool ehunwind = doUnwindEhFrame();
+                IDXSEC dfseg = dwarf_compact_unwind_alloc();
+                OutBuffer* buf = SegData[dfseg].SDbuf;
+                buf.reserve(32 * 10);    // 32 bytes per instance of struct compact_unwind_entry
 
-            IDXSEC dfseg = dwarf_eh_frame_alloc();
+                writeCompactUnwindEntry(*buf, dfseg, sfunc, getRtlsymPersonality(), ehunwind);
+            }
+            else
+            {
+                bool ehunwind = doUnwindEhFrame();
 
-            OutBuffer* buf = SegData[dfseg].SDbuf;
-            buf.reserve(1000);
+                IDXSEC dfseg = dwarf_eh_frame_alloc();
 
-            uint* poffset = ehunwind ? &CIE_offset_unwind : &CIE_offset_no_unwind;
-            if (*poffset == ~0)
-                *poffset = writeEhFrameHeader(dfseg, buf, getRtlsymPersonality(), ehunwind);
+                OutBuffer* buf = SegData[dfseg].SDbuf;
+                buf.reserve(1000);
 
-            writeEhFrameFDE(dfseg, sfunc, ehunwind, *poffset);
+                uint* poffset = ehunwind ? &CIE_offset_unwind : &CIE_offset_no_unwind;
+                if (*poffset == ~0)
+                    *poffset = writeEhFrameHeader(dfseg, buf, getRtlsymPersonality(), ehunwind);
+
+                writeEhFrameFDE(dfseg, sfunc, ehunwind, *poffset);
+            }
         }
         if (!config.fulltypes)
             return;
@@ -1849,7 +1926,7 @@ static if (1)
         IDXSEC seg = sfunc.Sseg;
         seg_data* sd = SegData[seg];
 
-        int filenum = dwarf_line_addfile(filename);
+        int filenum = dwarf_line_fileindex(filename);
 
         uint ret_type = dwarf_typidx(sfunc.Stype.Tnext, sfunc);
         if (tybasic(sfunc.Stype.Tnext.Tty) == TYvoid)
@@ -1928,7 +2005,7 @@ static if (1)
         if (sfunc.Sclass == SC.global)
             dwarfabbrev.append(DW_AT_external, DW_FORM_flag);
 
-        if (sfunc.Sfunc.Fflags3 & Fmain)
+        if (sfunc.Sfunc.Fflags & Fmain)
         {
             if (config.dwarf >= 4)
             {
@@ -1943,7 +2020,7 @@ static if (1)
         if (config.dwarf >= 5 && sfunc.Sflags & SFLexit)
             dwarfabbrev.append(DW_AT_noreturn, DW_FORM_flag_present);
 
-        if (sfunc.Sfunc.Fflags3 & Fpure)
+        if (sfunc.Sfunc.Fflags & Fpure)
             dwarfabbrev.append(
                 DW_AT_pure,
                 config.dwarf >= 4
@@ -1982,10 +2059,10 @@ static if (1)
             debug_info.buf.writeByte(1);                              // DW_AT_external
 
         if (config.dwarf < 4
-            && sfunc.Sfunc.Fflags3 & Fmain
+            && sfunc.Sfunc.Fflags & Fmain
             && config.flags2 & CFG2genmain)
             debug_info.buf.writeByte(true);                           // DW_AT_artificial
-        if (config.dwarf < 4 && sfunc.Sfunc.Fflags3 & Fpure)
+        if (config.dwarf < 4 && sfunc.Sfunc.Fflags & Fpure)
             debug_info.buf.writeByte(true);                           // DW_AT_pure
 
         debug_info.buf.writeStringz(name);                            // DW_AT_name
@@ -2232,7 +2309,7 @@ static if (1)
                             Obj.addrel(debug_info.seg, debug_info.buf.length(), R_386_TLS_LDO_32, s.Sxtrnnum, 0);
                             debug_info.buf.write32(0);
                         }
-                        debug_info.buf.writeByte(DW_OP_GNU_push_tls_address);
+                        debug_info.buf.writeByte(DW_OP_form_tls_address);
                     }
                     else
                     {
@@ -3280,6 +3357,7 @@ static if (1)
             return;
 
         int seg = dwarf_except_table_alloc(sfunc);
+        //printf("seg: %d except_table_seg: %d\n", seg, except_table_seg);
         OutBuffer* buf = SegData[seg].SDbuf;
         buf.reserve(100);
 

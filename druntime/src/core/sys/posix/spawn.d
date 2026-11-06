@@ -9,6 +9,9 @@
  */
 module core.sys.posix.spawn;
 
+version (WASI) {}
+else:
+
 /*
 Based on the following system headers:
 

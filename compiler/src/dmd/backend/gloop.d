@@ -30,7 +30,7 @@ import dmd.backend.debugprint : WReqn, WRfunc, tym_str;
 import dmd.backend.evalu8 : evalu8, iftrue;
 import dmd.backend.go;
 import dmd.backend.el;
-import dmd.backend.symbol : sytab, globsym, SYMIDX;
+import dmd.backend.symbol;
 import dmd.backend.ty;
 import dmd.backend.type;
 
@@ -565,9 +565,9 @@ private bool looprotate(ref GlobalOptimizer go, ref BlockOpt bo, ref Loop l)
         if (b == head)                  // if loop already rotated
             goto Lret;
 
-    if (head.bc == BC.try_)
+    if (head.bc == BC.cpptry)
          goto Lret;
-    if (head.bc == BC._try)
+    if (head.bc == BC.try_)
          goto Lret;
 
     //if (debugc) { printf("looprotate: "); l.print(); }
@@ -984,7 +984,7 @@ private void markInvariants(ref GlobalOptimizer go, int gref, block* gblock, vec
                     gref = 1;
                 }
 
-                updaterd(go, n, rd, null);
+                updaterd(go.defnod, n, rd, null);
                 break;
 
             case OPcallns:
@@ -998,7 +998,7 @@ private void markInvariants(ref GlobalOptimizer go, int gref, block* gblock, vec
             case OPmemset:
                 markinvar(n.E2,rd);
                 markinvar(n.E1,rd);
-                updaterd(go, n, rd, null);
+                updaterd(go.defnod, n, rd, null);
                 break;
 
             case OPbtc:
@@ -1006,7 +1006,7 @@ private void markInvariants(ref GlobalOptimizer go, int gref, block* gblock, vec
             case OPbts:
                 markinvar(n.E1,rd);
                 markinvar(n.E2,rd);
-                updaterd(go, n, rd, null);
+                updaterd(go.defnod, n, rd, null);
                 break;
 
             case OPucall:
@@ -1015,7 +1015,7 @@ private void markInvariants(ref GlobalOptimizer go, int gref, block* gblock, vec
 
             case OPasm:
                 gref = 1;
-                updaterd(go, n, rd, null);
+                updaterd(go.defnod, n, rd, null);
                 break;
 
             case OPucallns:
@@ -1147,7 +1147,7 @@ private void markInvariants(ref GlobalOptimizer go, int gref, block* gblock, vec
                     {
                         tmp = vec_calloc(go.defnod.length);
                         //filterrd(tmp,rd,v);
-                        listrds(go, rd,n1,tmp,null);
+                        listrds(go.defnod, rd,n1,tmp,null);
                         for (i = 0; (i = cast(uint) vec_index(i, tmp)) < go.defnod.length; ++i)
                             if (go.defnod[i].DNelem != n &&
                                 vec_testbit(go.defnod[i].DNblock.Bdfoidx,lv))
@@ -1254,7 +1254,7 @@ private void markInvariants(ref GlobalOptimizer go, int gref, block* gblock, vec
                 {
                     tmp = vec_calloc(go.defnod.length);
                     //filterrd(tmp,rd,v);       // only the RDs pertaining to v
-                    listrds(go, rd,n,tmp,null);  // only the RDs pertaining to v
+                    listrds(go.defnod, rd,n,tmp,null);  // only the RDs pertaining to v
 
                     // if (no RDs within loop)
                     //  then it's loop invariant
@@ -1308,17 +1308,16 @@ private void markInvariants(ref GlobalOptimizer go, int gref, block* gblock, vec
 }
 
 /********************
- * Update rd vector.
- * Input:
- *      n       assignment elem or function call elem or OPasm elem
- *      rd      reaching def vector to update
- *              (clear bits for defs we kill, set bit for n (which is the
- *               def we are genning))
- *      vecdim  go.defnod.length
+ * Update rd (reaching definition) vector.
+ * Params:
+ *     defnod = definition elems
+ *     n      = assignment elem or function call elem or OPasm elem
+ *     GEN    = gen vector for defitions
+ *     KILL   = kill vector for definitions
  */
 
 @trusted
-void updaterd(ref GlobalOptimizer go, elem* n,vec_t GEN,vec_t KILL)
+void updaterd(ref Barray!DefNode defnod, elem* n,vec_t GEN,vec_t KILL)
 {
     const op = n.Eoper;
     elem* t;
@@ -1333,7 +1332,7 @@ void updaterd(ref GlobalOptimizer go, elem* n,vec_t GEN,vec_t KILL)
     // If unambiguous def
     if (OTassign(op) && (t = n.E1).Eoper == OPvar)
     {
-        vec_t v = go.defnod[ni].DNunambig;
+        vec_t v = defnod[ni].DNunambig;
         assert(v);
         if (KILL)
             vec_orass(KILL, v);
@@ -1346,9 +1345,9 @@ void updaterd(ref GlobalOptimizer go, elem* n,vec_t GEN,vec_t KILL)
             if (OTassign(op) && t.Eoper != OPvar && t.Ejty)
             {
                 // for all unambig defs in go.defnod[]
-                foreach (uint i; 0 .. go.defnod.length)
+                foreach (uint i; 0 .. defnod.length)
                 {
-                    elem* tn = go.defnod[i].DNelem;
+                    elem* tn = defnod[i].DNelem;
                     elem* tn1;
 
                     if (tn == n)
@@ -1578,7 +1577,7 @@ Lnextlis:
                     //        return;
 
                     //filterrd(tmp,dfo[i].Binrd,v);
-                    listrds(go, bo.dfo[i].Binrd,n.E1,tmp,null);
+                    listrds(go.defnod, bo.dfo[i].Binrd,n.E1,tmp,null);
                     uint j;
                     for (j = 0; (j = cast(uint) vec_index(j, tmp)) < go.defnod.length; ++j)  // for each RD of v in Binrd
                     {
@@ -1600,7 +1599,7 @@ Lnextlis:
                 //         <can't move this assignment>
 
                 //filterrd(tmp,b.Binrd,v);
-                listrds(go, b.Binrd,n.E1,tmp,null);
+                listrds(go.defnod, b.Binrd,n.E1,tmp,null);
                 uint j;
                 for (j = 0; (j = cast(uint) vec_index(j, tmp)) < go.defnod.length; ++j)  // for each RD of v in Binrd
                 {
@@ -3791,7 +3790,7 @@ bool loopunroll(ref GlobalOptimizer go, ref BlockOpt bo, ref Loop l)
      */
     elem* einitial;
     elem* eincrement;
-    if (!findloopparameters(go, etail, einitial, eincrement))
+    if (!findloopparameters(go.defnod, etail, einitial, eincrement, go.changes))
     {
         if (log) printf("\tnot findloopparameters()\n");
         return false;

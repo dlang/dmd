@@ -122,6 +122,7 @@ extern(C++) struct Verbose
     bool verbose;           // verbose compile
     bool showColumns;       // print character (column) numbers in diagnostics
     bool tls;               // identify thread local variables
+    bool nanInit;           // print default initializing a floating point variable to NaN
     bool templates;         // collect and list statistics on template instantiations
     // collect and list statistics on template instantiations origins.
     // TODO: make this an enum when we want to list other kinds of instances
@@ -163,6 +164,7 @@ extern (C++) struct Param
     bool tracegc;           // instrument calls to 'new'
     bool vcg_ast;           // write-out codegen-ast
     bool useUnitTests;          // generate unittest code
+    bool useUnitTestsRootOnly;          // generate unittest code for root modules only
     bool useInline = false;     // inline expand functions
     bool release;           // build release version
     bool preservePaths;     // true means don't strip path from source file
@@ -205,7 +207,6 @@ extern (C++) struct Param
                                  // Implementation: https://github.com/dlang/dmd/pull/9817
     FeatureState safer;          // safer by default (more @safe checks in unattributed code)
                                  // https://github.com/WalterBright/documents/blob/38f0a846726b571f8108f6e63e5e217b91421c86/safer.md
-    FeatureState tuples;         // Tuple unpacking
     FeatureState noSharedAccess; // read/write access to shared memory objects
     bool previewIn;              // `in` means `[ref] scope const`, accepts rvalues
     bool inclusiveInContracts;   // 'in' contracts of overridden methods must be a superset of parent contract
@@ -275,9 +276,9 @@ extern (C++) struct Param
     const(char)* timeTraceFile; /// File path of output file
 
     ///
-    bool parsingUnittestsRequired() @safe
+    bool parsingUnittestsRequired(bool isRoot) @safe
     {
-        return useUnitTests || ddoc.doOutput || dihdr.doOutput;
+        return (useUnitTests && (!useUnitTestsRootOnly || isRoot)) || ddoc.doOutput || dihdr.doOutput;
     }
 }
 

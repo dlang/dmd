@@ -318,6 +318,10 @@ The following is a list of all available settings:
                         the actual output. The comparison adheres to the rules defined for
                         TEST_OUTPUT and allow e.g. using special sequences as defined below.
 
+    RUN_FAILS:          the compiled executable is expected to fail, i.e. exit with a non-zero
+                        code or be terminated by a signal
+                        default: (none, expected to exit with 0)
+
     TEST_OUTPUT:         the output is expected from the compilation (if the
                          output of the compilation doesn't match, the test
                          fails). You can use the this format for multi-line

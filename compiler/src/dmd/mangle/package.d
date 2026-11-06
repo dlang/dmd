@@ -153,6 +153,7 @@ import dmd.expression;
 import dmd.func;
 import dmd.funcsem;
 import dmd.globals;
+import dmd.hdrgen : toErrMsg;
 import dmd.id;
 import dmd.identifier;
 import dmd.mtype;
@@ -717,7 +718,7 @@ public:
             buf.writestring(fd.mangleOverride);
             return;
         }
-        if (fd.isMain())
+        if (fd.isDMain())
         {
             buf.writestring("_Dmain");
             return;
@@ -984,8 +985,8 @@ public:
         void mangleAsArray()
         {
             buf.writeByte('A');
-            buf.print(e.len);
-            foreach (i; 0 .. e.len)
+            buf.print(e.length);
+            foreach (i; 0 .. e.length)
                 mangleInteger(e.getIndex(i));
         }
 
@@ -1001,7 +1002,7 @@ public:
         {
             m = 'w';
             const slice = e.peekWstring();
-            for (size_t u = 0; u < e.len;)
+            for (size_t u = 0; u < e.length;)
             {
                 dchar c;
                 if (const s = utf_decodeWchar(slice, u, c))
@@ -1041,7 +1042,7 @@ public:
 
     override void visit(ArrayLiteralExp e)
     {
-        const dim = e.elements ? e.elements.length : 0;
+        const dim = e.length;
         buf.writeByte('A');
         buf.print(dim);
         foreach (i; 0 .. dim)

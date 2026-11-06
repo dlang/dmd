@@ -1,19 +1,18 @@
 Files in the Back End
 =====================
 
-:warning: When contributing to the backend, make sure youd don't break DMC :warning:
+The backend originated in the [Digital Mars C/C++ compiler (DMC)](https://github.com/DigitalMars/Compiler/tree/master/dm/src/dmc),
+but the two backends are no longer kept in sync.
 
-The backend is shared with DMC, the DigitalMars C/C++ compiler.
-
-To ensure compatibility, [check its source tree here](https://github.com/DigitalMars/Compiler/tree/master/dm/src/dmc).
+Paths below are relative to this directory.
 
 Data Structures
 ---------------
 * **aarray.d**        hash table
 * **el.d**            expression trees (intermediate representation)
-* **dlist.d**         linked list
 * **barray.d**        generic resizeable array
 * **dt.d**            intermediate representation for static data
+* **dvec.d**          bit vectors
 
 Optimisations
 -------------
@@ -25,22 +24,22 @@ Optimisations
 * **glocal.d**        local optimizations
 * **gloop.d**         global loop optimizations
 * **go.d**            global optimizer main loop
-* **goh.d**           global optimizer declarations
 * **gother.d**        other global optimizations
-* **gsroa.d**         SROA structured replacement of aggregate optimization
+* **gsroa.d**         scalar replacement of aggregates (SROA)
 * **evalu8.d**        constant folding
 * **divcoeff.d**      convert divisions to multiplications
+* **inliner.d**       inline functions using optimized intermediate code
 
 Debug Information
 -----------------
 
 * **cv4.d**           CodeView 4 symbolic debug info declarations
 * **cv8.d**           CodeView 8 symbolic debug info generation
-* **dcgcv.d**         CodeView 4 symbolic debug info generation
 * **dwarf.d**         interface to DWARF generation
 * **dwarf2.d**        DWARF specification declarations
 * **dwarfdbginf.d**   generate DWARF debug info
 * **dwarfeh.d**       DWARF Exception handling tables
+* **dvarstats.d**     local variable scopes and lifetimes for debug info
 * **ee.d**            DMC++ IDDE debugger expression evaluation
 
 Object File Generation
@@ -50,56 +49,74 @@ Object File Generation
 * **elfobj.d**        generate ELF object files
 * **machobj.d**       generate Mach-O object files
 * **mach.d**          declarations for Mach-O object file format
+* **mscoff.d**        declarations for Microsoft COFF object file format
+* **mscoffobj.d**     generate Microsoft COFF object files
 * **obj.d**           interface to *obj.d files
 
 Exception Handling
 ------------------
 
-* **nteh.d**          Windows structured exception handling support
+* **eh.d**            generate exception handling tables for EH_DM and EH_WIN32
+* **pdata.d**         generate Win64 `.pdata` and `.xdata` unwind sections
+* **x86/nteh.d**      Windows structured exception handling support
 
 Miscellaneous
 -------------
 
-* **backend.d**       internal header file for the backend
 * **bcomplex.d**      our own complex number implementation
-* **blake3.d**        implementation of blake3 hash
-* **os.d**            some operating system specific support
 * **cc.d**            common definitions
 * **cdef.d**          configuration
 * **backconfig.d**    transfer configuration from front end to back end
 * **debugprint.d**    pretty print data structures
+* **fp.d**            floating-point exception and modulo helpers
 * **iasm.d**          declarations for inline assembler
+* **mem.d**           memory allocation helpers
 * **ptrntab.d**       instruction tables for inline assembler
 * **oper.d**          operators for expression tree
-* **optabgen.d**      generate tables for back end
 * **ty.d**            type masks
 * **symbol.d**        symbols for the back end
 * **type.d**          types for the back end
-* **var.d**           global variables
+* **util2.d**         utility routines, including process exit and binary search
 
 Code Generation
 ---------------
 
 * **cg.d**            global variables for code generator
-* **cg87.d**          x87 FPU code generation
-* **cgcod.d**         main loop for code generator
 * **cgcs.d**          compute common subexpressions for non-optimized code generation
-* **cgcse.d**         manage temporaries used to save CSEs in
+* **cgcse.d**         manage stack storage for common subexpressions (CSEs)
 * **cgcv.d**          interface for CodeView symbol debug info generation
 * **cgelem.d**        local optimizations of elem trees
 * **cgen.d**          generate/manage linked list of code instructions
-* **cgreg.d**         register allocator
 * **cgsched.d**       instruction scheduler
-* **cgxmm.d**         xmm specific code generation
-* **cod1.d**          code gen
-* **cod2.d**          code gen
-* **cod3.d**          code gen
-* **cod4.d**          code gen
-* **cod5.d**          code gen
 * **code.d**          define registers, register masks, and the CPU instruction linked list
 * **codebuilder.d**   construct linked list of generated code
-* **code_x86.d**      x86 specific declarations
 * **dcode.d**         aloocate and free code blocks
-* **drtlsym.d**       compiler runtime function symbols
 * **dout.d**           transition from intermediate representation to code generator
-* **xmm.d**           xmm opcodes
+* **elpicpie.d**      generate expression trees for fixed, PIC, and PIE code
+* **rtlsym.d**        compiler runtime function symbols
+
+### x86 and x86-64
+
+Some modules in `x86/` are also used by the AArch64 backend.
+
+* **x86/cg87.d**      x87 FPU code generation
+* **x86/cgcod.d**     main loop for code generation
+* **x86/cgreg.d**     register allocator
+* **x86/cgxmm.d**     XMM-specific code generation
+* **x86/cod1.d**      function calls and argument passing
+* **x86/cod2.d**      arithmetic, pointer, and aggregate operations
+* **x86/cod3.d**      function prologs, epilogs, and branches
+* **x86/cod4.d**      assignment, comparison, conversion, and bit operations
+* **x86/cod5.d**      select blocks that need function prologs or epilogs
+* **x86/code_x86.d**  x86-specific declarations
+* **x86/disasm86.d**  x86 disassembler
+* **x86/xmm.d**       XMM opcodes
+
+### AArch64
+
+* **arm/cod1.d**      function calls and argument passing
+* **arm/cod2.d**      arithmetic, pointer, and aggregate operations
+* **arm/cod3.d**      function prologs, epilogs, and branches
+* **arm/cod4.d**      assignment, comparison, conversion, and bit operations
+* **arm/disasmarm.d** AArch64 disassembler
+* **arm/instr.d**     AArch64 instruction encodings

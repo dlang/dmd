@@ -14,7 +14,7 @@ module dmd.glue.toctype;
 import core.stdc.stdio;
 import core.stdc.stdlib;
 
-import dmd.backend.cc : Classsym, Symbol;
+import dmd.backend.cc : Classsym;
 import dmd.backend.symbol;
 import dmd.backend.ty;
 import dmd.backend.type;

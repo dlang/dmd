@@ -3,7 +3,7 @@
 /*
 TEST_OUTPUT:
 ---
-compilable/interpret3.d(6351): Deprecation: identity comparison of static arrays implicitly coerces them to slices, which are compared by reference
+compilable/interpret3.d(6422): Deprecation: identity comparison of static arrays implicitly coerces them to slices, which are compared by reference
 ---
 */
 
@@ -1098,7 +1098,54 @@ static assert(bug8644());
 struct A6159 {}
 
 static assert({ return A6159.init is A6159.init; }());
-static assert({ return [1] is [1]; }());
+static assert({ return [1] !is [1]; }());
+
+/**************************************************/
+// https://github.com/dlang/dmd/issues/24016
+
+bool test24016()
+{
+    int[] a = [1, 1];
+    int[] b = [1, 1];
+    assert(a !is b);
+    assert(a[0 .. 1] !is a[1 .. 2]);
+    double[] d = [double.nan];
+    assert(d is d);
+    struct S { int[] p; double[1] q; }
+    assert(S(a, [double.nan]) is S(a, [double.nan]));
+    assert(S(a, [1]) !is S(b, [1]));
+
+    int[int] x = [1: 2];
+    int[int] y = [1: 2];
+    assert(x !is y);
+    y = x;
+    x[2] = 2;
+    assert(x is y);
+    const(int[int]) cx = x;
+    const(int[int]) cy = x;
+    assert(cx is cy);
+
+    int[] e = [];
+    assert(e is null);
+    assert(a[0 .. 0] !is null);
+    int[0] sa;
+    int[] f = sa;
+    assert(f !is null);
+
+    int[] g = [1, 2, 3];
+    int[] h = g;
+    g.length = 2;
+    g[0] = 5;
+    assert(h[0] == 5);
+    g.length = 0;
+    assert(g !is null);
+    int[] k = h[1 .. 3];
+    k.length = 1;
+    k[0] = 9;
+    assert(h[1] == 9);
+    return true;
+}
+static assert(test24016());
 
 /**************************************************/
 // https://issues.dlang.org/show_bug.cgi?id=5685
@@ -2273,6 +2320,20 @@ static assert({
     return 6;
 }() == 6);
 
+// https://github.com/dlang/dmd/issues/24148
+static assert({
+    int[12] x;
+    int* p = &x[10];
+    int n = -4;
+    p += n;
+    assert(p == &x[6]);
+    p = p + n;
+    assert(p == &x[2]);
+    p -= n;
+    assert(p == &x[6]);
+    return 6;
+}() == 6);
+
 static assert({
     char[12] x;
     const(char)* p = "abcdef";
@@ -3214,7 +3275,7 @@ int ctfeSort6250()
      x[0] = a[1 .. 2];
      x[1] = a[2 .. $];
      assert(x[0][0] == 18);
-     assert(x[0][1] == 19);
+     assert(x[1][0] == 19);
      swap6250(&x[0], &x[1]);
      assert(x[0][0] == 19);
      assert(x[1][0] == 18);
@@ -3252,7 +3313,7 @@ long ctfeSort6250b()
      x[0] = a[1 .. 2];
      x[1] = a[2 .. $];
      assert(x[0][0] == 18);
-     assert(x[0][1] == 19);
+     assert(x[1][0] == 19);
      swap6250b(&x[0], &x[1]);
      assert(x[0][0] == 19);
      assert(x[1][0] == 18);
@@ -4220,6 +4281,15 @@ int test14028b(int num)
         p = cast(int[2]*)&a[1]; // &a[1..3];
         p = p + 2;              // &a[1..3] -> &a[5..7] (CTFE error)
     }
+    if (num == 6)
+    {
+        // https://github.com/dlang/dmd/issues/24121
+        int[2][2] m;
+        p = &m[0];              // not a reinterpret, just &m[0]
+        p = p + 1;              // &m[0] -> &m[1]
+        (*p)[1] = 3;            // m[1][1] = 3
+        assert(m == [[0,0],[0,3]]);
+    }
     return 1;
 }
 static assert(test14028b(1));
@@ -4227,6 +4297,7 @@ static assert(test14028b(2));
 static assert(!is(typeof(compiles!(test14028b(3)))));
 static assert(test14028b(4));
 static assert(!is(typeof(compiles!(test14028b(5)))));
+static assert(test14028b(6));
 
 /**************************************************/
 // https://issues.dlang.org/show_bug.cgi?id=10275
@@ -6843,6 +6914,42 @@ static assert(()
         assert(!c);
     }
 
+    // https://github.com/dlang/dmd/issues/24104
+    // jump inside TryCatchStatement.body, then throw
+    {
+        int c = 0;
+        try
+        {
+            goto L4;
+          L4:
+            c = 1;
+            throw new Exception("");
+        }
+        catch (Exception e)
+        {
+            c += 10;
+        }
+        assert(c == 11);
+    }
+
+    // backward jump inside TryCatchStatement.body, then throw
+    {
+        int c = 0;
+        try
+        {
+          L5:
+            c++;
+            if (c < 2)
+                goto L5;
+            throw new Exception("");
+        }
+        catch (Exception e)
+        {
+            c += 10;
+        }
+        assert(c == 12);
+    }
+
     return 1;
 }());
 
@@ -6940,7 +7047,66 @@ static assert(()
             c = true;
           L4:
             assert(c == false);
+            c = true;
         }
+        assert(c);
+    }
+
+    // https://github.com/dlang/dmd/issues/24057
+    // backward jump inside TryFinallyStatement.finalbody
+    {
+        int c = 0;
+        try
+        {
+        }
+        finally
+        {
+          L5:
+            c++;
+            if (c < 2)
+                goto L5;
+        }
+        assert(c == 2);
+    }
+
+    // exit from TryFinallyStatement.body, with a jump inside finalbody
+    {
+        bool c = false;
+        try
+        {
+            goto L7;
+        }
+        finally
+        {
+            goto L6;
+          L6:
+            c = true;
+        }
+        c = false;
+      L7:
+        assert(c);
+    }
+
+    // labeled break out of TryFinallyStatement.body, with a jump inside finalbody
+    {
+        int c = 0;
+      L8:
+        foreach (i; 0 .. 2)
+            foreach (j; 0 .. 2)
+            {
+                try
+                {
+                    if (j == 1)
+                        break L8;
+                }
+                finally
+                {
+                    goto L9;
+                  L9:
+                    c++;
+                }
+            }
+        assert(c == 2);
     }
 
     return 1;
@@ -6973,6 +7139,37 @@ static assert(()
 
     return 1;
 }());
+
+/**************************************************/
+// https://github.com/dlang/dmd/issues/24188
+
+bool test24188()
+{
+    static struct S { int a; }
+    static S f() { S s; scope(exit) s.a = 9; return s; }
+    assert(f().a == 0);
+    static int[2] g() { int[2] a; scope(exit) a[0] = 9; return a; }
+    assert(g() == [0, 0]);
+    static ref S r(return ref S s) { scope(exit) s.a++; return s; }
+    S s;
+    r(s).a = 5;
+    assert(s.a == 5);
+
+    int c;
+    switch (c)
+    {
+    case 1:
+        c += 10;
+        break;
+    case 0:
+        try { c = 1; } finally { goto case 1; }
+    default:
+        c = -1;
+    }
+    assert(c == 11);
+    return true;
+}
+static assert(test24188());
 
 /**************************************************/
 // https://issues.dlang.org/show_bug.cgi?id=11627

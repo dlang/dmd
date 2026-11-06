@@ -114,6 +114,7 @@ enum
     S_GTHREAD32           = 0x1113,      // thread-local static data (global)
     S_LPROC32_ID          = 0x1146,      // local procedure (type field is an LF_FUNC_ID)
     S_GPROC32_ID          = 0x1147,      // global procedure (type field is an LF_FUNC_ID)
+    S_PROC_ID_END         = 0x114F,      // use instead of S_END for S_LPROC32_ID/S_GPROC32_ID
 }
 
 // Leaf Indices

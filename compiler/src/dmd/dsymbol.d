@@ -30,9 +30,9 @@ import dmd.dversion;
 import dmd.dscope;
 import dmd.dstruct;
 import dmd.dtemplate;
-import dmd.errors;
 import dmd.expression;
 import dmd.func;
+import dmd.hdrgen : toErrMsg;
 import dmd.identifier;
 import dmd.location;
 import dmd.mtype;
@@ -264,7 +264,6 @@ struct FieldState
 
     uint fieldOffset;   /// byte offset for the start of the bit field
     uint fieldSize;     /// byte size of field
-    uint fieldAlign;    /// byte alignment of field
     uint bitOffset;     /// bit offset for field
 
     bool inFlight;      /// bit field is in flight
@@ -698,22 +697,16 @@ extern (C++) class Dsymbol : ASTNode
             {
                 addQualifiers(p.parent);
 
-                bool isOneMember(T)(T t)
+                if (!keepOneMember)
                 {
-                    import dmd.dsymbolsem;
+                    import dmd.dsymbolsem : oneMembers;
                     Dsymbol sym;
                     if (auto ti = p.parent.isTemplateInstance())
                         if (auto ident = p.getIdent())
                             if (ident is ti.name)
                                 if (oneMembers(ti.members, sym, ident) && sym is p)
-                                    return true;
-                    return false;
+                                    return;
                 }
-
-                if (!keepOneMember)
-                    if (isOneMember(p.parent.isTemplateInstance()) ||
-                        isOneMember(p.parent.isTemplateDeclaration()))
-                        return;
 
                 buf.writeByte('.');
             }
@@ -1107,7 +1100,7 @@ extern (C++) class ScopeDsymbol : Dsymbol
 {
     Dsymbols* members;          // all Dsymbol's in this scope
     DsymbolTable symtab;        // members[] sorted into table
-    uint endlinnum;             // the linnumber of the statement after the scope (0 if unknown)
+    Loc endloc;                 // the linnumber of the statement after the scope (0 if unknown)
     /// symbols whose members have been imported, i.e. imported modules and template mixins
     Dsymbols* importedScopes;
     Visibility.Kind* visibilities; // array of Visibility.Kind, one for each import
@@ -1139,7 +1132,7 @@ public:
         ScopeDsymbol sds = s ? cast(ScopeDsymbol)s : new ScopeDsymbol(ident);
         sds.addComment(comment);
         sds.members = arraySyntaxCopy(members);
-        sds.endlinnum = endlinnum;
+        sds.endloc = endloc;
         return sds;
     }
 
@@ -1226,6 +1219,8 @@ public:
 
     static void multiplyDefined(Loc loc, Dsymbol s1, Dsymbol s2)
     {
+        import dmd.globals : global;
+        auto eSink = global.errorSink;
         version (none)
         {
             printf("ScopeDsymbol::multiplyDefined()\n");
@@ -1234,9 +1229,9 @@ public:
         }
         if (loc.isValid())
         {
-            .error(loc, "`%s` matches conflicting symbols:", s1.ident.toErrMsg());
-            errorSupplemental(s1.loc, "%s `%s`", s1.kind(), s1.toPrettyChars());
-            errorSupplemental(s2.loc, "%s `%s`", s2.kind(), s2.toPrettyChars());
+            eSink.error(loc, "`%s` matches conflicting symbols:", s1.ident.toErrMsg());
+            eSink.errorSupplemental(s1.loc, "%s `%s`", s1.kind(), s1.toPrettyChars());
+            eSink.errorSupplemental(s2.loc, "%s `%s`", s2.kind(), s2.toPrettyChars());
 
             static if (0)
             {
@@ -1260,7 +1255,7 @@ public:
         }
         else
         {
-            .error(s1.loc, "%s `%s` conflicts with %s `%s` at %s", s1.kind, s1.toPrettyChars, s2.kind(), s2.toPrettyChars(), s2.loc.toChars());
+            eSink.error(s1.loc, "%s `%s` conflicts with %s `%s` at %s", s1.kind, s1.toPrettyChars, s2.kind(), s2.toPrettyChars(), s2.loc.toChars());
         }
     }
 
@@ -1310,7 +1305,7 @@ extern (C++) final class WithScopeSymbol : ScopeDsymbol
     extern (D) this(WithStatement withstate, ScopeDsymbol parent) nothrow @safe
     {
         this.withstate = withstate;
-        this.endlinnum = withstate.endloc.linnum;
+        this.endloc = withstate.endloc;
         this.parent = parent;
         this.dsym = DSYM.withScopeSymbol;
     }
