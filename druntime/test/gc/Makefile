@@ -1,10 +1,12 @@
 TESTS:=attributes sentinel printf memstomp invariant logging \
        precise precisegc \
-       recoverfree nocollect
+       recoverfree collect nocollect
 
-ifneq ($(OS),windows)
+ifeq ($(OS),windows)
+    TESTS+=stacklimit
+else
     # some .d files are for Posix only
-    TESTS+=sentinel1 sentinel2 forkgc sigmaskgc startbackgc
+    TESTS+=sentinel1 sentinel2 forkgc sigmaskgc startbackgc issue23081
     # and some tests require the `fork` GC, only supported on Posix
     TESTS+=concurrent precise_concurrent hospital
 endif
@@ -61,10 +63,6 @@ $(ROOT)/invariant$(DOTEXE): private extra_sources = $(src_lifetime)
 $(ROOT)/invariant$(DOTEXE): extra_dflags += $(core_ut) \
     -debug -debug=INVARIANT -check=invariant -debug=PTRCHECK -debug=PTRCHECK2 -main
 
-$(ROOT)/logging$(DOTEXE): $(src_lifetime)
-$(ROOT)/logging$(DOTEXE): private extra_sources = $(src_lifetime)
-$(ROOT)/logging$(DOTEXE): extra_dflags += -debug=LOGGING -main $(core_ut)
-
 $(ROOT)/precise$(DOTEXE): $(src_lifetime)
 $(ROOT)/precise$(DOTEXE): private extra_sources = $(src_lifetime)
 $(ROOT)/precise$(DOTEXE): extra_dflags += $(core_ut) \
@@ -93,3 +91,4 @@ $(ROOT)/hospital$(DOTEXE): extra_dflags += -d
 $(ROOT)/hospital.done: run_args+=--DRT-gcopt=fork:1
 $(ROOT)/issue22843$(DOTEXE): extra_dflags += $(core_ut)
 $(ROOT)/issue22843.done: run_args+="--DRT-gcopt=fork:1 initReserve:0 minPoolSize:1"
+$(ROOT)/issue23081.done: run_args+="--DRT-gcopt=parallel:128 minPoolSize:1"

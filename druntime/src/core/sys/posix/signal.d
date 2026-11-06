@@ -41,6 +41,17 @@ version (SystemZ) version = IBMZ_Any;
 version (X86)     version = X86_Any;
 version (X86_64)  version = X86_Any;
 
+version (CRuntime_WASI)
+{
+    version (WASI_EMULATED_SIGNAL)
+        version = Supported;
+    else
+        pragma(msg, "wasm lacks signal support; to enable minimal signal"~
+                    " emulation, compile with --d-version=WASI_EMULATED_SIGNAL"~
+                    " and link with -lwasi-emulated-signal");
+} else version = Supported;
+
+version (Supported):
 version (Posix):
 extern (C):
 //nothrow:  // this causes http://issues.dlang.org/show_bug.cgi?id=12738 (which has been fixed)
@@ -109,26 +120,26 @@ int raise(int sig);                    (defined in core.stdc.signal)
 //sig_atomic_t (defined in core.stdc.signal)
 
 private alias sigfn_t = void function(int);
-private alias sigactfn_t = void function(int, siginfo_t*, void*);
+private alias sigfn_t2 = void function(int) nothrow @nogc;
 
-// nothrow versions
-nothrow @nogc
+version (CRuntime_WASI) {}
+else
 {
-    private alias sigfn_t2 = void function(int);
-    private alias sigactfn_t2 = void function(int, siginfo_t*, void*);
-}
+    private alias sigactfn_t = void function(int, siginfo_t*, void*);
+    private alias sigactfn_t2 = void function(int, siginfo_t*, void*) nothrow @nogc;
 
-enum
-{
-  SIGEV_SIGNAL,
-  SIGEV_NONE,
-  SIGEV_THREAD
-}
+    enum
+    {
+        SIGEV_SIGNAL,
+        SIGEV_NONE,
+        SIGEV_THREAD
+    }
 
-union sigval
-{
-    int     sival_int;
-    void*   sival_ptr;
+    union sigval
+    {
+        int     sival_int;
+        void*   sival_ptr;
+    }
 }
 
 version (Solaris)
@@ -167,6 +178,9 @@ else version (NetBSD)
 {
     enum SIGRTMIN = 33;
     enum SIGRTMAX = 63;
+}
+else version (Hurd)
+{
 }
 else version (linux)
 {
@@ -561,6 +575,82 @@ else version (Solaris)
     enum SIGUSR2 = 17;
     enum SIGURG = 21;
 }
+else version (Hurd)
+{
+    enum SIGALRM = 14;
+    enum SIGBUS = 10;
+    enum SIGCHLD = 20;
+    enum SIGCONT = 19;
+    enum SIGHUP = 1;
+    enum SIGKILL = 9;
+    enum SIGPIPE = 13;
+    enum SIGQUIT = 3;
+    enum SIGSTOP = 17;
+    enum SIGTSTP = 18;
+    enum SIGTTIN = 21;
+    enum SIGTTOU = 22;
+    enum SIGUSR1 = 30;
+    enum SIGUSR2 = 31;
+    enum SIGURG = 16;
+}
+else version (Emscripten)
+{
+    enum SIGHUP     = 1;
+    //SIGINT (defined in core.stdc.signal)
+    enum SIGQUIT    = 3;
+    //SIGILL (defined in core.stdc.signal)
+    //SIGABRT (defined in core.stdc.signal)
+    enum SIGIOT     = SIGABRT;
+    enum SIGBUS     = 7;
+    //SIGFPE (defined in core.stdc.signal)
+    enum SIGKILL    = 9;
+    enum SIGUSR1    = 10;
+    //SIGSEGV (defined in core.stdc.signal)
+    enum SIGUSR2    = 12;
+    enum SIGPIPE    = 13;
+    enum SIGALRM    = 14;
+    //SIGTERM (defined in core.stdc.signal)
+    enum SIGSTKFLT  = 16;
+    enum SIGCHLD    = 17;
+    enum SIGCONT    = 18;
+    enum SIGSTOP    = 19;
+    enum SIGTSTP    = 20;
+    enum SIGTTIN    = 21;
+    enum SIGTTOU    = 22;
+    enum SIGURG     = 23;
+    enum SIGWINCH   = 28;
+    enum SIGIO      = 29;
+    enum SIGPWR     = 30;
+}
+else version (CRuntime_WASI)
+{
+    enum SIGHUP     = 1;
+    //SIGINT (defined in core.stdc.signal)
+    enum SIGQUIT    = 3;
+    //SIGILL (defined in core.stdc.signal)
+    //SIGABRT (defined in core.stdc.signal)
+    enum SIGIOT     = SIGABRT;
+    enum SIGBUS     = 7;
+    //SIGFPE (defined in core.stdc.signal)
+    enum SIGKILL    = 9;
+    enum SIGUSR1    = 10;
+    //SIGSEGV (defined in core.stdc.signal)
+    enum SIGUSR2    = 12;
+    enum SIGPIPE    = 13;
+    enum SIGALRM    = 14;
+    //SIGTERM (defined in core.stdc.signal)
+    enum SIGSTKFLT  = 16;
+    enum SIGCHLD    = 17;
+    enum SIGCONT    = 18;
+    enum SIGSTOP    = 19;
+    enum SIGTSTP    = 20;
+    enum SIGTTIN    = 21;
+    enum SIGTTOU    = 22;
+    enum SIGURG     = 23;
+    enum SIGWINCH   = 28;
+    enum SIGIO      = 29;
+    enum SIGPWR     = 30;
+}
 else
 {
     static assert(false, "Unsupported platform");
@@ -847,6 +937,43 @@ else version (Darwin)
         sigset_t        sa_mask;
         int             sa_flags;
     }
+}
+else version (Hurd)
+{
+  struct sigaction_t
+  {
+      static if ( true /* __USE_POSIX199309 */ )
+      {
+          union
+          {
+              sigfn_t     sa_handler;
+              sigactfn_t  sa_sigaction;
+          }
+      }
+      else
+      {
+          sigfn_t     sa_handler;
+      }
+      sigset_t        sa_mask;
+      int             sa_flags;
+  }
+}
+else version (Emscripten)
+{
+    struct sigaction_t
+    {
+        union
+        {
+            sigfn_t     sa_handler;
+            sigactfn_t  sa_sigaction;
+        }
+        sigset_t        sa_mask;
+        int             sa_flags;
+        void function() sa_restorer;
+    }
+}
+else version (CRuntime_WASI)
+{
 }
 else
 {
@@ -1417,6 +1544,157 @@ else version (Solaris)
     enum SI_ASYNCIO = -4;
     enum SI_MESGQ   = -5;
 }
+else version(Hurd)
+{
+    enum SIG_HOLD = cast(sigfn_t2) 2;
+
+    alias sigset_t = c_ulong;
+
+    enum SA_NOCLDSTOP   = 0x0008; // (CX|XSI)
+
+    enum SIG_BLOCK      = 1;
+    enum SIG_UNBLOCK    = 2;
+    enum SIG_SETMASK    = 3;
+
+    struct siginfo_t
+    {
+        int si_signo;
+        int si_errno;
+        int si_code;
+
+        pid_t si_pid;
+        uid_t si_uid;
+        void* si_addr;
+        int si_status;
+        c_long si_band;
+        sigval  si_value;
+    }
+
+    enum
+    {
+        SI_ASYNCIO = -4,
+        SI_MESGQ,
+        SI_TIMER,
+        SI_QUEUE,
+        SI_USER
+    }
+}
+else version (Emscripten)
+{
+    enum SIG_HOLD = cast(sigfn_t2) 2;
+
+    struct sigset_t
+    {
+        c_ulong[2] __bits;
+    }
+
+    enum SA_NOCLDSTOP   = 1;
+
+    enum SIG_BLOCK      = 0;
+    enum SIG_UNBLOCK    = 1;
+    enum SIG_SETMASK    = 2;
+
+    struct siginfo_t
+    {
+        int si_signo;
+        int si_errno;
+        int si_code;
+
+        union /* __si_fields */
+        {
+            byte[128 - 2 * int.sizeof - c_long.sizeof] __pad;
+
+            struct /* __si_common */
+            {
+                union /* __first */
+                {
+                    struct /* __piduid */
+                    {
+                        pid_t si_pid;
+                        uid_t si_uid;
+                    }
+                    struct /* __timer */
+                    {
+                        int si_timerid;
+                        int si_overrun;
+                    }
+                }
+                union /* __second */
+                {
+                    sigval si_value;
+                    struct /* __sigchld */
+                    {
+                        int si_status;
+                        clock_t si_utime;
+                        clock_t si_stime;
+                    }
+                }
+            }
+
+            struct /* __sigfault */
+            {
+                void* si_addr;
+                short si_addr_lsb;
+                union /* __first */
+                {
+                    struct /* __addr_bnd */
+                    {
+                        void* si_lower;
+                        void* si_upper;
+                    }
+                    uint si_pkey;
+                }
+            }
+
+            struct /* __sigpoll */
+            {
+                c_long si_band;
+                int si_fd;
+            }
+
+            struct /* __sigsys */
+            {
+                void* si_call_addr;
+                int si_syscall;
+                uint si_arch;
+            }
+        }
+    }
+
+    enum
+    {
+        SI_ASYNCNL = -60,
+        SI_TKILL   = -6,
+        SI_SIGIO,
+        SI_ASYNCIO,
+        SI_MESGQ,
+        SI_TIMER,
+        SI_QUEUE,
+        SI_USER,
+        SI_KERNEL  = 0x80
+    }
+}
+else version (CRuntime_WASI)
+{
+    alias sigset_t = ubyte;
+
+    enum SIG_BLOCK      = 0;
+    enum SIG_UNBLOCK    = 1;
+    enum SIG_SETMASK    = 2;
+
+    enum
+    {
+        SI_ASYNCNL = -60,
+        SI_TKILL   = -6,
+        SI_SIGIO,
+        SI_ASYNCIO,
+        SI_MESGQ,
+        SI_TIMER,
+        SI_QUEUE,
+        SI_USER,
+        SI_KERNEL  = 0x80
+    }
+}
 else
 {
     static assert(false, "Unsupported platform");
@@ -1609,6 +1887,9 @@ else version (CRuntime_Musl)
     int sigprocmask(int, const scope sigset_t*, sigset_t*);
     int sigsuspend(const scope sigset_t*);
     int sigwait(const scope sigset_t*, int*);
+}
+else version (CRuntime_WASI)
+{
 }
 else version (CRuntime_UClibc)
 {
@@ -2375,6 +2656,184 @@ else version (Solaris)
         POLL_HUP,
     }
 }
+else version(Hurd)
+{
+    enum SIGPOLL = 23;
+    enum SIGPROF = 27;
+    enum SIGSYS = 12;
+    enum SIGTRAP = 5;
+    enum SIGVTALRM = 26;
+    enum SIGXCPU = 24;
+    enum SIGXFSZ = 25;
+
+    enum
+    {
+        SA_ONSTACK = 0x0001,
+        SA_RESETHAND = 0x0004,
+        SA_RESTART = 0x0002,
+        SA_SIGINFO = 0x0040,
+        // SA_NOCLDWAIT = ,
+        SA_NODEFER = 0x00010,
+    }
+
+    enum
+    {
+        ILL_ILLOPC = 1,
+        ILL_ILLOPN,
+        ILL_ILLADR,
+        ILL_ILLTRP,
+        ILL_PRVOPC,
+        ILL_PRVREG,
+        ILL_COPROC,
+        ILL_BADSTK
+    }
+
+    enum
+    {
+        FPE_INTDIV = 1,
+        FPE_INTOVF,
+        FPE_FLTDIV,
+        FPE_FLTOVF,
+        FPE_FLTUND,
+        FPE_FLTRES,
+        FPE_FLTINV,
+        FPE_FLTSUB
+    }
+
+    enum
+    {
+        SEGV_MAPERR = 1,
+        SEGV_ACCERR
+    }
+
+    enum
+    {
+        BUS_ADRALN = 1,
+        BUS_ADRERR,
+        BUS_OBJERR
+    }
+
+    enum
+    {
+        TRAP_BRKPT = 1,
+        TRAP_TRACE
+    }
+
+    enum
+    {
+        CLD_EXITED = 1,
+        CLD_KILLED,
+        CLD_DUMPED,
+        CLD_TRAPPED,
+        CLD_STOPPED,
+        CLD_CONTINUED
+    }
+
+    enum
+    {
+        POLL_IN = 1,
+        POLL_OUT,
+        POLL_MSG,
+        POLL_ERR,
+        POLL_PRI,
+        POLL_HUP
+    }
+}
+else version (Emscripten)
+{
+    enum SIGPOLL    = 29;
+    enum SIGPROF    = 27;
+    enum SIGSYS     = 31;
+    enum SIGTRAP    = 5;
+    enum SIGVTALRM  = 26;
+    enum SIGXCPU    = 24;
+    enum SIGXFSZ    = 25;
+    enum SIGUNUSED  = SIGSYS;
+
+    enum SA_ONSTACK   = 0x08000000;
+    enum SA_RESETHAND = 0x80000000;
+    enum SA_RESTART   = 0x10000000;
+    enum SA_SIGINFO   = 4;
+    enum SA_NOCLDWAIT = 2;
+    enum SA_NODEFER   = 0x40000000;
+
+    enum SA_NOMASK      = SA_NODEFER;
+    enum SA_ONESHOT     = SA_RESETHAND;
+
+    enum
+    {
+        ILL_ILLOPC = 1,
+        ILL_ILLOPN,
+        ILL_ILLADR,
+        ILL_ILLTRP,
+        ILL_PRVOPC,
+        ILL_PRVREG,
+        ILL_COPROC,
+        ILL_BADSTK
+    }
+
+    enum
+    {
+        FPE_INTDIV = 1,
+        FPE_INTOVF,
+        FPE_FLTDIV,
+        FPE_FLTOVF,
+        FPE_FLTUND,
+        FPE_FLTRES,
+        FPE_FLTINV,
+        FPE_FLTSUB
+    }
+
+    enum
+    {
+        SEGV_MAPERR = 1,
+        SEGV_ACCERR
+    }
+
+    enum
+    {
+        BUS_ADRALN = 1,
+        BUS_ADRERR,
+        BUS_OBJERR
+    }
+
+    enum
+    {
+        TRAP_BRKPT = 1,
+        TRAP_TRACE
+    }
+
+    enum
+    {
+        CLD_EXITED = 1,
+        CLD_KILLED,
+        CLD_DUMPED,
+        CLD_TRAPPED,
+        CLD_STOPPED,
+        CLD_CONTINUED
+    }
+
+    enum
+    {
+        POLL_IN = 1,
+        POLL_OUT,
+        POLL_MSG,
+        POLL_ERR,
+        POLL_PRI,
+        POLL_HUP
+    }
+}
+else version (CRuntime_WASI)
+{
+    enum SIGPOLL    = 29;
+    enum SIGPROF    = 27;
+    enum SIGSYS     = 31;
+    enum SIGTRAP    = 5;
+    enum SIGVTALRM  = 26;
+    enum SIGXCPU    = 24;
+    enum SIGXFSZ    = 25;
+    enum SIGUNUSED  = SIGSYS;
+}
 else
 {
     static assert(false, "Unsupported platform");
@@ -2416,11 +2875,21 @@ int sigrelse(int);
 
 version (CRuntime_Glibc)
 {
-    enum SS_ONSTACK     = 1;
-    enum SS_DISABLE     = 2;
-    enum MINSIGSTKSZ    = 2048;
-    enum SIGSTKSZ       = 8192;
+    version (linux)
+    {
+        enum SS_ONSTACK     = 1;
+        enum SS_DISABLE     = 2;
+        enum MINSIGSTKSZ    = 2048;
+        enum SIGSTKSZ       = 8192;
+    }
 
+    version (Hurd)
+    {
+        enum SS_ONSTACK     = 0x0001;
+        enum SS_DISABLE     = 0x0004;
+        enum MINSIGSTKSZ    = 8192;
+        enum SIGSTKSZ       = (MINSIGSTKSZ + 32768);
+    }
     //ucontext_t (defined in core.sys.posix.ucontext)
     //mcontext_t (defined in core.sys.posix.ucontext)
 
@@ -2768,6 +3237,11 @@ else version (CRuntime_Musl)
         enum MINSIGSTKSZ = 2048;
         enum SIGSTKSZ    = 8192;
     }
+    else version (Emscripten)
+    {
+        enum MINSIGSTKSZ = 2048;
+        enum SIGSTKSZ    = 8192;
+    }
     else
         static assert(0, "unimplemented");
 
@@ -2808,6 +3282,14 @@ else version (CRuntime_Musl)
     int siginterrupt(int, int);
     int sigpause(int);
     int sigrelse(int);
+}
+else version (CRuntime_WASI)
+{
+    sigfn_t bsd_signal(int sig, sigfn_t func);
+
+  nothrow:
+  @nogc:
+    sigfn_t2 bsd_signal(int sig, sigfn_t2 func);
 }
 else version (CRuntime_UClibc)
 {
@@ -2990,6 +3472,41 @@ else version (Solaris)
         int __sigev_pad2;
     }
 }
+else version (Hurd)
+{
+    struct sigevent
+    {
+      sigval      sigev_value;
+      int         sigev_signo;
+      int         sigev_notify;
+
+      void function(sigval) sigev_notify_function;
+      void*                 sigev_notify_attributes;
+  }
+}
+else version (Emscripten)
+{
+    struct sigevent
+    {
+        sigval sigev_value;
+        int sigev_signo;
+        int sigev_notify;
+
+        union /* __sev_fields */
+        {
+            byte[64 - 2 * int.sizeof - sigval.sizeof] __pad;
+            pid_t sigev_notify_thread_id;
+            struct /* __sev_thread */
+            {
+                void function(sigval) sigev_notify_function;
+                pthread_attr_t* sigev_notify_attributes;
+            }
+        }
+    }
+}
+else version (CRuntime_WASI)
+{
+}
 else
 {
     static assert(false, "Unsupported platform");
@@ -3050,6 +3567,9 @@ else version (CRuntime_Musl)
     pragma(mangle, muslRedirTime64Mangle!("sigtimedwait", "__sigtimedwait_time64"))
     int sigtimedwait(const scope sigset_t*, siginfo_t*, const scope timespec*);
     int sigwaitinfo(const scope sigset_t*, siginfo_t*);
+}
+else version (CRuntime_WASI)
+{
 }
 else version (CRuntime_UClibc)
 {
@@ -3114,6 +3634,9 @@ else version (CRuntime_Musl)
 {
     int pthread_kill(pthread_t, int);
     int pthread_sigmask(int, const scope sigset_t*, sigset_t*);
+}
+else version (CRuntime_WASI)
+{
 }
 else version (CRuntime_UClibc)
 {

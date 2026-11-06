@@ -12,6 +12,9 @@
 #     make -j$(nproc) unittest
 # - Build and run druntime tests in debug mode only:
 #     make -j$(nproc) unittest-debug
+# - Build druntime library using dmd bootstrap compiler by overriding DMD on command line such as:
+#     make DMD=/Users/yourname/dmd2/osx/bin/dmd
+
 
 QUIET:=
 
@@ -36,7 +39,7 @@ ifeq (osx,$(OS))
     export MACOSX_DEPLOYMENT_TARGET=10.9
 endif
 
-# Default to a release built, override with BUILD=debug
+# Default to a release build, override with BUILD=debug
 ifeq (,$(BUILD))
     BUILD_WAS_SPECIFIED=0
     BUILD=release
@@ -76,7 +79,7 @@ endif
 
 # build with shared library support
 # (defaults to true on supported platforms, can be overridden w/ make SHARED=0)
-SHARED=$(if $(findstring $(OS),linux freebsd dragonflybsd),1,)
+SHARED=$(if $(findstring $(OS),linux freebsd dragonflybsd hurd),1,)
 
 LINKDL=$(if $(findstring $(OS),linux),-L-ldl,)
 
@@ -435,7 +438,7 @@ ifeq ($(HAS_ADDITIONAL_TESTS),1)
         test/aa test/cpuid test/gc test/hash test/lifetime test/shared \
         test/thread test/unittest test/imports test/betterc test/stdcpp test/config test/traits test/importc_compare
     ifeq (windows,$(OS))
-        ADDITIONAL_TESTS+=test/uuid
+        ADDITIONAL_TESTS+=test/uuid test/link
     else
         ADDITIONAL_TESTS+=test/valgrind
     endif

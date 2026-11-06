@@ -1187,7 +1187,7 @@ struct S10096X
 }
 static assert(
     [__traits(allMembers, S10096X)] ==
-    ["str", "__ctor", "__postblit", "__dtor", "getStr", "__xdtor", "__xpostblit", "opAssign"]);
+    ["str", "__ctor", "__postblit", "__dtor", "getStr", "__xdtor", "__xpostblit", "opAssign", "__invariant"]);
 
 class C10096X
 {
@@ -1205,7 +1205,7 @@ class C10096X
 }
 static assert(
     [__traits(allMembers, C10096X)] ==
-    ["str", "__ctor", "__dtor", "getStr", "__xdtor", "toString", "toHash", "opCmp", "opEquals", "Monitor", "factory"]);
+    ["str", "__ctor", "__dtor", "getStr", "__xdtor", "__invariant", "toString", "toHash", "opCmp", "opEquals", "Monitor", "factory"]);
 
 // --------
 

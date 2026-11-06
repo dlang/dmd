@@ -15,13 +15,21 @@ import core.stdc.stdarg;
 
 import dmd.location;
 
+/// Constants used to discriminate kinds of error messages.
+enum ErrorKind
+{
+    warning,
+    deprecation,
+    error,
+    message,
+}
+
 /***************************************
  * Where error/warning/deprecation messages go.
  */
-abstract class ErrorSink
+extern (C++) abstract class ErrorSink
 {
   nothrow:
-  extern (C++):
 
     void verror(Loc loc, const(char)* format, va_list ap);
     void verrorSupplemental(Loc loc, const(char)* format, va_list ap);
@@ -31,6 +39,8 @@ abstract class ErrorSink
     void vdeprecation(Loc loc, const(char)* format, va_list ap);
     void vdeprecationSupplemental(Loc loc, const(char)* format, va_list ap);
 
+static if (__VERSION__ < 2092)
+{
     void error(Loc loc, const(char)* format, ...)
     {
         va_list ap;
@@ -86,6 +96,72 @@ abstract class ErrorSink
         vdeprecationSupplemental(loc, format, ap);
         va_end(ap);
     }
+}
+else
+{
+    pragma(printf)
+    void error(Loc loc, const(char)* format, ...)
+    {
+        va_list ap;
+        va_start(ap, format);
+        verror(loc, format, ap);
+        va_end(ap);
+    }
+
+    pragma(printf)
+    void errorSupplemental(Loc loc, const(char)* format, ...)
+    {
+        va_list ap;
+        va_start(ap, format);
+        verrorSupplemental(loc, format, ap);
+        va_end(ap);
+    }
+
+    pragma(printf)
+    void warning(Loc loc, const(char)* format, ...)
+    {
+        va_list ap;
+        va_start(ap, format);
+        vwarning(loc, format, ap);
+        va_end(ap);
+    }
+
+    pragma(printf)
+    void warningSupplemental(Loc loc, const(char)* format, ...)
+    {
+        va_list ap;
+        va_start(ap, format);
+        vwarningSupplemental(loc, format, ap);
+        va_end(ap);
+    }
+
+    pragma(printf)
+    void message(Loc loc, const(char)* format, ...)
+    {
+        va_list ap;
+        va_start(ap, format);
+        vmessage(loc, format, ap);
+        va_end(ap);
+    }
+
+    pragma(printf)
+    void deprecation(Loc loc, const(char)* format, ...)
+    {
+        va_list ap;
+        va_start(ap, format);
+        vdeprecation(loc, format, ap);
+        va_end(ap);
+    }
+
+    pragma(printf)
+    void deprecationSupplemental(Loc loc, const(char)* format, ...)
+    {
+        va_list ap;
+        va_start(ap, format);
+        vdeprecationSupplemental(loc, format, ap);
+        va_end(ap);
+    }
+}
 
     /**
      * This will be called to indicate compilation has either
@@ -100,10 +176,9 @@ abstract class ErrorSink
 /*****************************************
  * Just ignores the messages.
  */
-class ErrorSinkNull : ErrorSink
+extern (C++) class ErrorSinkNull : ErrorSink
 {
   nothrow:
-  extern (C++):
   override:
 
     void verror(Loc loc, const(char)* format, va_list ap) { }
@@ -124,10 +199,9 @@ class ErrorSinkNull : ErrorSink
 /*****************************************
  * Ignores the messages, but sets `sawErrors` for any calls to `error()`
  */
-class ErrorSinkLatch : ErrorSinkNull
+extern (C++) class ErrorSinkLatch : ErrorSinkNull
 {
   nothrow:
-  extern (C++):
   override:
 
     bool sawErrors;
@@ -139,13 +213,12 @@ class ErrorSinkLatch : ErrorSinkNull
  * Simplest implementation, just sends messages to stderr.
  * See also: ErrorSinkCompiler.
  */
-class ErrorSinkStderr : ErrorSink
+extern (C++) class ErrorSinkStderr : ErrorSink
 {
     import core.stdc.stdio;
     import core.stdc.stdarg;
 
   nothrow:
-  extern (C++):
   override:
 
     void verror(Loc loc, const(char)* format, va_list ap)

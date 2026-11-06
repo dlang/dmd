@@ -1,0 +1,19 @@
+Improved CodeView / PDB symbolic debug info on Windows
+
+The Windows CodeView / PDB debug information emitter (used with `-g` when producing MS-COFF object files) now emits additional modern records expected by Microsoft and LLVM debugging tools. These improvements are enabled by default, so debugging with Visual Studio, WinDbg and LLVM-based tools works better out of the box.
+
+The following are now generated:
+
+$(LIST
+    * `S_OBJNAME` and `S_COMPILE3` compiland records reporting the configured language and the real compiler version string,
+    * `S_ENVBLOCK` and `S_BUILDINFO` (`LF_BUILDINFO`) records describing the build environment,
+    * `S_FRAMEPROC` records describing each function's stack frame,
+    * `LF_UDT_SRC_LINE` records recording the source file and line where each user-defined type (struct, class, enum) is defined, so debuggers can jump to a type's definition,
+    * blake3 source-file checksums in the file-checksums subsection so debuggers can verify the source matches.
+)
+
+No action is required; simply compile with `-g` as before:
+
+```console
+dmd -g myapp.d
+```

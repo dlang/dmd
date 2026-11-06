@@ -32,8 +32,11 @@ import dmd.backend.x86.code_x86;
 import dmd.backend.codebuilder;
 import dmd.backend.mem;
 import dmd.backend.el;
-import dmd.backend.global;
+import dmd.backend.global : REGSIZE, mask;
+import dmd.backend.debugprint : fl_str, oper_str, tym_str;
+import dmd.backend.util2 : ispow2;
 import dmd.backend.oper;
+import dmd.backend.symbol;
 import dmd.backend.ty;
 import dmd.backend.type;
 import dmd.backend.arm.cod2;
@@ -240,7 +243,7 @@ void cdorth(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     const e2oper = e2.Eoper;
     const sz = _tysize[ty];
     const isbyte = (sz == 1);
-    code_flags_t word = (!I16 && sz == SHORTSIZE) ? CFopsize : 0;
+    CF word = (!I16 && sz == SHORTSIZE) ? CF.opsize : CF.zero;
     bool test = false;                // assume we destroyed lvalue
 
     switch (e.Eoper)
@@ -301,7 +304,7 @@ void cdorth(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         if (e2.Eoper == OPconst && el_signx32(e2))
         {
             code cs;
-            cs.Iflags = 0;
+            cs.Iflags = CF.zero;
             cs.Irex = 0;
             getlvalue(cg,cdb,cs,e1,0);
             targ_size_t value = e2.Vpointer;
@@ -327,7 +330,7 @@ void cdorth(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
                 cs.IFL2 = FL.const_;
             }
             cs.Iop = op1 ^ isbyte;
-            cs.Iflags |= word | CFpsw;
+            cs.Iflags |= word | CF.psw;
             freenode(e1);
             freenode(e2);
             cdb.gen(&cs);
@@ -340,14 +343,14 @@ void cdorth(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         if (isregvar(e2,retregs,reg))
         {
             code cs;
-            cs.Iflags = 0;
+            cs.Iflags = CF.zero;
             cs.Irex = 0;
             getlvalue(cg,cdb,cs,e1,0);
             code_newreg(&cs, reg);
             if (I64 && isbyte && reg >= 4)
                 cs.Irex |= REX;
             cs.Iop = op1 ^ isbyte;
-            cs.Iflags |= word | CFpsw;
+            cs.Iflags |= word | CF.psw;
             freenode(e1);
             freenode(e2);
             cdb.gen(&cs);
@@ -356,7 +359,7 @@ void cdorth(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     }
 
     code cs;
-    cs.Iflags = 0;
+    cs.Iflags = CF.zero;
     cs.Irex = 0;
 
     // Look for possible uses of LEA
@@ -517,7 +520,7 @@ void cdorth(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             cs.Irm = modregrm(2,reg & 7,4);
             cs.Isib = modregrm(ss,reg1 & 7,reg2 & 7);
             assert(reg2 != BP);
-            cs.Iflags = CFoff;
+            cs.Iflags = CF.off;
             cs.Irex = cast(ubyte)rex;
             if (reg & 8)
                 cs.Irex |= REX_R;
@@ -576,12 +579,12 @@ void cdorth(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         {   // negate retregs
             cdb.gen2(0xF7,modregrm(3,3,mreg));     // NEG mreg
             cdb.gen2(0xF7,modregrm(3,3,lreg));     // NEG lreg
-            code_orflag(cdb.last(),CFpsw);
+            code_orflag(cdb.last(),CF.psw);
             cdb.genc2(0x81,modregrm(3,3,mreg),0);  // SBB mreg,0
         }
         const lrreg = findreglsw(rretregs);
         genregs(cdb,0x03,lreg,lrreg);              // ADD lreg,lrreg
-        code_orflag(cdb.last(),CFpsw);
+        code_orflag(cdb.last(),CF.psw);
         genmovreg(cdb,lrreg,CX);      // MOV lrreg,CX
         cdb.genc2(0x81,modregrm(3,2,mreg),0);      // ADC mreg,0
         genshift(cdb);                             // MOV CX,offset __AHSHIFT
@@ -703,7 +706,7 @@ void cdorth(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
                 rreg = findreglsw(rretregs);
                 genregs(cdb,op1,reg,rreg);
                 if (e.Eoper == OPadd || e.Eoper == OPmin)
-                    code_orflag(cdb.last(),CFpsw);
+                    code_orflag(cdb.last(),CF.psw);
                 reg = findregmsw(retregs);
                 rreg = findregmsw(rretregs);
                 if (!(e2oper == OPu16_32 && // if second operand is 0
@@ -724,7 +727,7 @@ void cdorth(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
                 goto L2;
             cs.IEV2.Voffset = e2.Voffset;
             cs.IEV2.Vsym = e2.Vsym;
-            cs.Iflags |= CFoff;
+            cs.Iflags |= CF.off;
             i = 0;                          /* no INC or DEC opcode         */
             rval = 0;
             goto L3;
@@ -743,7 +746,7 @@ void cdorth(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
                         config.flags4 & CFG4speed &&
                         (e.Eoper == OPor || e.Eoper == OPxor || test ||
                          (e1.Eoper != OPvar && e1.Eoper != OPind)))
-                    {   word = 0;
+                    {   word = CF.zero;
                         i &= 0xFFFF;
                     }
                 }
@@ -801,10 +804,10 @@ void cdorth(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
                         break;
                 }
                 if (pretregs & mPSW)
-                    cs.Iflags |= CFpsw;
+                    cs.Iflags |= CF.psw;
                 cs.Iop ^= isbyte;
                 cdb.gen(&cs);
-                cs.Iflags &= ~CFpsw;
+                cs.Iflags &= ~CF.psw;
             }
             else if (numwords == 2)
             {
@@ -820,14 +823,14 @@ void cdorth(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
                 {
                     case OPadd:
                     case OPmin:
-                        cs.Iflags |= CFpsw;
+                        cs.Iflags |= CF.psw;
                         break;
 
                     default:
                         break;
                 }
                 cdb.gen(&cs);
-                cs.Iflags &= ~CFpsw;
+                cs.Iflags &= ~CF.psw;
 
                 cs.Irm = cast(ubyte)((cs.Irm & modregrm(3,7,0)) | reg);
                 cs.IEV2.Vint = msw;
@@ -860,7 +863,7 @@ void cdorth(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             else if (numwords == 2)
             {
                 if (e.Eoper == OPadd || e.Eoper == OPmin)
-                    code_orflag(cdb.last(),CFpsw);
+                    code_orflag(cdb.last(),CF.psw);
                 reg = findregmsw(retregs);
                 if (!OTleaf(e2.Eoper))
                 {   getlvalue_msw(cs);
@@ -890,7 +893,7 @@ void cdorth(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
                 goto L7;                        // don't assume flags are set
             }
         }
-        code_orflag(cdb.last(),CFpsw);
+        code_orflag(cdb.last(),CF.psw);
         pretregs &= ~mPSW;                    // flags already set
     L7: { }
     }
@@ -959,7 +962,7 @@ void cdmul(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     const OPER opunslng = I16 ? OPu16_32 : OPu32_64;
 
     code cs;
-    cs.Iflags = 0;
+    cs.Iflags = CF.zero;
     cs.Irex = 0;
 
     switch (e2.Eoper)
@@ -1347,7 +1350,7 @@ void cddiv(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     const uint grex = rex << 16;
 
     code cs;
-    cs.Iflags = 0;
+    cs.Iflags = CF.zero;
     cs.IFL2 = FL.unde;
     cs.Irex = 0;
 
@@ -2039,7 +2042,7 @@ void cdnot(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         getlvalue(cg,cdb,cs,e1,0);
         freenode(e1);
         if (!I16 && sz == 2)
-            cs.Iflags |= CFopsize;
+            cs.Iflags |= CF.opsize;
 
         retregs = pretregs & (ALLREGS | mBP);
         if (config.target_cpu >= TARGET_80486 &&
@@ -2127,9 +2130,9 @@ void cdnot(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         reg = findreg(retregs);
         getregs(cdb,retregs);
         cdb.gen2(sz == 1 ? 0xF6 : 0xF7,grex | modregrmx(3,3,reg));   // NEG reg
-        code_orflag(cdb.last(),CFpsw);
+        code_orflag(cdb.last(),CF.psw);
         if (!I16 && sz == SHORTSIZE)
-            code_orflag(cdb.last(),CFopsize);
+            code_orflag(cdb.last(),CF.opsize);
     L2:
         genregs(cdb,0x19,reg,reg);                  // SBB reg,reg
         code_orrex(cdb.last(), rex);
@@ -2144,7 +2147,7 @@ void cdnot(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         else
             cdb.gen2(0xF7,grex | modregrmx(3,3,reg));    // NEG reg
         if (pretregs & mPSW)
-        {   code_orflag(cdb.last(),CFpsw);
+        {   code_orflag(cdb.last(),CF.psw);
             pretregs &= ~mPSW;         // flags are always set anyway
         }
     L4:
@@ -2513,22 +2516,7 @@ void cdcond(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     else
         codelem(cg,cdb1,e21,retregs,false);
 
-    if (CPP && e2.Eoper == OPcolon2)
-    {
-        code cs;
-
-        // This is necessary so that any cleanup code on one branch
-        // is redone on the other branch.
-        cs.Iop = PSOP.mark2;
-        cs.Iflags = 0;
-        cs.Irex = 0;
-        cdb.gen(&cs);
-        cdb.append(cdb1);
-        cs.Iop = PSOP.release2;
-        cdb.gen(&cs);
-    }
-    else
-        cdb.append(cdb1);
+    cdb.append(cdb1);
 
     const regconsave = cg.regcon;
     cg.regcon = cast()regconold;
@@ -2875,7 +2863,7 @@ void cdshift(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
                         buildEA(&cs,-1,reg,1 << shiftcnt,0);
                         cs.Iop = LEA;
                         code_newreg(&cs,resreg);
-                        cs.Iflags = 0;
+                        cs.Iflags = CF.zero;
                         if (I64 && sz == 8)
                             cs.Irex |= REX_W;
                         cdb.gen(&cs);             // LEA resreg,[reg * ss]
@@ -2909,10 +2897,10 @@ void cdshift(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
                         if (I64 && sz == 1 && resreg >= 4)
                             cdb.last().Irex |= REX;
                         // See if we need operand size prefix
-                        if (!I16 && oper != OPshl && sz == 2)
-                            cdb.last().Iflags |= CFopsize;
+                        if (!I16 && sz == 2)
+                            cdb.last().Iflags |= CF.opsize;
                         if (forccs)
-                            cdb.last().Iflags |= CFpsw;         // need flags result
+                            cdb.last().Iflags |= CF.psw;         // need flags result
                     }
                     else if (shiftcnt == 8)
                     {   if (!(retregs & BYTEREGS) || resreg >= 4)
@@ -2983,12 +2971,12 @@ void cdshift(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
                             cdb.gen2(0xD1 ^ isbyte,modregrm(3,s1,resreg));
                             if (sz == 2 * REGSIZE)
                             {
-                                code_orflag(cdb.last(),CFpsw);
+                                code_orflag(cdb.last(),CF.psw);
                                 cdb.gen2(0xD1,modregrm(3,s2,sreg));
                             }
                         }
                         if (forccs)
-                            code_orflag(cdb.last(),CFpsw);
+                            code_orflag(cdb.last(),CF.psw);
                     }
                     if (sz <= REGSIZE)
                         pretregs &= mBP | ALLREGS;     // flags already set
@@ -3035,7 +3023,7 @@ void cdshift(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
                 cdb.gen2(0xD3 ^ isbyte,grex | modregrmx(3,s1,resreg)); // Sxx resreg,CX
 
                 if (!I16 && sz == 2 && (oper == OProl || oper == OPror))
-                    cdb.last().Iflags |= CFopsize;
+                    cdb.last().Iflags |= CF.opsize;
 
                 // Note that a shift by CL does not set the flags if
                 // CL == 0. If e2 is a constant, we know it isn't 0
@@ -3221,7 +3209,7 @@ void cdshift(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
                 if (!e2isconst)                   // if not sure shift count != 0
                     cdb.genc2(0xE3,0,6);          // JCXZ .+6
                 cdb.gen2(0xD1,modregrm(3,s1,resreg));
-                code_orflag(cdb.last(),CFtarg2);
+                code_orflag(cdb.last(),CF.targ2);
                 cdb.gen2(0xD1,modregrm(3,s2,sreg));
                 cdb.genc2(0xE2,0,cast(targ_uns)-6);          // LOOP .-6
                 cg.regimmed_set(CX,0);         // note that now CX == 0
@@ -3318,7 +3306,7 @@ void cdind(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             code_newreg(&cs,reg);
             cdb.gen(&cs);                       // MOV reg,lsw
             cdb.gen2(0xD1,modregrmx(3,4,reg));  // SHL reg,1
-            code_orflag(cdb.last(), CFpsw);
+            code_orflag(cdb.last(), CF.psw);
         }
         else if (sz <= REGSIZE)
         {
@@ -3355,7 +3343,7 @@ void cdind(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         L4:
             cs.Iop = 0x0B;
             getlvalue_lsw(cs);
-            cs.Iflags |= CFpsw;
+            cs.Iflags |= CF.psw;
             cdb.gen(&cs);                    // OR reg,lsw
         }
         else if (!I32 && sz == 8)
@@ -3383,7 +3371,7 @@ void cdind(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             cs.Iop = 0xFF;
             cs.Irm |= modregrm(0,6,0);
             cs.IEV1.Voffset += 8 - REGSIZE;
-            cg.stackchanged = 1;
+            cg.stackchanged = true;
             i = 8 - REGSIZE;
             do
             {
@@ -3401,7 +3389,7 @@ void cdind(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 
         // Watch out for loading an lptr from an lptr! We must have
         // the offset loaded into a different register.
-        /*if (retregs & mES && (cs.Iflags & CFSEG) == CFes)
+        /*if (retregs & mES && (cs.Iflags & CF.SEG) == CF.es)
                 retregs = ALLREGS;*/
 
         {
@@ -3424,7 +3412,7 @@ void cdind(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
                 config.target_cpu >= TARGET_PentiumPro && config.flags4 & CFG4speed)
             {
                 cs.Iop = tyuns(tym) ? MOVZXw : MOVSXw;      // MOVZX/MOVSX
-                cs.Iflags &= ~CFopsize;
+                cs.Iflags &= ~CF.opsize;
             }
             cs.Iop ^= isbyte;
         L2:
@@ -3479,7 +3467,7 @@ void cdind(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
                     code_newreg(&cs,lsreg);
                     cdb.gen(&cs);                 // MOV lsreg,lsw
                     if (sz == REGSIZE + 2)
-                        cs.Iflags |= CFopsize;
+                        cs.Iflags |= CF.opsize;
                     lsreg = reg;
                     getlvalue_msw(cs);                 // MOV reg,msw
                 }
@@ -3489,7 +3477,7 @@ void cdind(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
                     getlvalue_msw(cs);
                     cdb.gen(&cs);                 // MOV reg,msw
                     if (sz == REGSIZE + 2)
-                        cdb.last().Iflags |= CFopsize;
+                        cdb.last().Iflags |= CF.opsize;
                     getlvalue_lsw(cs);                 // MOV lsreg,lsw
                 }
                 NEWREG(cs.Irm,lsreg);
@@ -3618,7 +3606,7 @@ void cdstrlen(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
 
     if (pretregs & mPSW)
     {
-        cdb.last().Iflags |= CFpsw;
+        cdb.last().Iflags |= CF.psw;
         pretregs &= ~mPSW;
     }
     fixresult(cg,cdb,e,mCX,pretregs);
@@ -3824,7 +3812,7 @@ void cdmemcmp(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     {
         getregs(cdb,mAX);
         cdb.gen2(0x33,modregrm(3,AX,AX));           // XOR AX,AX
-        code_orflag(cdb.last(), CFpsw);             // keep flags
+        code_orflag(cdb.last(), CF.psw);             // keep flags
     }
     else
     {
@@ -3880,7 +3868,7 @@ void cdstrcpy(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         POP     DS
     */
 
-    cg.stackchanged = 1;
+    cg.stackchanged = true;
     regm_t retregs = mDI;
     tym_t ty2 = tybasic(e.E2.Ety);
     if (!tyreg(ty2))
@@ -4369,8 +4357,10 @@ private void cdmemsetn(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pr
 
     freenode(e2);
 
-    // Get s into ES:DI
-    regm_t mregidx = IDXREGS & ~(mregcx | retregs3);
+    // Only 16-bit addressing requires an index register. Restricting wider
+    // targets to IDXREGS can leave only register variables as candidates,
+    // which allocreg interprets as an explicit variable destination.
+    regm_t mregidx = (I16 ? IDXREGS : cg.allregs) & ~(mregcx | retregs3);
     assert(mregidx);
     tym_t ty1 = tybasic(e.E1.Ety);
     if (!tyreg(ty1))
@@ -4409,7 +4399,7 @@ private void cdmemsetn(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pr
     buildEA(&cs,idxreg,-1,1,0);
     cs.Iop = 0x89;
     if (!I16 && sz == 2)
-        cs.Iflags |= CFopsize;
+        cs.Iflags |= CF.opsize;
     if (I64 && sz == 8)
         cs.Irex |= REX_W;
     code_newreg(&cs, valreg);
@@ -4722,7 +4712,7 @@ void cdrelconst(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
            )
         {   // MOV mreg,seg of symbol
             cdb.gencs(0xB8 + mreg,0,FL.extern_,s);
-            cdb.last().Iflags = CFseg;
+            cdb.last().Iflags = CF.seg;
         }
         else
         {
@@ -4749,7 +4739,7 @@ void getoffset(ref CGstate cg, ref CodeBuilder cdb,elem* e,reg_t reg)
 
     //printf("getoffset(e = %p, reg = %s)\n", e, regm_str(mask(reg)));
     code cs;
-    cs.Iflags = 0;
+    cs.Iflags = CF.zero;
     ubyte rex = 0;
     cs.Irex = rex;
     assert(e.Eoper == OPvar || e.Eoper == OPrelconst);
@@ -4781,7 +4771,7 @@ void getoffset(ref CGstate cg, ref CodeBuilder cdb,elem* e,reg_t reg)
                     css.Irm = modregrm(0,reg,5);
                     if (reg & 8)
                         css.Irex |= REX_R;
-                    css.Iflags = CFopsize;
+                    css.Iflags = CF.opsize;
                     css.IFL1 = fl;
                     css.IEV1.Vsym = e.Vsym;
                     css.IEV1.Voffset = e.Voffset;
@@ -4795,7 +4785,7 @@ void getoffset(ref CGstate cg, ref CodeBuilder cdb,elem* e,reg_t reg)
                     assert(reg == AX);
                     load_localgot(cg,cdb);
                     code css;
-                    css.Iflags = 0;
+                    css.Iflags = CF.zero;
                     css.Iop = LEA;             // LEA
                     css.Irex = 0;
                     css.Irm = modregrm(0,AX,4);
@@ -4829,7 +4819,7 @@ void getoffset(ref CGstate cg, ref CodeBuilder cdb,elem* e,reg_t reg)
             css.Iop = 0x8B;
             css.Irm = modregrm(0, 0, BPRM);
             code_newreg(&css, reg);
-            css.Iflags = CFgs;
+            css.Iflags = CF.gs;
             css.IFL1 = FL.const_;
             css.IEV1.Vuns = 0;
             cdb.gen(&css);               // MOV reg,GS:[00000000]
@@ -4841,7 +4831,7 @@ void getoffset(ref CGstate cg, ref CodeBuilder cdb,elem* e,reg_t reg)
                 cs.Irm = modregrm(3,0,reg & 7);
                 if (reg & 8)
                     cs.Irex |= REX_B;
-                cs.Iflags = CFoff;
+                cs.Iflags = CF.off;
                 cs.IFL2 = fl;
                 cs.IEV2.Vsym = e.Vsym;
                 cs.IEV2.Voffset = e.Voffset;
@@ -4852,7 +4842,7 @@ void getoffset(ref CGstate cg, ref CodeBuilder cdb,elem* e,reg_t reg)
                 cs.Iop = 0x03;
                 cs.Irm = modregrm(0,0,BPRM);
                 code_newreg(&cs, reg);
-                cs.Iflags = CFoff;
+                cs.Iflags = CF.off;
                 cs.IFL1 = fl;
                 cs.IEV1.Vsym = e.Vsym;
                 cs.IEV1.Voffset = e.Voffset;
@@ -4863,7 +4853,7 @@ void getoffset(ref CGstate cg, ref CodeBuilder cdb,elem* e,reg_t reg)
             {
                 cdb.genpush(reg);        // PUSH reg
                 cdb.genadjesp(REGSIZE);
-                cg.stackchanged = 1;
+                cg.stackchanged = true;
             }
             break;
         }
@@ -4878,7 +4868,7 @@ void getoffset(ref CGstate cg, ref CodeBuilder cdb,elem* e,reg_t reg)
                 cs.Iop = 0xB8 + (reg & 7);      // MOV Ereg,offset s
                 if (reg & 8)
                     cs.Irex |= REX_B;
-                cs.Iflags = CFoff;              // want offset only
+                cs.Iflags = CF.off;              // want offset only
                 cs.IFL2 = fl;
                 cdb.gen(&cs);
                 break;
@@ -4911,7 +4901,7 @@ void getoffset(ref CGstate cg, ref CodeBuilder cdb,elem* e,reg_t reg)
             cs.IEV2.Voffset = e.Voffset;
         L3:
             if (reg == STACK)
-            {   cg.stackchanged = 1;
+            {   cg.stackchanged = true;
                 cs.Iop = 0x68;              /* PUSH immed16                 */
                 cdb.genadjesp(REGSIZE);
             }
@@ -4933,7 +4923,7 @@ void getoffset(ref CGstate cg, ref CodeBuilder cdb,elem* e,reg_t reg)
                     }
                 }
             }
-            cs.Iflags = CFoff;              /* want offset only             */
+            cs.Iflags = CF.off;              /* want offset only             */
             cs.IFL2 = fl;
             cdb.gen(&cs);
             break;
@@ -4961,7 +4951,7 @@ void getoffset(ref CGstate cg, ref CodeBuilder cdb,elem* e,reg_t reg)
                     code_orrex(cdb.last(), REX_W);
                 cdb.genpush(reg);               // PUSH reg
                 cdb.genadjesp(REGSIZE);
-                cg.stackchanged = 1;
+                cg.stackchanged = true;
             }
             else
             {
@@ -5051,7 +5041,7 @@ void cdneg(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             rex |= REX;
         cdb.gen2(0xF7 ^ isbyte,(rex << 16) | modregrmx(3,3,reg));   // NEG reg
         if (!I16 && _tysize[tyml] == SHORTSIZE && pretregs & mPSW)
-            cdb.last().Iflags |= CFopsize | CFpsw;
+            cdb.last().Iflags |= CF.opsize | CF.psw;
         pretregs &= mBP | ALLREGS;             // flags already set
     }
     else if (sz == 2 * REGSIZE)
@@ -5060,7 +5050,7 @@ void cdneg(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         cdb.gen2(0xF7,modregrm(3,3,msreg));       // NEG msreg
         const lsreg = findreglsw(retregs);
         cdb.gen2(0xF7,modregrm(3,3,lsreg));       // NEG lsreg
-        code_orflag(cdb.last(), CFpsw);           // need flag result of previous NEG
+        code_orflag(cdb.last(), CF.psw);           // need flag result of previous NEG
         cdb.genc2(0x81,modregrm(3,3,msreg),0);    // SBB msreg,0
     }
     else
@@ -5164,9 +5154,9 @@ void cdabs(ref CGstate cg, ref CodeBuilder cdb,elem* e, ref regm_t pretregs)
         cdb.gen2(0x33 ^ isbyte,(rex << 16) | modregxrmx(3,reg,r)); // XOR reg,r
         cdb.gen2(0x2B ^ isbyte,(rex << 16) | modregxrmx(3,reg,r)); // SUB reg,r
         if (!I16 && sz == SHORTSIZE && pretregs & mPSW)
-            cdb.last().Iflags |= CFopsize | CFpsw;
+            cdb.last().Iflags |= CF.opsize | CF.psw;
         if (pretregs & mPSW)
-            cdb.last().Iflags |= CFpsw;
+            cdb.last().Iflags |= CF.psw;
         pretregs &= ~mPSW;                     // flags already set
     }
     else if (sz == 2 * REGSIZE)
@@ -5243,7 +5233,7 @@ if (config.exe & EX_windos)
         regm_t idxregs = idxregm(&cs);  // mask of index regs used
         cs.Iop = 0x8B;                  /* MOV DOUBLEREGS,EA            */
         fltregs(cdb,&cs,tyml);
-        cg.stackchanged = 1;
+        cg.stackchanged = true;
         int stackpushsave = cg.stackpush;
         regm_t retregs;
         if (sz == 8)
@@ -5356,7 +5346,7 @@ if (config.exe & EX_windos)
             reg |= 8;
         cs.Iop = 0x85 ^ isbyte;
         code_newreg(&cs, reg);
-        cs.Iflags |= CFpsw;
+        cs.Iflags |= CF.psw;
         cdb.gen(&cs);             // TEST reg,reg
 
         // If lvalue is a register variable, we must mark it as modified
@@ -5390,7 +5380,7 @@ if (config.exe & EX_windos)
             if ((retregs &= mLSW) == 0)
                 retregs = mLSW & ~idxregs;
             /* Can't use LES if the EA uses ES as a seg override    */
-            if (pretregs & mES && (cs.Iflags & CFSEG) != CFes)
+            if (pretregs & mES && (cs.Iflags & CF.SEG) != CF.es)
             {   cs.Iop = 0xC4;                      /* LES          */
                 getregs(cdb,mES);           // allocate ES
             }
@@ -5464,7 +5454,7 @@ if (config.exe & EX_windos)
 
             if (pretregs & mPSW)
             {   pretregs &= ~mPSW;              // flags already set
-                code_orflag(cdb.last(),CFpsw);
+                code_orflag(cdb.last(),CF.psw);
             }
         }
         else
@@ -5479,8 +5469,8 @@ if (config.exe & EX_windos)
             if (pretregs & mES)
             {
                 preg = ES;
-                /* ES is already loaded if CFes is 0            */
-                cs.Iop = ((cs.Iflags & CFSEG) == CFes) ? 0x8E : NOP;
+                /* ES is already loaded if CF.es is 0            */
+                cs.Iop = ((cs.Iflags & CF.SEG) == CF.es) ? 0x8E : NOP;
                 NEWREG(cs.Irm,0);       /* MOV ES,EA+2          */
             }
             else
@@ -5491,7 +5481,7 @@ if (config.exe & EX_windos)
                 preg = allocreg(cdb,retregsx,TYint);
                 cs.Iop = 0x8B;
                 if (I32)
-                    cs.Iflags |= CFopsize;
+                    cs.Iflags |= CF.opsize;
                 NEWREG(cs.Irm,preg);    /* MOV preg,EA+2        */
             }
             getregs(cdb,mask(preg));
@@ -5519,7 +5509,7 @@ if (config.exe & EX_windos)
         const lreg = allocreg(cdb,retregs,TYint);
 
         // Can't use LES if the EA uses ES as a seg override
-        if (pretregs & mES && (cs.Iflags & CFSEG) != CFes)
+        if (pretregs & mES && (cs.Iflags & CF.SEG) != CF.es)
         {   cs.Iop = 0xC4;
             retregs |= mES;
             getregs(cdb,mES|mCX);       // allocate ES
@@ -5549,7 +5539,7 @@ if (config.exe & EX_windos)
         cs.IFL2 = FL.const_;
         cs.IEV2.Vint = rvalue;
         cdb.gen(&cs);                           // ADD EA,e2
-        code_orflag(cdb.last(),CFpsw);
+        code_orflag(cdb.last(),CF.psw);
         cdb.genc2(0x81,modregrm(3,2,rtmp),0);   // ADC rtmp,0
         genshift(cdb);                          // MOV CX,offset __AHSHIFT
         cdb.gen2(0xD3,modregrm(3,4,rtmp));      // SHL rtmp,CL
@@ -5584,7 +5574,7 @@ if (config.exe & EX_windos)
         cs.IFL2 = FL.const_;
         cs.IEV2.Vlong = e2.Vlong;
         cdb.gen(&cs);                   // ADD/SUB EA,const
-        code_orflag(cdb.last(),CFpsw);
+        code_orflag(cdb.last(),CF.psw);
         getlvalue_msw(cs);
         cs.IEV2.Vlong = 0;
         if (op == OPpostinc)
@@ -5650,7 +5640,7 @@ void cddctor(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     assert(pretregs == 0);
     code cs;
     cs.Iop = PSOP.dctor;         // mark start of EH range
-    cs.Iflags = 0;
+    cs.Iflags = CF.zero;
     cs.Irex = 0;
     cs.IFL1 = FL.ctor;
     cs.IEV1.Vtor = e;
@@ -5673,7 +5663,7 @@ void cdddtor(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 
         code cs;
         cs.Iop = PSOP.ddtor;     // mark end of EH range and where landing pad is
-        cs.Iflags = 0;
+        cs.Iflags = CF.zero;
         cs.Irex = 0;
         cs.IFL1 = FL.dtor;
         cs.IEV1.Vtor = e;
@@ -5706,7 +5696,7 @@ void cdddtor(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 
         code cs;
         cs.Iop = PSOP.ddtor;
-        cs.Iflags = 0;
+        cs.Iflags = CF.zero;
         cs.Irex = 0;
         cs.IFL1 = FL.dtor;
         cs.IEV1.Vtor = e;

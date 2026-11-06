@@ -751,7 +751,7 @@ void test11525()
 
     auto a = [Complex!double(2, 2)];
     assert(a.length == 1 && a[0].re == 2 && a[0].im == 2);
-    a[] *= a[];
+    a[] *= a.dup[];
     assert(a.length == 1 && a[0].re == 0 && a[0].im == 8);
 }
 

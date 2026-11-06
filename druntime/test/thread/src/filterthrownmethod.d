@@ -1,3 +1,4 @@
+import core.internal.thread : isSingleThreaded;
 import core.exception;
 import core.thread;
 
@@ -5,6 +6,9 @@ __gshared bool caught;
 
 void main()
 {
+    if(isSingleThreaded)
+        return;
+
     Thread t = new MyThread(&entry);
     t.start();
     t.join();

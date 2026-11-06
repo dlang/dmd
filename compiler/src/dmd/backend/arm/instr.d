@@ -7,8 +7,8 @@
  * Copyright:   Copyright (C) 2024-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/backend/arm/instr.d, backend/cod3.d)
- * Documentation:  https://dlang.org/phobos/dmd_backend_arm_insrt.html
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/backend/arm/instr.d, backend/arm/instr.d)
+ * Documentation:  https://dlang.org/phobos/dmd_backend_arm_instr.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/backend/arm/instr.d
  */
 
@@ -86,6 +86,11 @@ struct INSTR
     enum hlt = 0xD440_0000;          // https://www.scs.stanford.edu/~zyedidia/arm64/hlt.html
 
     alias reg_t = ubyte;
+
+    // Masks for instruction relocation offsets
+    enum MASK_PAGEOFF12 = 0x00CF_FC00; // https://www.scs.stanford.edu/~zyedidia/arm64/add_addsub_imm.html
+    enum MASK_PAGE21    = 0x60FF_FFE0; // https://www.scs.stanford.edu/~zyedidia/arm64/adrp.html
+    enum MASK_BRANCHY26 = 0x03FF_FFFF; // https://www.scs.stanford.edu/~zyedidia/arm64/bl.html
 
     /* Convert size of floating point type to ftype
      */
@@ -180,6 +185,10 @@ struct INSTR
                 Rd;
     }
 
+    /* Is op an ADRP instruction for PAGE21 fixups?
+     */
+    static bool isPAGE21(uint op) { return (op & 0x9F00_0000) == 0x9000_0000; }
+
     /* Add/subtract (immediate)
      * ADD/ADDS/SUB/SUBS Rd,Rn,#imm{, shift}
      * https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#addsub_imm
@@ -205,6 +214,12 @@ struct INSTR
     {
         return addsub_imm(sf, 0, 0, sh, imm12, Rn, Rd);
     }
+
+    /* If instruction is compatible with PAGEOFF12 fixups */
+    static bool isPAGEOFF12(uint op) { return (op & 0x7F80_0000) == 0x1100_0000 ||
+                                              (op & 0xBFC0_0000) == 0xB940_0000; } // ldr_imm_gen
+    //static bool isPAGEOFF12(uint op) { return (op & 0x3B00_0000) == 0x3900_0000 ||
+    //                                          (op & 0x11C0_0000) == 0x1100_0000; }
 
     /* subtract (immediate)
      * SUB Rd,Rn,#imm,shift
@@ -475,6 +490,10 @@ struct INSTR
      * https://www.scs.stanford.edu/~zyedidia/arm64/bl.html
      */
     static uint bl(uint imm26) { return branch_imm(1, imm26); }
+
+    /* return true if instruction is a BL suitable for BRANCHY26 fixup */
+    static bool isBRANCHY26(uint op) { return (op & 0xFC00_0000) == 0x1400_0000 ||
+                                              (op & 0xFC00_0000) == 0x9400_0000; }
 
     /* RET Xn
      * https://www.scs.stanford.edu/~zyedidia/arm64/ret.html
@@ -1767,4 +1786,18 @@ unittest
     assert(setField(0x8000_FFCF,  0,  0,           0) == 0x8000_FFCE);
     assert(setField(0x8000_FFCF,  0,  0,           1) == 0x8000_FFCF);
     assert(setField(0xFFFF_FFFF, 31,  0, 0x1234_5678) == 0x1234_5678);
+}
+
+unittest
+{
+    uint ins = INSTR.branch_imm(1,0x03FF_FFFF);
+    assert(INSTR.isBRANCHY26(ins));
+    ins = INSTR.branch_imm(0,0x03FF_FFFF);
+    assert(INSTR.isBRANCHY26(ins));
+
+    ins = INSTR.adr(1,0x1F5F5F, 31);
+    assert(INSTR.isPAGE21(ins));
+
+    ins = INSTR.add_addsub_imm(1,1,0xA3A,31,31);
+    assert(INSTR.isPAGEOFF12(ins));
 }

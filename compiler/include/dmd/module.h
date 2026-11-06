@@ -97,8 +97,6 @@ public:
     // way to an object file
     Module *importedFrom;
 
-    Dsymbols *decldefs;         // top level declarations for this Module
-
     Modules aimports;             // all imported modules
 
     Identifiers *debugids;      // debug identifiers
@@ -109,9 +107,6 @@ public:
 
     MacroTable macrotable;      // document comment macros
     void *escapetable;          // document comment escapes (Escape*)
-
-    size_t nameoffset;          // offset of module name from start of ModuleInfo
-    size_t namelen;             // length of module name in characters
 
     static Module* create(const char *arg, Identifier *ident, int doDocComment, int doHdrGen);
     static Module *load(Loc loc, Identifiers *packages, Identifier *ident);

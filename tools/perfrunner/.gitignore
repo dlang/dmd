@@ -1,0 +1,10 @@
+.dub/
+perfrunner
+perfrunner.exe
+*-test-*
+*.o
+*.obj
+results.json
+
+# Workload's dependency pin has to be tracked
+!workloads/vibed/dub.selections.json

@@ -16,7 +16,6 @@ module core.internal.gc.impl.conservative.gc;
 //debug = COLLECT_PRINTF;       // turn on printf's
 //debug = MARK_PRINTF;          // turn on printf's
 //debug = PRINTF_TO_FILE;       // redirect printf's output to file "gcx.log"
-//debug = LOGGING;              // log allocations / frees
 //debug = MEMSTOMP;             // stomp on memory
 //debug = SENTINEL;             // add underrun/overrrun protection
                                 // NOTE: this needs to be enabled globally in the makefiles
@@ -29,14 +28,19 @@ module core.internal.gc.impl.conservative.gc;
 //debug = VALGRIND;             // Valgrind memcheck integration
 
 /***************************************************/
-version = COLLECT_PARALLEL;  // parallel scanning
-version (Posix)
-    version = COLLECT_FORK;
+static if (!isSingleThreaded)
+{
+    version = COLLECT_PARALLEL;  // parallel scanning
+
+    version (Posix)
+        version = COLLECT_FORK;
+}
 
 import core.internal.gc.bits;
 import core.internal.gc.os;
 import core.gc.config;
 import core.gc.gcinterface;
+import core.gc.monitor : allocMonitor, collectMonitor, freeMonitor;
 
 import core.internal.container.treap;
 import core.internal.spinlock;
@@ -151,10 +155,6 @@ private GC initialize_precise()
 
 class ConservativeGC : GC
 {
-    // For passing to debug code (not thread safe)
-    __gshared size_t line;
-    __gshared char*  file;
-
     Gcx *gcx;                   // implementation
 
     static gcLock = shared(AlignedSpinLock)(SpinLock.Contention.brief);
@@ -480,8 +480,11 @@ class ConservativeGC : GC
 
         adjustAttrs(bits, ti);
 
-        immutable padding = __allocPad(size, bits);
+        auto alignAttr = cast(BlkAttr)(bits & BlkAttr.ALIGNMENT_MASK);
+        size_t alignment = alignAttr <= BlkAttr.ALIGNMENT_16 ? 16
+            : core.memory.GC.convertBlkAttrToAlignment(alignAttr);
 
+        immutable padding = __allocPad(size, alignment, bits);
         bool overflow;
         import core.checkedint : addu;
         immutable needed = addu(size, padding, overflow);
@@ -496,7 +499,7 @@ class ConservativeGC : GC
 
         invalidate(p[0 .. localAllocSize], 0xF0, true);
 
-        auto ret = setupMetadata(p[0 .. localAllocSize], bits, padding, size, ti);
+        auto ret = setupMetadata(p[0 .. localAllocSize], bits, padding, size, alignment, ti);
 
         if (!(bits & BlkAttr.NO_SCAN))
         {
@@ -530,8 +533,8 @@ class ConservativeGC : GC
             sentinel_init(p, size);
             alloc_size = size;
         }
-        gcx.leakDetector.log_malloc(p, size);
         bytesAllocated += alloc_size;
+        if (allocMonitor) allocMonitor(p, size);
 
         debug(PRINTF) printf("  => p = %p\n", p);
         return p;
@@ -587,7 +590,11 @@ class ConservativeGC : GC
 
         adjustAttrs(bits, ti);
 
-        immutable padding = __allocPad(size, bits);
+        auto alignAttr = cast(BlkAttr)(bits & BlkAttr.ALIGNMENT_MASK);
+        size_t alignment = alignAttr <= BlkAttr.ALIGNMENT_16 ? 16
+            : core.memory.GC.convertBlkAttrToAlignment(alignAttr);
+
+        immutable padding = __allocPad(size, alignment, bits);
         bool overflow;
         import core.checkedint : addu;
         immutable needed = addu(size, padding, overflow);
@@ -603,7 +610,7 @@ class ConservativeGC : GC
 
         debug (VALGRIND) makeMemUndefined(p[0..size]);
 
-        auto ret = setupMetadata(p[0 .. localAllocSize], bits, padding, size, ti);
+        auto ret = setupMetadata(p[0 .. localAllocSize], bits, padding, size, alignment, ti);
 
         invalidate((ret.ptr + size)[0 .. ret.length - size], 0xF0, true);
 
@@ -1013,8 +1020,7 @@ class ConservativeGC : GC
             pool.freebits.set(biti);
         }
         pool.clrBits(biti, ~BlkAttr.NONE);
-
-        gcx.leakDetector.log_free(sentinel_add(p), ssize);
+        if (freeMonitor) freeMonitor(sentinel_add(p), ssize, false);
 
         return true;
     }
@@ -1336,7 +1342,7 @@ class ConservativeGC : GC
         // when collecting.
         static size_t go(Gcx* gcx) nothrow
         {
-            return gcx.fullcollect(false, true); // standard stop the world
+            return gcx.fullcollect(true, false); // standard stop the world
         }
         immutable result = runLocked!go(gcx);
 
@@ -1349,7 +1355,7 @@ class ConservativeGC : GC
                 stats.heapSize, stats.freeSize);
         }
 
-        gcx.leakDetector.log_collect();
+        if (collectMonitor) collectMonitor(result);
         return result;
     }
 
@@ -1513,7 +1519,7 @@ class ConservativeGC : GC
         auto existingUsed = slice.length + offset;
 
         size_t typeInfoSize = (info.attr & BlkAttr.STRUCTFINAL) ? size_t.sizeof : 0;
-        if (__setArrayAllocLengthImpl(info, newUsed, atomic, existingUsed, typeInfoSize))
+        if (__setArrayAllocLength(info, newUsed, atomic, existingUsed, typeInfoSize))
         {
             // could expand without extending
             if (!bic && !atomic)
@@ -1528,7 +1534,7 @@ class ConservativeGC : GC
             return false;
 
         // try extending the block into subsequent pages.
-        immutable requiredExtension = newUsed - (info.size - LARGEPAD);
+        immutable requiredExtension = newUsed - (info.size - LARGEPAD(info.base));
         auto extendedSize = extend(info.base, requiredExtension, requiredExtension, null);
         if (extendedSize == 0)
             // could not extend, can't satisfy the request
@@ -1541,7 +1547,7 @@ class ConservativeGC : GC
             __insertBlkInfoCache(info, null);
 
         // this should always work.
-        return __setArrayAllocLengthImpl(info, newUsed, atomic, existingUsed, typeInfoSize);
+        return __setArrayAllocLength(info, newUsed, atomic, existingUsed, typeInfoSize);
     }
 
     bool shrinkArrayUsed(void[] slice, size_t existingUsed, bool atomic = false) nothrow
@@ -1570,7 +1576,7 @@ class ConservativeGC : GC
 
         size_t typeInfoSize = (info.attr & BlkAttr.STRUCTFINAL) ? size_t.sizeof : 0;
 
-        if (__setArrayAllocLengthImpl(info, newUsed, atomic, existingUsed, typeInfoSize))
+        if (__setArrayAllocLength(info, newUsed, atomic, existingUsed, typeInfoSize))
         {
             if (!bic && !atomic)
                 __insertBlkInfoCache(info, null);
@@ -1704,6 +1710,14 @@ short[PAGESIZE / 16][Bins.B_NUMSMALL + 1] calcBinBase()
     return bin;
 }
 
+immutable binAlignAttr = ()
+{
+    uint[Bins.B_NUMSMALL + 1] attr;
+    for (int i = 0; i <= Bins.B_NUMSMALL; i++)
+        attr[i] = core.memory.GC.convertAlignmentToBlkAttr(binsize[i] & -binsize[i]); // extract lowest bit
+    return attr;
+}();
+
 size_t baseOffset(size_t offset, Bins bin) @nogc nothrow
 {
     assert(bin <= Bins.B_PAGE);
@@ -1766,25 +1780,19 @@ struct Gcx
     // total number of mapped pages
     uint mappedPages;
 
-    debug (LOGGING)
-        LeakDetector leakDetector;
-    else
-        alias leakDetector = LeakDetector;
-
     SmallObjectPool*[Bins.B_NUMSMALL] recoverPool;
     version (Posix) __gshared Gcx* instance;
 
     void initialize()
     {
         (cast(byte*)&this)[0 .. Gcx.sizeof] = 0;
-        leakDetector.initialize(&this);
         roots.initialize(0x243F6A8885A308D3UL);
         ranges.initialize(0x13198A2E03707344UL);
         smallCollectThreshold = largeCollectThreshold = 0.0f;
         usedSmallPages = usedLargePages = 0;
         mappedPages = 0;
         //printf("gcx = %p, self = %x\n", &this, self);
-        version (Posix)
+        version (Posix) static if(!isSingleThreaded)
         {
             import core.sys.posix.pthread : pthread_atfork;
             instance = &this;
@@ -2178,7 +2186,14 @@ struct Gcx
 
     void* smallAlloc(size_t size, ref size_t alloc_size, uint bits, const TypeInfo ti) nothrow
     {
-        immutable bin = binTable[size];
+        Bins bin = binTable[size];
+        auto alignAttr = bits & BlkAttr.ALIGNMENT_MASK;
+        if (alignAttr > BlkAttr.ALIGNMENT_16)
+        {
+            while (binAlignAttr[bin] < alignAttr)
+                if (++bin >= Bins.B_NUMSMALL)
+                    return bigAlloc(size, alloc_size, bits, ti); // large alignment needs big alloc
+        }
         alloc_size = binsize[bin];
 
         void* p = bucket[bin];
@@ -2208,7 +2223,7 @@ struct Gcx
                 if (!newPool(1, false))
                 {
                     // out of memory => try to free some memory
-                    fullcollect(false, true); // stop the world
+                    fullcollect(true, false); // stop the world
                     if (lowMem)
                         minimize();
                     recoverNextPage(bin);
@@ -2216,7 +2231,7 @@ struct Gcx
             }
             else if (usedSmallPages > 0)
             {
-                fullcollect();
+                fullcollect(false, false);
                 if (lowMem)
                     minimize();
                 recoverNextPage(bin);
@@ -2260,6 +2275,10 @@ struct Gcx
     {
         debug(PRINTF) printf("In bigAlloc.  Size:  %zd\n", size);
 
+        auto alignAttr = cast(BlkAttr)(bits & BlkAttr.ALIGNMENT_MASK);
+        size_t pageAlign = alignAttr <= BlkAttr.ALIGNMENT_4K ? 1
+            : core.memory.GC.convertBlkAttrToAlignment(alignAttr) / PAGESIZE;
+
         LargeObjectPool* pool;
         size_t pn;
         immutable npages = LargeObjectPool.numPages(size);
@@ -2273,7 +2292,7 @@ struct Gcx
                 if (!p.isLargeObject || p.freepages < npages)
                     continue;
                 auto lpool = cast(LargeObjectPool*) p;
-                if ((pn = lpool.allocPages(npages)) == OPFAIL)
+                if ((pn = lpool.allocPages(npages, pageAlign)) == OPFAIL)
                     continue;
                 pool = lpool;
                 return true;
@@ -2283,9 +2302,9 @@ struct Gcx
 
         bool tryAllocNewPool() nothrow
         {
-            pool = cast(LargeObjectPool*) newPool(npages, true);
+            pool = cast(LargeObjectPool*) newPool(npages + pageAlign - 1, true);
             if (!pool) return false;
-            pn = pool.allocPages(npages);
+            pn = pool.allocPages(npages, pageAlign);
             assert(pn != OPFAIL);
             return true;
         }
@@ -2299,13 +2318,13 @@ struct Gcx
                 {
                     // disabled but out of memory => try to free some memory
                     minimizeAfterNextCollection = true;
-                    fullcollect(false, true);
+                    fullcollect(true, false);
                 }
             }
             else if (usedLargePages > 0)
             {
                 minimizeAfterNextCollection = true;
-                fullcollect();
+                fullcollect(false, false);
             }
             // If alloc didn't yet succeed retry now that we collected/minimized
             if (!pool && !tryAlloc() && !tryAllocNewPool())
@@ -2898,7 +2917,7 @@ struct Gcx
                         pool.clrBits(biti, ~BlkAttr.NONE ^ BlkAttr.FINALIZE);
 
                         debug(COLLECT_PRINTF) printf("\tcollecting big %p\n", p);
-                        leakDetector.log_free(q, sentinel_size(q, npages * PAGESIZE - SENTINEL_EXTRA));
+                        if (freeMonitor) freeMonitor(q, sentinel_size(q, npages * PAGESIZE - SENTINEL_EXTRA), true);
                         pool.pagetable[pn..pn+npages] = Bins.B_FREE;
                         if (pn < pool.searchStart) pool.searchStart = pn;
                         freedLargePages += npages;
@@ -2973,7 +2992,8 @@ struct Gcx
                             recoverPage = recoverPage && (~freebitsdata[w] == toFree[w]);
 
                         // We need to loop through each object if any have a finalizer,
-                        // or, if any of the debug hooks are enabled.
+                        // if a free monitor is registered, or, if any of the debug
+                        // hooks are enabled.
                         bool doLoop = false;
                         debug (SENTINEL)
                             doLoop = true;
@@ -2981,9 +3001,10 @@ struct Gcx
                             doLoop = true;
                         else debug (COLLECT_PRINTF) // need output for each object
                             doLoop = true;
-                        else debug (LOGGING)
-                            doLoop = true;
                         else debug (MEMSTOMP)
+                            doLoop = true;
+                        else if (freeMonitor !is null)
+                            // each freed object must be reported to the monitor
                             doLoop = true;
                         else if (pool.finals.data)
                         {
@@ -3026,7 +3047,7 @@ struct Gcx
                                 assert(core.bitop.bt(toFree.ptr, i));
 
                                 debug(COLLECT_PRINTF) printf("\tcollecting %p\n", p);
-                                leakDetector.log_free(q, sentinel_size(q, size));
+                                if (freeMonitor) freeMonitor(q, sentinel_size(q, size), true);
 
                                 invalidate(p[0 .. size], 0xF3, false);
                             }
@@ -3265,7 +3286,7 @@ struct Gcx
      * Return number of full pages free'd.
      * The collection is done concurrently only if block and isFinal are false.
      */
-    size_t fullcollect(bool block = false, bool isFinal = false) nothrow
+    size_t fullcollect(bool block, bool isFinal) nothrow
     {
         // It is possible that `fullcollect` will be called from a thread which
         // is not yet registered in runtime (because allocating `new Thread` is
@@ -3492,7 +3513,7 @@ Lmark:
         return IsMarked.unknown;
     }
 
-    version (Posix)
+    version (Posix) static if(!isSingleThreaded)
     {
         // A fork might happen while GC code is running in a different thread.
         // Because that would leave the GC in an inconsistent state,
@@ -3596,6 +3617,7 @@ Lmark:
                     scanStack!precise.push(ScanRange!precise(pbot, pbot + pointersPerThread));
                     pbot += pointersPerThread;
                 }
+                evStackFilled.setIfInitialized(); // background threads start now
                 stackLock.unlock();
             }
             if (ConservativeGC.isPrecise)
@@ -3604,8 +3626,6 @@ Lmark:
                 pushRanges!false();
         }
         assert(pbot < ptop);
-
-        evStackFilled.setIfInitialized(); // background threads start now
 
         debug(PARALLEL_PRINTF) printf("mark %lld roots\n", cast(ulong)(ptop - pbot));
 
@@ -3620,6 +3640,8 @@ Lmark:
             pullLoop!(true)();
         else
             pullLoop!(false)();
+
+        evStackFilled.reset(); // symmetric with setIfInitialized() above; avoids livelock when no pop ever happened
 
         debug(PARALLEL_PRINTF) printf("waitForScanDone done\n");
     }
@@ -4404,9 +4426,14 @@ struct LargeObjectPool
 
     /**
      * Allocate n pages from Pool.
-     * Returns OPFAIL on failure.
+     *
+     * Params:
+     *  n = number of pages to allocate
+     *  pageAlign = required alignment of resulting page (including base address)
+     * Returns:
+     *  OPFAIL on failure.
      */
-    size_t allocPages(size_t n) nothrow
+    size_t allocPages(size_t n, size_t pageAlign) nothrow
     {
         if (largestFree < n || searchStart + n > npages)
             return OPFAIL;
@@ -4421,11 +4448,26 @@ struct LargeObjectPool
         while (searchStart < npages && pagetable[searchStart] == Bins.B_PAGE)
             searchStart += bPageOffsets[searchStart];
 
+        size_t basePage = (cast(size_t)baseAddr / PAGESIZE);
         for (size_t i = searchStart; i < npages; )
         {
             assert(pagetable[i] == Bins.B_FREE);
 
             auto p = bPageOffsets[i];
+            if (pageAlign > 1)
+            {
+                size_t ialigned = ((basePage + i + pageAlign - 1) & -pageAlign) - basePage;
+                if (ialigned + n > i + p)
+                    goto L_next;
+                if (ialigned + n < i + p)
+                    setFreePageOffsets(ialigned + n, i + p - (ialigned + n));
+                if (ialigned > i)
+                {
+                    setFreePageOffsets(i, ialigned - i);
+                    i = ialigned;
+                }
+                goto L_found;
+            }
             if (p > n)
             {
                 setFreePageOffsets(i + n, p - n);
@@ -4445,6 +4487,7 @@ struct LargeObjectPool
                 freepages -= n;
                 return i;
             }
+            L_next:
             if (p > largest)
                 largest = p;
 
@@ -4908,225 +4951,6 @@ string debugTypeName(const(TypeInfo) ti) nothrow
     return name;
 }
 
-/* ======================= Leak Detector =========================== */
-
-debug (LOGGING)
-{
-    struct Log
-    {
-        void*  p;
-        size_t size;
-        size_t line;
-        char*  file;
-        void*  parent;
-
-        void print() nothrow
-        {
-            printf("    p = %p, size = %lld, parent = %p ", p, cast(ulong)size, parent);
-            if (file)
-            {
-                printf("%s(%u)", file, cast(uint)line);
-            }
-            printf("\n");
-        }
-    }
-
-
-    struct LogArray
-    {
-        size_t dim;
-        size_t allocdim;
-        Log *data;
-
-        void Dtor() nothrow @nogc
-        {
-            if (data)
-                cstdlib.free(data);
-            data = null;
-        }
-
-        void reserve(size_t nentries) nothrow @nogc
-        {
-            assert(dim <= allocdim);
-            if (allocdim - dim < nentries)
-            {
-                allocdim = (dim + nentries) * 2;
-                assert(dim + nentries <= allocdim);
-                if (!data)
-                {
-                    data = cast(Log*)cstdlib.malloc(allocdim * Log.sizeof);
-                    if (!data && allocdim)
-                        onOutOfMemoryError();
-                }
-                else
-                {   Log *newdata;
-
-                    newdata = cast(Log*)cstdlib.malloc(allocdim * Log.sizeof);
-                    if (!newdata && allocdim)
-                        onOutOfMemoryError();
-                    memcpy(newdata, data, dim * Log.sizeof);
-                    cstdlib.free(data);
-                    data = newdata;
-                }
-            }
-        }
-
-
-        void push(Log log) nothrow @nogc
-        {
-            reserve(1);
-            data[dim++] = log;
-        }
-
-        void remove(size_t i) nothrow @nogc
-        {
-            memmove(data + i, data + i + 1, (dim - i) * Log.sizeof);
-            dim--;
-        }
-
-
-        size_t find(void *p) nothrow @nogc
-        {
-            for (size_t i = 0; i < dim; i++)
-            {
-                if (data[i].p == p)
-                    return i;
-            }
-            return OPFAIL; // not found
-        }
-
-
-        void copy(LogArray *from) nothrow @nogc
-        {
-            if (allocdim < from.dim)
-                reserve(from.dim - dim);
-            assert(from.dim <= allocdim);
-            memcpy(data, from.data, from.dim * Log.sizeof);
-            dim = from.dim;
-        }
-    }
-
-    struct LeakDetector
-    {
-        Gcx* gcx;
-        LogArray current;
-        LogArray prev;
-
-        private void initialize(Gcx* gc)
-        {
-            gcx = gc;
-            //debug(PRINTF) printf("+log_init()\n");
-            current.reserve(1000);
-            prev.reserve(1000);
-            //debug(PRINTF) printf("-log_init()\n");
-        }
-
-
-        private void log_malloc(void *p, size_t size) nothrow
-        {
-            //debug(PRINTF) printf("+log_malloc(p = %p, size = %zd)\n", p, size);
-            Log log;
-
-            log.p = p;
-            log.size = size;
-            log.line = ConservativeGC.line;
-            log.file = ConservativeGC.file;
-            log.parent = null;
-
-            ConservativeGC.line = 0;
-            ConservativeGC.file = null;
-
-            current.push(log);
-            //debug(PRINTF) printf("-log_malloc()\n");
-        }
-
-
-        private void log_free(void *p, size_t size) nothrow @nogc
-        {
-            //debug(PRINTF) printf("+log_free(%p)\n", p);
-            auto i = current.find(p);
-            if (i == OPFAIL)
-            {
-                debug(PRINTF) printf("free'ing unallocated memory %p (size %zu)\n", p, size);
-            }
-            else
-                current.remove(i);
-            //debug(PRINTF) printf("-log_free()\n");
-        }
-
-
-        private void log_collect() nothrow
-        {
-            //debug(PRINTF) printf("+log_collect()\n");
-            // Print everything in current that is not in prev
-
-            debug(PRINTF) printf("New pointers this cycle: --------------------------------\n");
-            size_t used = 0;
-            for (size_t i = 0; i < current.dim; i++)
-            {
-                auto j = prev.find(current.data[i].p);
-                if (j == OPFAIL)
-                    current.data[i].print();
-                else
-                    used++;
-            }
-
-            debug(PRINTF) printf("All roots this cycle: --------------------------------\n");
-            for (size_t i = 0; i < current.dim; i++)
-            {
-                void* p = current.data[i].p;
-                if (!gcx.findPool(current.data[i].parent))
-                {
-                    auto j = prev.find(current.data[i].p);
-                    debug(PRINTF) printf(j == OPFAIL ? "N" : " ");
-                    current.data[i].print();
-                }
-            }
-
-            debug(PRINTF) printf("Used = %d-------------------------------------------------\n", used);
-            prev.copy(&current);
-
-            debug(PRINTF) printf("-log_collect()\n");
-        }
-
-
-        private void log_parent(void *p, void *parent) nothrow
-        {
-            //debug(PRINTF) printf("+log_parent()\n");
-            auto i = current.find(p);
-            if (i == OPFAIL)
-            {
-                debug(PRINTF) printf("parent'ing unallocated memory %p, parent = %p\n", p, parent);
-                Pool *pool;
-                pool = gcx.findPool(p);
-                assert(pool);
-                size_t offset = cast(size_t)(p - pool.baseAddr);
-                size_t biti;
-                size_t pn = offset / PAGESIZE;
-                Bins bin = pool.pagetable[pn];
-                biti = (offset & (PAGESIZE - 1)) >> pool.shiftBy;
-                debug(PRINTF) printf("\tbin = %d, offset = x%x, biti = x%x\n", bin, offset, biti);
-            }
-            else
-            {
-                current.data[i].parent = parent;
-            }
-            //debug(PRINTF) printf("-log_parent()\n");
-        }
-    }
-}
-else
-{
-    struct LeakDetector
-    {
-        static void initialize(Gcx* gcx) nothrow { }
-        static void log_malloc(void *p, size_t size) nothrow { }
-        static void log_free(void *p, size_t size) nothrow @nogc {}
-        static void log_collect() nothrow { }
-        static void log_parent(void *p, void *parent) nothrow { }
-    }
-}
-
 /* ============================ SENTINEL =============================== */
 
 debug (SENTINEL)
@@ -5521,7 +5345,7 @@ private void adjustAttrs(ref uint attrs, const TypeInfo ti) nothrow
 // metadata.
 //
 // The return value is the true data that the user can use.
-private void[] setupMetadata(void[] block, uint bits, size_t padding, size_t used, const TypeInfo ti) nothrow
+private void[] setupMetadata(void[] block, uint bits, size_t padding, size_t used, size_t alignment, const TypeInfo ti) nothrow
 {
     import core.internal.gc.blockmeta;
     import core.internal.array.utils;
@@ -5533,11 +5357,11 @@ private void[] setupMetadata(void[] block, uint bits, size_t padding, size_t use
     );
 
 
-    __setBlockFinalizerInfo(info, ti);
+    __setBlockMetaInfo(info, ti, alignment);
 
     if (bits & BlkAttr.APPENDABLE) {
         auto typeInfoSize = (bits & BlkAttr.STRUCTFINAL) ? (void*).sizeof : 0;
-        auto success = __setArrayAllocLengthImpl(info, used, false, size_t.max, typeInfoSize);
+        auto success = __setArrayAllocLength(info, used, false, size_t.max, typeInfoSize);
         assert(success);
         return __arrayStart(info)[0 .. block.length - padding];
     }

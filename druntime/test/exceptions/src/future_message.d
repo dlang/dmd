@@ -1,4 +1,4 @@
-import core.stdc.stdio : fprintf, stderr;
+import core.stdc.stdio : FILE, fprintf, stderr;
 
 // Make sure basic stuff works with future Throwable.message
 class NoMessage : Throwable
@@ -56,7 +56,8 @@ void test(Throwable t)
     }
     catch (Throwable e)
     {
-        fprintf(stderr, "%.*s ", cast(int)e.message.length, e.message.ptr);
+        // C stdio owns this shared global; the test only needs the current handle.
+        fprintf(cast(FILE*) stderr, "%.*s ", cast(int)e.message.length, e.message.ptr);
     }
 }
 
@@ -66,5 +67,6 @@ void main()
      test(new WithMessage("exception"));
      test(new WithMessageNoOverride("exception"));
      test(new WithMessageNoOverrideAndDifferentSignature("exception"));
-     fprintf(stderr, "\n");
+     // C stdio owns this shared global; the test only needs the current handle.
+     fprintf(cast(FILE*) stderr, "\n");
 }

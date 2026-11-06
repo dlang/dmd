@@ -144,7 +144,7 @@ void testarchie()
 
 /* TEST_OUTPUT:
 ---
-fail_compilation/retscope6.d(9023): Error: escaping a reference to local variable `i` by returning `fred(& i)`  is not allowed in a `@safe` function
+fail_compilation/retscope6.d(9023): Error: escaping a reference to local variable `i` by returning `fred(& i)` is not allowed in a `@safe` function
 ---
 */
 
@@ -207,8 +207,8 @@ void hmac(scope ubyte[] secret)
 
 /* TEST_OUTPUT:
 ---
-fail_compilation/retscope6.d(12011): Error: escaping a reference to local variable `x` by returning `escape_m_20150(& x)`  is not allowed in a `@safe` function
-fail_compilation/retscope6.d(12022): Error: escaping a reference to local variable `x` by returning `escape_c_20150(& x)`  is not allowed in a `@safe` function
+fail_compilation/retscope6.d(12011): Error: escaping a reference to local variable `x` by returning `escape_m_20150(& x)` is not allowed in a `@safe` function
+fail_compilation/retscope6.d(12022): Error: escaping a reference to local variable `x` by returning `escape_c_20150(& x)` is not allowed in a `@safe` function
 ---
 */
 

@@ -51,6 +51,9 @@ module core.internal.backtrace.dwarf;
 
 version (Posix):
 
+version (WASI) {}
+else:
+
 import core.internal.string;
 
 version (OSX)
@@ -104,6 +107,15 @@ struct Location
     const(char)[] directory;
 
     /**
+     * Compilation directory of the unit this location belongs to
+     *
+     * Per the DWARF spec, a relative `directory` (or a relative `file`
+     * without `directory`) is relative to this directory.
+     * This may be `null` if it's unknown or not needed.
+     */
+    const(char)[] compilationDirectory;
+
+    /**
      * Line within the file that correspond to this `location`.
      *
      * Note that in addition to a positive value, the values `0` and `-1`
@@ -122,12 +134,29 @@ struct Location
         // information. If there is we will simply ignore it.
         if (this.file.length)
         {
-            // Note: Sink needs to handle empty data
-            sink(this.directory);
             // Only POSIX path because this module is not used on Windows
-            if (this.directory.length && this.directory[$ - 1] != '/')
-                sink("/");
-            sink(this.file);
+            static bool isAbsolute(const(char)[] path) { return path.length && path[0] == '/'; }
+            void sinkDir(const(char)[] dir)
+            {
+                if (!dir.length)
+                    return;
+                sink(dir);
+                if (dir[$ - 1] != '/')
+                    sink("/");
+            }
+
+            const(char)[] file = this.file;
+            if (!isAbsolute(file))
+            {
+                if (!isAbsolute(this.directory))
+                    sinkDir(this.compilationDirectory);
+                sinkDir(this.directory);
+                // Avoid printing e.g. `/path/to/./file.d`
+                if ((this.directory.length || this.compilationDirectory.length) &&
+                    file.length > 2 && file[0 .. 2] == "./")
+                    file = file[2 .. $];
+            }
+            sink(file);
         }
         else
             // Most likely, no debug information
@@ -156,6 +185,32 @@ struct Location
         sink(unsignedToTempString!16(cast(size_t) this.address));
         sink("]");
     }
+}
+
+unittest
+{
+    static string format(Location loc)
+    {
+        loc.line = 42;
+        string result;
+        loc.toString((scope const char[] s) { result ~= s; });
+        return result[0 .. $ - " [0x0]".length];
+    }
+
+    // DMD: Fully qualified file name
+    assert(format(Location(file: "/a/b.d")) == "/a/b.d:42");
+    // Relative file in absolute directory
+    assert(format(Location(file: "b.d", directory: "/a")) == "/a/b.d:42");
+    assert(format(Location(file: "b.d", directory: "/a/", compilationDirectory: "/c")) == "/a/b.d:42");
+    // Relative directory, relative to compilation directory
+    assert(format(Location(file: "b.d", directory: "a", compilationDirectory: "/")) == "/a/b.d:42");
+    assert(format(Location(file: "b.d", directory: "a", compilationDirectory: "/c")) == "/c/a/b.d:42");
+    // File relative to compilation directory
+    assert(format(Location(file: "b.d", compilationDirectory: "/c")) == "/c/b.d:42");
+    assert(format(Location(file: "./b.d", compilationDirectory: "/c")) == "/c/b.d:42");
+    assert(format(Location(file: "./b.d")) == "./b.d:42");
+    // Unknown
+    assert(format(Location()) == "??:42");
 }
 
 int traceHandlerOpApplyImpl(size_t numFrames,
@@ -189,8 +244,23 @@ int traceHandlerOpApplyImpl(size_t numFrames,
         return locations[startIdx .. $].processCallstack(null, 0, dg);
 
     // find address -> file, line mapping using dwarf debug_line
-    return image.processDebugLineSectionData(
-        (line) => locations[startIdx .. $].processCallstack(line, image.baseAddress, dg));
+    return image.processDebugSections(
+        (ref const DebugSections sections) => locations[startIdx .. $].processCallstack(&sections, image.baseAddress, dg));
+}
+
+/// The DWARF sections used to resolve addresses, empty if not present
+struct DebugSections
+{
+    /// `.debug_line`: line number programs
+    const(ubyte)[] line;
+    /// `.debug_info`: used to look up the compilation directory (DWARF < 5)
+    const(ubyte)[] info;
+    /// `.debug_abbrev`: abbreviations needed to decode `.debug_info`
+    const(ubyte)[] abbrev;
+    /// `.debug_str`: string table referenced by `DW_FORM_strp`
+    const(ubyte)[] str;
+    /// `.debug_line_str`: string table referenced by `DW_FORM_line_strp`
+    const(ubyte)[] lineStr;
 }
 
 struct TraceInfoBuffer
@@ -239,14 +309,15 @@ struct TraceInfoBuffer
 
 private:
 
-int processCallstack(Location[] locations, const(ubyte)[] debugLineSectionData,
+int processCallstack(Location[] locations, const(DebugSections)* sections,
                      size_t baseAddress, scope int delegate(ref size_t, ref const(char[])) dg)
 {
-    if (debugLineSectionData)
-        resolveAddresses(debugLineSectionData, locations, baseAddress);
+    const hasDebugLine = sections !is null && sections.line.length;
+    if (hasDebugLine)
+        resolveAddresses(*sections, locations, baseAddress);
     version (Darwin)
     {
-        if (!debugLineSectionData)
+        if (!hasDebugLine)
             resolveAddressesWithAtos(locations);
     }
 
@@ -405,7 +476,7 @@ version (Darwin) {
 }
 
 /**
- * Resolve the addresses of `locations` using `debugLineSectionData`
+ * Resolve the addresses of `locations` using the `.debug_line` section
  *
  * Runs the DWARF state machine on `debugLineSectionData`,
  * assuming it represents a debugging program describing the addresses
@@ -415,22 +486,39 @@ version (Darwin) {
  * file / lines informations.
  *
  * Note that the lifetime of the `Location` data is bound to the lifetime
- * of `debugLineSectionData`.
+ * of the data in `sections`.
  *
  * Params:
- *   debugLineSectionData = A DWARF program to feed the state machine
+ *   sections = The DWARF sections, `line` being the program to feed the state machine
  *   locations = The locations to resolve
  *   baseAddress = The offset to apply to every address
  */
-void resolveAddresses(const(ubyte)[] debugLineSectionData, Location[] locations, size_t baseAddress) @nogc nothrow
+void resolveAddresses(ref const DebugSections sections, Location[] locations, size_t baseAddress) @nogc nothrow
 {
     size_t numberOfLocationsFound = 0;
 
-    const(ubyte)[] dbg = debugLineSectionData;
+    const(ubyte)[] dbg = sections.line;
     while (dbg.length > 0)
     {
         debug(DwarfDebugMachine) printf("new debug program\n");
-        const lp = readLineNumberProgram(dbg);
+        const lp = readLineNumberProgram(dbg, sections);
+
+        // Relative paths are relative to the compilation directory, which is
+        // the first include directory in DWARF 5, and found in `.debug_info`
+        // for previous versions. Look the latter up lazily, as it's expensive.
+        bool compDirLookedUp;
+        const(char)[] compDir;
+        const(char)[] getCompilationDirectory()
+        {
+            if (lp.dwarfVersion >= 5)
+                return lp.includeDirectories.length ? lp.includeDirectories[0] : null;
+            if (!compDirLookedUp)
+            {
+                compDir = findCompilationDirectory(sections, lp.offset);
+                compDirLookedUp = true;
+            }
+            return compDir;
+        }
 
         LocationInfo lastLoc = LocationInfo(-1, -1);
         const(void)* lastAddress;
@@ -457,7 +545,9 @@ void resolveAddresses(const(ubyte)[] debugLineSectionData, Location[] locations,
                     void update(const ref LocationInfo match)
                     {
                         // File indices are 1-based for DWARF < 5
-                        const fileIndex = match.file - (lp.dwarfVersion < 5 ? 1 : 0);
+                        const fileIndex = cast(size_t) match.file - (lp.dwarfVersion < 5 ? 1 : 0);
+                        if (fileIndex >= lp.sourceFiles.length)
+                            return;
                         const sourceFile = lp.sourceFiles[fileIndex];
                         debug (DwarfDebugMachine)
                         {
@@ -469,8 +559,17 @@ void resolveAddresses(const(ubyte)[] debugLineSectionData, Location[] locations,
                         // DMD emits entries with FQN, but other implementations
                         // (e.g. LDC) make use of directories
                         // See https://github.com/dlang/druntime/pull/2945
-                        if (sourceFile.dirIndex != 0)
+                        if (sourceFile.dirIndex != 0 && sourceFile.dirIndex <= lp.includeDirectories.length)
                             loc.directory = lp.includeDirectories[sourceFile.dirIndex - 1];
+
+                        // A relative path is relative to the compilation directory,
+                        // which is also the implicit directory for index 0 (DWARF < 5).
+                        // In DWARF 5, the compilation directory is directory 0 itself.
+                        const isAbsolute = sourceFile.file.length && sourceFile.file[0] == '/'
+                            || loc.directory.length && loc.directory[0] == '/';
+                        const isCompDir = lp.dwarfVersion >= 5 && sourceFile.dirIndex == 1;
+                        if (!isAbsolute && !isCompDir)
+                            loc.compilationDirectory = getCompilationDirectory();
 
                         loc.file = sourceFile.file;
                         loc.line = match.line;
@@ -570,13 +669,13 @@ bool runStateMachine(ref const(LineNumberProgram) lp, scope RunStateMachineCallb
         ubyte opcode = program.read!ubyte();
         if (opcode < lp.opcodeBase)
         {
-            switch (opcode) with (StandardOpcode)
+            switch (opcode) with (DW_LNS)
             {
                 case extendedOp:
                     size_t len = cast(size_t) program.readULEB128();
                     ubyte eopcode = program.read!ubyte();
 
-                    switch (eopcode) with (ExtendedOpcode)
+                    switch (eopcode) with (DW_LNE)
                     {
                         case endSequence:
                             machine.isEndSequence = true;
@@ -799,50 +898,96 @@ enum DW_LNCT : ushort
     hiUser = 0x3fff,
 }
 
+/// Attribute forms defined by the DWARF debugging information format.
+///
+/// The form determines how an attribute value is encoded in DWARF data.
 enum DW_FORM : ubyte
 {
+    /// An address-sized value (unsigned integer in the target's address size)
     addr = 1,
+    /// A 2-byte byte count followed by that many bytes
     block2 = 3,
+    /// A 4-byte byte count followed by that many bytes
     block4 = 4,
+    /// A 2-byte unsigned constant
     data2 = 5,
+    /// A 4-byte unsigned constant
     data4 = 6,
+    /// An 8-byte unsigned constant
     data8 = 7,
+    /// An inline null-terminated string
     string_ = 8,
+    /// An unsigned LEB128 byte count followed by that many bytes
     block = 9,
+    /// A 1-byte byte count followed by that many bytes
     block1 = 10,
+    /// A 1-byte unsigned constant
     data1 = 11,
+    /// A 1-byte flag
     flag = 12,
+    /// A signed LEB128 constant
     sdata = 13,
+    /// A 4- or 8-byte offset into the .debug_str section
     strp = 14,
+    /// An unsigned LEB128 constant
     udata = 15,
+    /// A 4- or 8-byte offset into the .debug_info section
     ref_addr = 16,
+    /// A 1-byte offset from the start of the containing compilation unit
     ref1 = 17,
+    /// A 2-byte offset from the start of the containing compilation unit
     ref2 = 18,
+    /// A 4-byte offset from the start of the containing compilation unit
     ref4 = 19,
+    /// An 8-byte offset from the start of the containing compilation unit
     ref8 = 20,
+    /// An unsigned LEB128 offset from the start of the containing compilation unit
     ref_udata = 21,
+    /// An unsigned LEB128 form code followed by a value in that form
     indirect = 22,
+    /// A 4- or 8-byte offset into the applicable debug section - Introduced in DWARF4
     sec_offset = 23,
+    /// An unsigned LEB128 byte count followed by a DWARF expression or location description - Introduced in DWARF4
     exprloc = 24,
+    /// A flag that is implicitly true and consumes no bytes - Introduced in DWARF4
     flag_present = 25,
+    /// An unsigned LEB128 index into a table of offsets in the .debug_str_offsets section - Introduced in DWARF5
     strx = 26,
+    /// An unsigned LEB128 index into a table of addresses in the .debug_addr section - Introduced in DWARF5
     addrx = 27,
+    /// A 4-byte offset into the .debug_info section of a supplementary object file - Introduced in DWARF5
     ref_sup4 = 28,
+    /// A 4- or 8-byte offset into the .debug_str section of a supplementary object file - Introduced in DWARF5
     strp_sup = 29,
+    /// A 16-byte constant - Introduced in DWARF5
     data16 = 30,
+    /// A 4- or 8-byte offset into the .debug_line_str section - Introduced in DWARF5
     line_strp = 31,
+    /// An 8-byte type signature - Introduced in DWARF4
     ref_sig8 = 32,
+    /// A signed LEB128 constant stored in the abbreviation declaration rather than the attribute value - Introduced in DWARF5
     implicit_const = 33,
+    /// An unsigned LEB128 index into a table of offsets in the .debug_loclists section - Introduced in DWARF5
     loclistx = 34,
+    /// An unsigned LEB128 index into a table of offsets in the .debug_rnglists section - Introduced in DWARF5
     rnglistx = 35,
+    /// An 8-byte offset into the .debug_info section of a supplementary object file - Introduced in DWARF5
     ref_sup8 = 36,
+    /// A 1-byte unsigned index into a table of offsets in the .debug_str_offsets section - Introduced in DWARF5
     strx1 = 37,
+    /// A 2-byte unsigned index into a table of offsets in the .debug_str_offsets section - Introduced in DWARF5
     strx2 = 38,
+    /// A 3-byte unsigned index into a table of offsets in the .debug_str_offsets section - Introduced in DWARF5
     strx3 = 39,
+    /// A 4-byte unsigned index into a table of offsets in the .debug_str_offsets section - Introduced in DWARF5
     strx4 = 40,
+    /// A 1-byte unsigned index into a table of addresses in the .debug_addr section - Introduced in DWARF5
     addrx1 = 41,
+    /// A 2-byte unsigned index into a table of addresses in the .debug_addr section - Introduced in DWARF5
     addrx2 = 42,
+    /// A 3-byte unsigned index into a table of addresses in the .debug_addr section - Introduced in DWARF5
     addrx3 = 43,
+    /// A 4-byte unsigned index into a table of addresses in the .debug_addr section - Introduced in DWARF5
     addrx4 = 44,
 }
 
@@ -876,29 +1021,330 @@ Array!EntryFormatPair readEntryFormat(ref const(ubyte)[] buffer) @nogc nothrow
     return pairs;
 }
 
-enum StandardOpcode : ubyte
+/**
+ * Skips over an attribute value encoded with `form`
+ *
+ * Params:
+ *   data = Buffer to read from, advanced past the value
+ *   form = The form the value is encoded with
+ *   is64bitDwarf = Whether the unit uses the 64-bit DWARF format
+ *   addressSize = Size of an address in the unit
+ *
+ * Returns:
+ *   `false` if `form` is unknown, in which case `data` is left untouched
+ */
+bool skipForm(ref const(ubyte)[] data, DW_FORM form, bool is64bitDwarf, ubyte addressSize) @nogc nothrow
 {
+    with (DW_FORM) switch (form)
+    {
+        case flag_present, implicit_const:
+            break;
+        case data1, ref1, flag, strx1, addrx1:
+            data = data[1 .. $]; break;
+        case data2, ref2, strx2, addrx2:
+            data = data[2 .. $]; break;
+        case strx3, addrx3:
+            data = data[3 .. $]; break;
+        case data4, ref4, ref_sup4, strx4, addrx4:
+            data = data[4 .. $]; break;
+        case data8, ref8, ref_sig8, ref_sup8:
+            data = data[8 .. $]; break;
+        case data16:
+            data = data[16 .. $]; break;
+        case addr:
+            data = data[addressSize .. $]; break;
+        case strp, strp_sup, line_strp, sec_offset, ref_addr:
+            data = data[is64bitDwarf ? 8 : 4 .. $]; break;
+        case udata, ref_udata, strx, addrx, loclistx, rnglistx:
+            data.readULEB128(); break;
+        case sdata:
+            data.readSLEB128(); break;
+        case string_:
+            data.readStringz(); break;
+        case block1:
+            const length = data.read!ubyte();
+            data = data[length .. $];
+            break;
+        case block2:
+            const length = data.read!ushort();
+            data = data[length .. $];
+            break;
+        case block4:
+            const length = data.read!uint();
+            data = data[length .. $];
+            break;
+        case block, exprloc:
+            const length = cast(size_t) data.readULEB128();
+            data = data[length .. $];
+            break;
+        case indirect:
+            auto copy = data;
+            const actualForm = cast(DW_FORM) copy.readULEB128();
+            if (!skipForm(copy, actualForm, is64bitDwarf, addressSize))
+                return false;
+            data = copy;
+            break;
+        default:
+            return false;
+    }
+    return true;
+}
+
+/**
+ * Reads a string attribute value encoded with `form`
+ *
+ * Only forms that do not require additional context
+ * (such as `DW_AT_str_offsets_base` for `DW_FORM_strx`) are supported.
+ *
+ * Returns:
+ *   The string, or `null` if `form` is not supported
+ *   (`data` is still advanced past the value if the form is known).
+ */
+const(char)[] readStringForm(ref const(ubyte)[] data, DW_FORM form, bool is64bitDwarf,
+                             ref const DebugSections sections) @nogc nothrow
+{
+    switch (form) with (DW_FORM)
+    {
+        case string_:
+            return data.readStringz();
+        case strp, line_strp:
+            const offset = cast(size_t) (is64bitDwarf ? data.read!ulong() : data.read!uint());
+            return readStringAt(form == strp ? sections.str : sections.lineStr, offset);
+        default:
+            skipForm(data, form, is64bitDwarf, size_t.sizeof);
+            return null;
+    }
+}
+
+/// Reads a null-terminated string at `offset` in `section`, or `null` if out of bounds
+const(char)[] readStringAt(const(ubyte)[] section, size_t offset) @nogc nothrow
+{
+    if (offset >= section.length)
+        return null;
+    const str = cast(const(char)[]) section[offset .. $];
+    foreach (i, c; str)
+        if (c == '\0')
+            return str[0 .. i];
+    return null;
+}
+
+enum DW_TAG : ushort
+{
+    compile_unit = 0x11,
+}
+
+enum DW_AT : ushort
+{
+    stmt_list = 0x10,
+    comp_dir = 0x1b,
+}
+
+enum DW_UT : ubyte
+{
+    compile = 1,
+    type = 2,
+    partial = 3,
+    skeleton = 4,
+    split_compile = 5,
+    split_type = 6,
+}
+
+/**
+ * Finds the compilation directory of the unit using a given line number program
+ *
+ * Iterates over the units in `.debug_info` to find the one whose
+ * `DW_AT_stmt_list` is `lineProgramOffset`, and returns its `DW_AT_comp_dir`.
+ *
+ * Params:
+ *   sections = The DWARF sections of the image
+ *   lineProgramOffset = Offset of the line number program in `.debug_line`
+ *
+ * Returns:
+ *   The compilation directory, or `null` if it could not be found
+ */
+const(char)[] findCompilationDirectory(ref const DebugSections sections, size_t lineProgramOffset) @nogc nothrow
+{
+    const(ubyte)[] info = sections.info;
+    while (info.length > 4)
+    {
+        bool is64bitDwarf = false;
+        ulong unitLength = info.read!uint();
+        if (unitLength == uint.max)
+        {
+            is64bitDwarf = true;
+            unitLength = info.read!ulong();
+        }
+        if (unitLength > info.length)
+            return null;
+
+        auto unit = info[0 .. cast(size_t) unitLength];
+        info = info[cast(size_t) unitLength .. $];
+
+        const unitVersion = unit.read!ushort();
+        if (unitVersion < 2 || unitVersion > 5)
+            continue;
+
+        ubyte unitType = DW_UT.compile;
+        ubyte addressSize;
+        ulong abbrevOffset;
+        if (unitVersion >= 5)
+        {
+            unitType = unit.read!ubyte();
+            addressSize = unit.read!ubyte();
+            abbrevOffset = is64bitDwarf ? unit.read!ulong() : unit.read!uint();
+            if (unitType == DW_UT.skeleton || unitType == DW_UT.split_compile)
+                unit = unit[8 .. $]; // dwo_id
+            else if (unitType == DW_UT.type || unitType == DW_UT.split_type)
+                continue;
+        }
+        else
+        {
+            abbrevOffset = is64bitDwarf ? unit.read!ulong() : unit.read!uint();
+            addressSize = unit.read!ubyte();
+        }
+
+        if (abbrevOffset >= sections.abbrev.length)
+            continue;
+
+        // The unit's first DIE is the one we're interested in
+        const abbrevCode = unit.readULEB128();
+        if (abbrevCode == 0)
+            continue;
+
+        // Find the matching abbreviation declaration
+        const(ubyte)[] abbrev = sections.abbrev[cast(size_t) abbrevOffset .. $];
+        bool found;
+        while (abbrev.length)
+        {
+            const code = abbrev.readULEB128();
+            if (code == 0)
+                break;
+            if (code == abbrevCode)
+            {
+                found = true;
+                break;
+            }
+            // Skip this declaration: tag, has_children, and attribute specs
+            abbrev.readULEB128();
+            abbrev.read!ubyte();
+            while (true)
+            {
+                const attr = abbrev.readULEB128();
+                const form = abbrev.readULEB128();
+                if (form == DW_FORM.implicit_const)
+                    abbrev.readSLEB128();
+                if (attr == 0 && form == 0)
+                    break;
+            }
+        }
+        if (!found)
+            continue;
+
+        const tag = abbrev.readULEB128();
+        abbrev.read!ubyte(); // has_children
+        if (tag != DW_TAG.compile_unit)
+            continue;
+
+        const(char)[] compDir;
+        bool hasStmtList;
+        ulong stmtList;
+        while (true)
+        {
+            const attr = abbrev.readULEB128();
+            const form = cast(DW_FORM) abbrev.readULEB128();
+            if (form == DW_FORM.implicit_const)
+                abbrev.readSLEB128();
+            if (attr == 0 && form == 0)
+                break;
+
+            if (attr == DW_AT.stmt_list)
+            {
+                hasStmtList = true;
+                if (form == DW_FORM.sec_offset)
+                    stmtList = is64bitDwarf ? unit.read!ulong() : unit.read!uint();
+                else if (form == DW_FORM.data4)
+                    stmtList = unit.read!uint();
+                else if (form == DW_FORM.data8)
+                    stmtList = unit.read!ulong();
+                else
+                    break;
+            }
+            else if (attr == DW_AT.comp_dir)
+                compDir = readStringForm(unit, form, is64bitDwarf, sections);
+            else if (!skipForm(unit, form, is64bitDwarf, addressSize))
+                break;
+        }
+
+        if (hasStmtList && stmtList == lineProgramOffset)
+            return compDir;
+    }
+    return null;
+}
+
+/// Standard opcodes of the line number program.
+///
+/// Standard opcodes occupy the range `[1, opcode_base)`, where `opcode_base`
+/// comes from the line number program header. Opcodes at or above it are
+/// special opcodes, which are not enumerated here.
+///
+/// See_Also: DWARF v5, Section 6.2.5.2: Standard Opcodes
+enum DW_LNS : ubyte
+{
+    /// Not a standard opcode: introduces an extended opcode (see `DW_LNE`)
     extendedOp = 0,
+    /// Append a row to the matrix, then reset `discriminator`,
+    /// `basic_block`, `prologue_end` and `epilogue_begin`
     copy = 1,
+    /// Advance `address` and `op_index` by a ULEB128 operation advance
     advancePC = 2,
+    /// Advance `line` by a SLEB128 operand
     advanceLine = 3,
+    /// Set `file` to a ULEB128 operand, an index into the `file_names`
+    /// table of the header - 1-based before DWARF5, 0-based since
     setFile = 4,
+    /// Set `column` to a ULEB128 operand
     setColumn = 5,
+    /// Toggle `is_stmt`
     negateStatement = 6,
+    /// Set `basic_block` to `true`
     setBasicBlock = 7,
+    /// Advance `address` and `op_index` as special opcode 255 would,
+    /// without changing `line` or appending a row
     constAddPC = 8,
+    /// Advance `address` by a 2-byte unsigned operand, not scaled by
+    /// `minimum_instruction_length`, and set `op_index` to 0
     fixedAdvancePC = 9,
+    /// Set `prologue_end` to `true`
     setPrologueEnd = 10,
+    /// Set `epilogue_begin` to `true`
     setEpilogueBegin = 11,
+    /// Set `isa` to a ULEB128 operand
     setISA = 12,
 }
 
-enum ExtendedOpcode : ubyte
+/// Extended opcodes of the line number program.
+///
+/// An extended opcode is encoded as a `0` byte, followed by a ULEB128 length,
+/// followed by the extended opcode itself and its operands. The length covers
+/// the extended opcode and its operands, so unknown opcodes can be skipped.
+///
+/// See_Also: DWARF v5, Section 6.2.5.3: Extended Opcodes
+enum DW_LNE : ubyte
 {
+    /// Set `end_sequence` to `true`, append a row to the matrix,
+    /// then reset all registers to their initial values
     endSequence = 1,
+    /// Set `address` to a target-address-sized operand and `op_index` to 0
     setAddress = 2,
+    /// Define an additional source file, using the same encoding as the
+    /// `file_names` entries of the header - Reserved since DWARF5
     defineFile = 3,
+    /// Set `discriminator` to a ULEB128 operand - Introduced in DWARF4
     setDiscriminator = 4,
+    /// First value of the range reserved for vendor extensions
+    loUser = 0x80,
+    /// Last value of the range reserved for vendor extensions
+    hiUser = 0xff,
 }
 
 struct StateMachine
@@ -925,6 +1371,7 @@ struct LocationInfo
 
 struct LineNumberProgram
 {
+    size_t offset; // offset of this program in `.debug_line`
     ulong unitLength;
     ushort dwarfVersion;
     ubyte addressSize;
@@ -948,11 +1395,67 @@ struct SourceFile
     size_t dirIndex; // 1-based
 }
 
-LineNumberProgram readLineNumberProgram(ref const(ubyte)[] data) @nogc nothrow
+/// Reads the DWARF 5 directory and file entries into `lp`.
+void readEntries(ref const(ubyte)[] data, ref LineNumberProgram lp, bool is64bitDwarf,
+                 ref const DebugSections sections) @nogc nothrow
+{
+    // Entries that can't be parsed (e.g. due to an unknown form) keep
+    // their fallback value, the program start is known from the header.
+    const dirFormat = data.readEntryFormat();
+    lp.includeDirectories.length = cast(size_t) data.readULEB128();
+    foreach (ref dir; lp.includeDirectories)
+        dir = "<unknown dir>"; // fallback
+    foreach (ref dir; lp.includeDirectories)
+    {
+        foreach (ref pair; dirFormat)
+        {
+            if (pair.type == DW_LNCT.path)
+            {
+                if (auto path = data.readStringForm(pair.form, is64bitDwarf, sections))
+                    dir = path;
+            }
+            else if (!data.skipForm(pair.form, is64bitDwarf, lp.addressSize))
+                return; // unknown form, can't parse further
+        }
+    }
+
+    const fileFormat = data.readEntryFormat();
+    lp.sourceFiles.length = cast(size_t) data.readULEB128();
+    foreach (ref sf; lp.sourceFiles)
+        sf.file = "<unknown file>"; // fallback
+    foreach (ref sf; lp.sourceFiles)
+    {
+        foreach (ref pair; fileFormat)
+        {
+            if (pair.type == DW_LNCT.path)
+            {
+                if (auto path = data.readStringForm(pair.form, is64bitDwarf, sections))
+                    sf.file = path;
+            }
+            else if (pair.type == DW_LNCT.directoryIndex)
+            {
+                if (pair.form == DW_FORM.data1)
+                    sf.dirIndex = data.read!ubyte();
+                else if (pair.form == DW_FORM.data2)
+                    sf.dirIndex = data.read!ushort();
+                else if (pair.form == DW_FORM.udata)
+                    sf.dirIndex = cast(size_t) data.readULEB128();
+                else
+                    return; // not allowed by DWARF 5 spec
+                sf.dirIndex++; // DWARF v5 indices are 0-based
+            }
+            else if (!data.skipForm(pair.form, is64bitDwarf, lp.addressSize))
+                return; // unknown form, can't parse further
+        }
+    }
+}
+
+LineNumberProgram readLineNumberProgram(ref const(ubyte)[] data, ref const DebugSections sections) @nogc nothrow
 {
     const originalData = data;
 
     LineNumberProgram lp;
+    lp.offset = cast(size_t) (data.ptr - sections.line.ptr);
 
     bool is64bitDwarf = false;
     lp.unitLength = data.read!uint();
@@ -987,84 +1490,7 @@ LineNumberProgram readLineNumberProgram(ref const(ubyte)[] data) @nogc nothrow
     data = data[lp.opcodeBase - 1 .. $];
 
     if (lp.dwarfVersion >= 5)
-    {
-        static void consumeGenericForm(ref const(ubyte)[] data, DW_FORM form, bool is64bitDwarf)
-        {
-            with (DW_FORM) switch (form)
-            {
-                case strp, strp_sup, line_strp:
-                    data = data[is64bitDwarf ? 8 : 4 .. $]; break;
-                case data1, strx1:
-                    data = data[1 .. $]; break;
-                case data2, strx2:
-                    data = data[2 .. $]; break;
-                case strx3:
-                    data = data[3 .. $]; break;
-                case data4, strx4:
-                    data = data[4 .. $]; break;
-                case data8:
-                    data = data[8 .. $]; break;
-                case data16:
-                    data = data[16 .. $]; break;
-                case udata, strx:
-                    data.readULEB128(); break;
-                case block:
-                    const length = cast(size_t) data.readULEB128();
-                    data = data[length .. $];
-                    break;
-                default:
-                    assert(0); // TODO: support other forms for vendor extensions
-            }
-        }
-
-        const dirFormat = data.readEntryFormat();
-        lp.includeDirectories.length = cast(size_t) data.readULEB128();
-        foreach (ref dir; lp.includeDirectories)
-        {
-            dir = "<unknown dir>"; // fallback
-            foreach (ref pair; dirFormat)
-            {
-                if (pair.type == DW_LNCT.path &&
-                    // TODO: support other forms too (offsets in other sections)
-                    pair.form == DW_FORM.string_)
-                {
-                    dir = data.readStringz();
-                }
-                else // uninteresting type
-                    consumeGenericForm(data, pair.form, is64bitDwarf);
-            }
-        }
-
-        const fileFormat = data.readEntryFormat();
-        lp.sourceFiles.length = cast(size_t) data.readULEB128();
-        foreach (ref sf; lp.sourceFiles)
-        {
-            sf.file = "<unknown file>"; // fallback
-            foreach (ref pair; fileFormat)
-            {
-                if (pair.type == DW_LNCT.path &&
-                    // TODO: support other forms too (offsets in other sections)
-                    pair.form == DW_FORM.string_)
-                {
-                    sf.file = data.readStringz();
-                }
-                else if (pair.type == DW_LNCT.directoryIndex)
-                {
-                    if (pair.form == DW_FORM.data1)
-                        sf.dirIndex = data.read!ubyte();
-                    else if (pair.form == DW_FORM.data2)
-                        sf.dirIndex = data.read!ushort();
-                    else if (pair.form == DW_FORM.udata)
-                        sf.dirIndex = cast(size_t) data.readULEB128();
-                    else
-                        assert(0); // not allowed by DWARF 5 spec
-                    sf.dirIndex++; // DWARF v5 indices are 0-based
-                }
-                else // uninteresting type
-                    consumeGenericForm(data, pair.form, is64bitDwarf);
-            }
-        }
-    }
+        readEntries(data, lp, is64bitDwarf, sections);
     else
     {
         // A sequence ends with a null-byte.

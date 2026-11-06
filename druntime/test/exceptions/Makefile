@@ -68,8 +68,11 @@ $(ROOT)/line_trace_21656.done: $(ROOT)/line_trace$(DOTEXE)
 $(ROOT)/long_backtrace_trunc.done: $(ROOT)/long_backtrace_trunc$(DOTEXE)
 	@echo Testing long_backtrace_trunc
 	$(TIMELIMIT)$(ROOT)/long_backtrace_trunc > $(ROOT)/long_backtrace_trunc.output
+	# The long frame must be truncated to exactly 1536 characters, ending in '...'
+	awk 'NR == 3 && (length($$0) != 1536 || $$0 !~ /\.\.\.$$/) { print "Frame not truncated as expected: " $$0; exit 1 }' $(ROOT)/long_backtrace_trunc.output
 	# Use sed to canonicalize long_backtrace_trunc.output and compare against expected output in long_backtrace_trunc.exp
-	$(SED) "s|^.*/src/|src/|g; s/\[0x[0-9a-f]*\]/\[ADDR\]/g; s/scope //g; s/Nl//g" $(ROOT)/long_backtrace_trunc.output | $(DIFF) long_backtrace_trunc.exp -
+	# The truncation point depends on the length of the absolute source path, so collapse what follows the template instance
+	$(SED) "s|^.*/src/|src/|g; s/\[0x[0-9a-f]*\]/\[ADDR\]/g; s/scope //g; s/Nl//g; s/!(int)\..*\.\.\.$$/!(int)..../" $(ROOT)/long_backtrace_trunc.output | $(DIFF) long_backtrace_trunc.exp -
 	@rm -f $(ROOT)/long_backtrace_trunc.output
 	@touch $@
 

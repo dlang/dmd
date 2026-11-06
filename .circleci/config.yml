@@ -1,25 +1,23 @@
-version: 2
+version: 2.1
 jobs:
   build:
-    working_directory: ~/dmd
-    docker:
-      - image: cimg/base:current-20.04
-    parallelism: 1
+    working_directory: ~/dmd # the Phobos Makefile expects this dir name, not Circle's default `~/project`
+    machine:
+      image: ubuntu-2604:current
+    resource_class: large.gen3
     steps:
-      - checkout:
-          method: blobless
+      - checkout
       - run:
           command: ./.circleci/run.sh install-deps
           name: Install dependencies
       - run:
           # needs to be a separate step, s.t. `run.sh` gets updated too
           command: ./.circleci/run.sh setup-repos
-          name: Merge with upstream + clone DRuntime & Phobos
+          name: Merge with upstream + clone Phobos
       - run:
           command: ./.circleci/run.sh all
           name: Run all
 workflows:
-  version: 2
   all:
     jobs:
       - build

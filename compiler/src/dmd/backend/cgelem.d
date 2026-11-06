@@ -28,15 +28,19 @@ import dmd.backend.code;
 import dmd.backend.cdef;
 import dmd.backend.x86.code_x86;
 import dmd.backend.oper;
-import dmd.backend.global;
-import dmd.backend.goh;
+import dmd.backend.global : REGSIZE, error;
+import dmd.backend.debugprint : oper_str;
+import dmd.backend.el : exp2_copytotemp;
+import dmd.backend.evalu8 : boolres, iffalse, iftrue;
+import dmd.backend.symbol : symbol_calloc, sytab, globsym;
+import dmd.backend.util2 : ispow2;
+import dmd.backend.go;
 import dmd.backend.el;
 import dmd.backend.rtlsym;
-import dmd.backend.symtab;
+import dmd.backend.symbol;
 import dmd.backend.ty;
 import dmd.backend.type;
 
-import dmd.backend.dlist;
 import dmd.backend.dvec;
 
 
@@ -1008,11 +1012,12 @@ L1:
            e1.E2.Eoper == OPrelconst &&
            e1.E2.Vsym == e2.Vsym)
     {
+        tym_t tym = I64 ? TYllong : TYint;
         e2.Eoper = OPconst;
-        e2.Ety = TYint;
+        e2.Ety = tym;
         e1.Ety = e1.E1.Ety;
         e1.E2.Eoper = OPconst;
-        e1.E2.Ety = TYint;
+        e1.E2.Ety = tym;
         {
             /* Watch out for pointer types changing, requiring a conversion */
             tym_t ety = tybasic(e.Ety);
@@ -2162,7 +2167,7 @@ private elem* elcond(elem* e, Goal goal)
                 el_free(e1);
                 return elcond(e,goal);
             }
-            if (e1.Ety == TYnoreturn)
+            if (tybasic(e1.Ety) == TYnoreturn)
             {
                 return el_selecte1(e);
             }
@@ -2497,7 +2502,7 @@ L2:
         goto L2;
     }
 
-    if (e1.Ety == TYnoreturn)
+    if (tybasic(e1.Ety) == TYnoreturn)
     {
         e = el_selecte1(e);
         goto Lret;
@@ -2803,7 +2808,7 @@ private elem* eloror(elem* e, Goal goal)
         return eloror(e, goal);
     }
 
-    if (e1.Ety == TYnoreturn)
+    if (tybasic(e1.Ety) == TYnoreturn)
     {
         return el_selecte1(e);
     }
@@ -3107,7 +3112,7 @@ private elem* elandand(elem* e, Goal goal)
         el_free(e1);
         return elandand(e, goal);
     }
-    if (e1.Ety == TYnoreturn)
+    if (tybasic(e1.Ety) == TYnoreturn)
     {
         return el_selecte1(e);
     }
@@ -3386,7 +3391,7 @@ private elem* eladdr(elem* e, Goal goal)
     {
         case OPvar:
             e1.Eoper = OPrelconst;
-            e1.Vsym.Sflags &= ~(SFLunambig | GTregcand);
+            e1.Vsym.Sflags &= ~(SFLdistinct | GTregcand);
             e1.Ety = tym;
             e = optelem(el_selecte1(e), Goal.value);
             break;
@@ -3565,11 +3570,21 @@ elem* elstruct(elem* e, Goal goal)
         return optelem(e, goal);
     }
 
-    // Replace (e = e) with (e, e)
-    if (e.Eoper == OPstreq && el_match(e.E1, e.E2))
+    if (e.Eoper == OPstreq)
     {
-        e.Eoper = OPcomma;
-        return optelem(e, goal);
+        // Replace (e = noreturn) with (e, noreturn)
+        if (tybasic(e.E2.Ety) == TYnoreturn)
+        {
+            e.Eoper = OPcomma;
+            return optelem(e, Goal.none);
+        }
+
+        // Replace (e = e) with (e, e)
+        if (el_match(e.E1, e.E2))
+        {
+            e.Eoper = OPcomma;
+            return optelem(e, goal);
+        }
     }
 
     if (!e.ET)
@@ -3853,6 +3868,12 @@ static if (0)  // Doesn't work too well, removed
         return optelem(e, Goal.value);
     }
 }
+
+    if (tybasic(e.E2.Ety) == TYnoreturn)
+    {
+        e.Eoper = OPcomma;
+        return optelem(e, Goal.none);
+    }
 
     if (OPTIMIZER)
     {
@@ -5570,14 +5591,6 @@ private elem* elinfo(elem* e, Goal goal)
 }
 
 /********************************************
- */
-
-private elem* elclassinit(elem* e, Goal goal)
-{
-    return e;
-}
-
-/********************************************
  * OPva_start
  *     /  \
  *   ap    parmn
@@ -6506,7 +6519,7 @@ private bool canHappenAfter(elem* a, elem* b)
            /* a is a variable that is not aliased
             * and is not assigned to in b
             */
-           (a.Eoper == OPvar && a.Vsym.Sflags & SFLunambig && !el_appears(b, a.Vsym)) ||
+           (a.Eoper == OPvar && a.Vsym.Sflags & SFLdistinct && !el_appears(b, a.Vsym)) ||
 
            !(el_sideeffect(a) || el_sideeffect(b));
 }
@@ -6597,8 +6610,6 @@ private immutable elfp_t[OPMAX] elxxx =
     OPmemcmp:  &elmemcmp,
     OPsetjmp:  &elzot,
     OPnegass:  &elnegass,
-    OPpreinc:  &elzot,
-    OPpredec:  &elzot,
     OPstreq:   &elstruct,
     OPpostinc: &elpost,
     OPpostdec: &elpost,
@@ -6686,8 +6697,6 @@ private immutable elfp_t[OPMAX] elxxx =
     OPld_u64:  &evalu8,
     OPparam:   &elparam,
     OPsizeof:  &elzot,
-    OParrow:   &elzot,
-    OParrowstar: &elzot,
     OPcolon:   &elzot,
     OPcolon2:  &elzot,
     OPbool:    &elbool,
@@ -6701,11 +6710,6 @@ private immutable elfp_t[OPMAX] elxxx =
     OPconst:   &elerr,
     OPvar:     &elerr,
     OPreg:     &elerr,
-    OPnew:     &elerr,
-    OPanew:    &elerr,
-    OPdelete:  &elerr,
-    OPadelete: &elerr,
-    OPbrack:   &elerr,
     OPframeptr: &elzot,
     OPgot:     &elzot,
 

@@ -379,15 +379,29 @@ void testEvaluationOrder()
 	seqaa(1).rehash;
 	seqaa(1).clear;
 
-	version (none)
-		seqaa(1) = [seqi(2, 1) : seqi(3, 1), seqi(4, 2) : seqi(5, 4)]; // aa = [1:1, 2:4]
-	else
-		aa = [1:1, 2:4];
+	seqaa(1) = [seqi(2, 1) : seqi(3, 1), seqi(4, 2) : seqi(5, 4)]; // aa = [1:1, 2:4]
 
 	assert(seqaa(1).remove(seqi(2, 1))); // aa.remove(1)
 
 	assert(seqaa(1) == seqaa(2)); // aa == aa
 	assert(!(seqaa(1) != seqaa(2))); // aa != aa
+}
+
+/************************************************/
+// https://github.com/dlang/dmd/issues/24090
+
+struct S24090
+{
+    int[string] aa;
+}
+
+immutable S24090 s24090 = S24090(["a": 1]);
+// Compiles when you remove this line
+immutable S24090[] a24090 = [s24090];
+
+void test24090()
+{
+    assert(a24090[0].aa["a"] == 1);
 }
 
 /************************************************/
@@ -402,7 +416,8 @@ int main()
     testinout();
     testinenum();
     test21258();
-	testEvaluationOrder();
+    testEvaluationOrder();
+    test24090();
 
     printf("Success\n");
     return 0;

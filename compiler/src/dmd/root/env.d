@@ -57,7 +57,7 @@ Returns:
 string allocNameValue(const(char)[] name, const(char)[] value) nothrow
 {
     const length = name.length + 1 + value.length;
-    auto str = (cast(char*)mem.xmalloc(length + 1))[0 .. length];
+    auto str = (cast(char*)mem.xmalloc_noscan(length + 1))[0 .. length];
     str[0 .. name.length] = name[];
     str[name.length] = '=';
     str[name.length + 1 .. length] = value[];

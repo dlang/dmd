@@ -67,7 +67,6 @@ struct Scope final
     Statement *scontinue;       // enclosing statement that supports "continue"
     ForeachStatement *fes;      // if nested function for ForeachStatement, this is it
     Scope *callsc;              // used for __FUNCTION__, __PRETTY_FUNCTION__ and __MODULE__
-    Loc callLoc;                // call-site location for __FILE__, __LINE__, and __FILE_FULL_PATH__
     Dsymbol *inunion;           // !=null if processing members of a union
     VarDeclaration *lastVar;    // Previous symbol used to prevent goto-skips-init
     ErrorSink *eSink;           // sink for error messages
@@ -91,6 +90,7 @@ struct Scope final
 
     LINK linkage;               // linkage for external functions
     CPPMANGLE cppmangle;        // C++ mangle type
+    Loc callLoc;                // call-site location for __FILE__, __LINE__, and __FILE_FULL_PATH__
     PragmaDeclaration *inlining; // inlining strategy for functions
 
     Visibility visibility;            // visibility for class members
@@ -99,11 +99,10 @@ struct Scope final
 
     DeprecatedDeclaration *depdecl; // customized deprecation message
 
-    uint16_t flags, flags2;
+    uint32_t flags;
+    uint16_t flags2;
     uint16_t previews; // state of preview switches
 
-    bool ctor() const;
-    bool ctor(bool v);
     bool noAccessCheck() const;
     bool noAccessCheck(bool v);
     bool condition() const;
@@ -132,16 +131,12 @@ struct Scope final
     bool knownACompileTimeOnlyContext(bool v);
     bool inIsDisabledTrait() const;
     bool inIsDisabledTrait(bool v);
+    bool deferSemantic3InCompilerHook() const;
+    bool deferSemantic3InCompilerHook(bool v);
 
     UserAttributeDeclaration *userAttribDecl;   // user defined attributes
 
     void *lastdc;               // documentation comment for last symbol at this scope (DocComment*)
     AA *anchorCounts;           // lookup duplicate anchor name count
     Identifier *prevAnchor;     // qualified symbol name of last doc anchor
-
-    AliasDeclaration *aliasAsg; // if set, then aliasAsg is being assigned a new value,
-                                // do not set wasRead for it
-    StructDeclaration *argStruct; // elimiate recursion when looking for rvalue construction
-
-    Dsymbol *search(Loc loc, Identifier *ident, Dsymbol *&pscopesym, SearchOptFlags flags = (SearchOptFlags)SearchOpt::all);
 };

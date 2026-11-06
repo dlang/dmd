@@ -1,11 +1,10 @@
 // https://issues.dlang.org/show_bug.cgi?id=20714
-// REQUIRED_ARGS: -de
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail20714.d(19): Deprecation: `struct Adder` implicitly-generated postblit hides copy constructor.
-fail_compilation/fail20714.d(19):        The field postblit will have priority over the copy constructor.
-fail_compilation/fail20714.d(19):        To change this, the postblit should be disabled for `struct Adder`
+fail_compilation/fail20714.d(18): Error: `struct Adder` implicitly-generated postblit hides copy constructor.
+fail_compilation/fail20714.d(18):        The field postblit will have priority over the copy constructor.
+fail_compilation/fail20714.d(18):        To change this, the postblit should be disabled for `struct Adder`
 ---
 */
 

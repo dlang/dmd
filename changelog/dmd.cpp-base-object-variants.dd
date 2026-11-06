@@ -1,0 +1,39 @@
+C++ classes can derive from `extern(C++)` classes defined in D on Itanium C++ ABI targets
+
+The Itanium C++ ABI (used on Linux, macOS, the BSDs and other POSIX targets) gives each
+constructor and destructor two variants: the complete-object one, which constructs or
+destroys a whole object, and the base-object one, which a derived class uses for its base
+subobject. DMD only emitted the complete-object variants, so a C++ class deriving from an
+`extern(C++)` class defined in D failed to link.
+
+DMD now also emits the base-object variants for every `extern(C++)` constructor and
+destructor, and a D class uses the base-object variants of its C++ base class, as C++ does.
+
+---
+// D
+extern(C++) class Base
+{
+    this() { }
+    ~this() { }
+    int id() { return 1; }
+}
+---
+
+---
+// C++
+class Base
+{
+public:
+    Base();
+    virtual ~Base();
+    virtual int id();
+};
+
+class Derived : public Base
+{
+public:
+    Derived() { }           // calls Base::Base(), the base-object constructor
+    ~Derived() { }          // calls Base::~Base(), the base-object destructor
+    int id() { return 2; }
+};
+---

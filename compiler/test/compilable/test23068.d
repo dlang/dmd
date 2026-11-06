@@ -5,8 +5,7 @@ TEST_OUTPUT:
 ---
 main:
 0000:   0F 0B                    ud2
-0002:   31 C0                    xor       EAX,EAX
-0004:   C3                       ret
+0002:   C3                       ret
 ---
 */
 

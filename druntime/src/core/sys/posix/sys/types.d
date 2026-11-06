@@ -288,6 +288,9 @@ else version (DragonFlyBSD)
 }
 else version (Solaris)
 {
+    alias longlong_t = __c_longlong;
+    alias u_longlong_t = __c_ulonglong;
+
     alias caddr_t = char*;
     alias daddr_t = c_long;
     alias cnt_t = short;
@@ -297,12 +300,16 @@ else version (Solaris)
         alias blkcnt_t = long;
         alias ino_t = ulong;
         alias off_t = long;
+        alias fsblkcnt_t = u_longlong_t;
+        alias fsfilcnt_t = u_longlong_t;
     }
     else
     {
         alias blkcnt_t = c_long;
         alias ino_t = c_ulong;
         alias off_t = c_long;
+        alias fsblkcnt_t = ulong_t;
+        alias fsfilcnt_t = ulong_t;
     }
 
     version (D_LP64)
@@ -310,12 +317,18 @@ else version (Solaris)
         alias blkcnt64_t = blkcnt_t;
         alias ino64_t = ino_t;
         alias off64_t = off_t;
+        alias fsblkcnt64_t = fsblkcnt_t;
+        alias fsfilcnt64_t = fsfilcnt_t;
     }
     else
     {
         alias blkcnt64_t = long;
         alias ino64_t = ulong;
         alias off64_t = long;
+        alias fsblkcnt32_t = uint32_t;
+        alias fsfilcnt32_t = uint32_t;
+        alias fsblkcnt64_t = ulong;
+        alias fsfilcnt64_t = ulong;
     }
 
     alias blksize_t = uint;
@@ -327,6 +340,74 @@ else version (Solaris)
     alias ssize_t = c_long;
     alias time_t = c_long;
     alias uid_t = uint;
+}
+else version (Hurd)
+{
+    static if ( __USE_FILE_OFFSET64 )
+    {
+        alias blkcnt_t = long;
+        alias ino_t = ulong;
+        alias off_t = long;
+    }
+    else
+    {
+        alias blkcnt_t = slong_t;
+        alias ino_t = ulong_t;
+        alias off_t = slong_t;
+    }
+    alias blksize_t = slong_t;
+    alias dev_t = ulong_t;
+    alias gid_t = uint;
+    alias mode_t = uint;
+    alias nlink_t = ulong_t;
+    alias pid_t = int;
+    //size_t (defined in core.stdc.stddef)
+    alias ssize_t = c_long;
+    alias uid_t = uint;
+
+    alias time_t = slong_t;
+}
+else version (Emscripten)
+{
+    alias blkcnt_t = int; // for wasm64 too
+    alias ino_t = ulong;
+    alias off_t = long;
+
+    alias blksize_t = int; // for wasm64 too
+
+    alias dev_t = uint; // for wasm64 too
+    alias gid_t = uint;
+    alias mode_t = uint;
+
+    alias nlink_t = size_t;
+
+    alias pid_t = int;
+    //size_t (defined in core.stdc.stddef)
+    alias ssize_t = ptrdiff_t;
+    alias uid_t = uint;
+
+    alias time_t = long;
+}
+else version (CRuntime_WASI)
+{
+    alias blkcnt_t = long;
+    alias ino_t = ulong;
+    alias off_t = long;
+
+    alias blksize_t = c_long;
+
+    alias dev_t = ulong;
+    alias gid_t = uint;
+    alias mode_t = uint;
+
+    alias nlink_t = ulong;
+
+    alias pid_t = int;
+    //size_t (defined in core.stdc.stddef)
+    alias ssize_t = c_long;
+    alias uid_t = uint;
+
+    alias time_t = long;
 }
 else
 {
@@ -416,17 +497,6 @@ else version (DragonFlyBSD)
 }
 else version (Solaris)
 {
-    static if (__USE_FILE_OFFSET64)
-    {
-        alias fsblkcnt_t = ulong;
-        alias fsfilcnt_t = ulong;
-    }
-    else
-    {
-        alias fsblkcnt_t = c_ulong;
-        alias fsfilcnt_t = c_ulong;
-    }
-
     alias clock_t = c_long;
     alias id_t = int;
     alias key_t = int;
@@ -438,6 +508,46 @@ else version (Solaris)
     alias poolid_t = id_t;
     alias zoneid_t = id_t;
     alias ctid_t = id_t;
+}
+else version (Hurd)
+{
+    static if ( __USE_FILE_OFFSET64 )
+    {
+        alias fsblkcnt_t = ulong;
+        alias fsfilcnt_t = ulong;
+    }
+    else
+    {
+        alias fsblkcnt_t = ulong_t;
+        alias fsfilcnt_t = ulong_t;
+    }
+    alias clock_t = slong_t;
+    alias id_t = uint;
+    alias key_t = int;
+    alias suseconds_t = slong_t;
+    alias useconds_t = uint;
+}
+else version (Emscripten)
+{
+    alias fsblkcnt_t = ulong;
+    alias fsfilcnt_t = ulong;
+
+    alias clock_t = int; // for wasm64 too
+    alias id_t = uint;
+    alias key_t = int;
+    alias suseconds_t = int; // for wasm64 too
+    alias useconds_t = uint;
+}
+else version (CRuntime_WASI)
+{
+    alias fsblkcnt_t = ulong;
+    alias fsfilcnt_t = ulong;
+
+    alias clock_t = long;
+    alias id_t = uint;
+    alias key_t = int;
+    alias suseconds_t = long;
+    alias useconds_t = uint;
 }
 else
 {
@@ -462,289 +572,486 @@ pthread_t
 
 version (CRuntime_Glibc)
 {
-    version (X86)
+    version (linux)
     {
-        enum __SIZEOF_PTHREAD_ATTR_T = 36;
-        enum __SIZEOF_PTHREAD_MUTEX_T = 24;
-        enum __SIZEOF_PTHREAD_MUTEXATTR_T = 4;
-        enum __SIZEOF_PTHREAD_COND_T = 48;
-        enum __SIZEOF_PTHREAD_CONDATTR_T = 4;
-        enum __SIZEOF_PTHREAD_RWLOCK_T = 32;
-        enum __SIZEOF_PTHREAD_RWLOCKATTR_T = 8;
-        enum __SIZEOF_PTHREAD_BARRIER_T = 20;
-        enum __SIZEOF_PTHREAD_BARRIERATTR_T = 4;
+            version (X86)
+            {
+                enum __SIZEOF_PTHREAD_ATTR_T = 36;
+                enum __SIZEOF_PTHREAD_MUTEX_T = 24;
+                enum __SIZEOF_PTHREAD_MUTEXATTR_T = 4;
+                enum __SIZEOF_PTHREAD_COND_T = 48;
+                enum __SIZEOF_PTHREAD_CONDATTR_T = 4;
+                enum __SIZEOF_PTHREAD_RWLOCK_T = 32;
+                enum __SIZEOF_PTHREAD_RWLOCKATTR_T = 8;
+                enum __SIZEOF_PTHREAD_BARRIER_T = 20;
+                enum __SIZEOF_PTHREAD_BARRIERATTR_T = 4;
+            }
+            else version (X86_64)
+            {
+                static if (__WORDSIZE == 64)
+                {
+                    enum __SIZEOF_PTHREAD_ATTR_T = 56;
+                    enum __SIZEOF_PTHREAD_MUTEX_T = 40;
+                    enum __SIZEOF_PTHREAD_MUTEXATTR_T = 4;
+                    enum __SIZEOF_PTHREAD_COND_T = 48;
+                    enum __SIZEOF_PTHREAD_CONDATTR_T = 4;
+                    enum __SIZEOF_PTHREAD_RWLOCK_T = 56;
+                    enum __SIZEOF_PTHREAD_RWLOCKATTR_T = 8;
+                    enum __SIZEOF_PTHREAD_BARRIER_T = 32;
+                    enum __SIZEOF_PTHREAD_BARRIERATTR_T = 4;
+                }
+                else
+                {
+                    enum __SIZEOF_PTHREAD_ATTR_T = 32;
+                    enum __SIZEOF_PTHREAD_MUTEX_T = 32;
+                    enum __SIZEOF_PTHREAD_MUTEXATTR_T = 4;
+                    enum __SIZEOF_PTHREAD_COND_T = 48;
+                    enum __SIZEOF_PTHREAD_CONDATTR_T = 4;
+                    enum __SIZEOF_PTHREAD_RWLOCK_T = 44;
+                    enum __SIZEOF_PTHREAD_RWLOCKATTR_T = 8;
+                    enum __SIZEOF_PTHREAD_BARRIER_T = 20;
+                    enum __SIZEOF_PTHREAD_BARRIERATTR_T = 4;
+                }
+            }
+            else version (AArch64)
+            {
+                enum __SIZEOF_PTHREAD_ATTR_T = 64;
+                enum __SIZEOF_PTHREAD_MUTEX_T = 48;
+                enum __SIZEOF_PTHREAD_MUTEXATTR_T = 8;
+                enum __SIZEOF_PTHREAD_COND_T = 48;
+                enum __SIZEOF_PTHREAD_CONDATTR_T = 8;
+                enum __SIZEOF_PTHREAD_RWLOCK_T = 56;
+                enum __SIZEOF_PTHREAD_RWLOCKATTR_T = 8;
+                enum __SIZEOF_PTHREAD_BARRIER_T = 32;
+                enum __SIZEOF_PTHREAD_BARRIERATTR_T = 8;
+            }
+            else version (ARM)
+            {
+                enum __SIZEOF_PTHREAD_ATTR_T = 36;
+                enum __SIZEOF_PTHREAD_MUTEX_T = 24;
+                enum __SIZEOF_PTHREAD_MUTEXATTR_T = 4;
+                enum __SIZEOF_PTHREAD_COND_T = 48;
+                enum __SIZEOF_PTHREAD_CONDATTR_T = 4;
+                enum __SIZEOF_PTHREAD_RWLOCK_T = 32;
+                enum __SIZEOF_PTHREAD_RWLOCKATTR_T = 8;
+                enum __SIZEOF_PTHREAD_BARRIER_T = 20;
+                enum __SIZEOF_PTHREAD_BARRIERATTR_T = 4;
+            }
+            else version (HPPA)
+            {
+                enum __SIZEOF_PTHREAD_ATTR_T = 36;
+                enum __SIZEOF_PTHREAD_MUTEX_T = 48;
+                enum __SIZEOF_PTHREAD_MUTEXATTR_T = 4;
+                enum __SIZEOF_PTHREAD_COND_T = 48;
+                enum __SIZEOF_PTHREAD_CONDATTR_T = 4;
+                enum __SIZEOF_PTHREAD_RWLOCK_T = 64;
+                enum __SIZEOF_PTHREAD_RWLOCKATTR_T = 8;
+                enum __SIZEOF_PTHREAD_BARRIER_T = 48;
+                enum __SIZEOF_PTHREAD_BARRIERATTR_T = 4;
+            }
+            else version (IA64)
+            {
+                enum __SIZEOF_PTHREAD_ATTR_T = 56;
+                enum __SIZEOF_PTHREAD_MUTEX_T = 40;
+                enum __SIZEOF_PTHREAD_MUTEXATTR_T = 4;
+                enum __SIZEOF_PTHREAD_COND_T = 48;
+                enum __SIZEOF_PTHREAD_CONDATTR_T = 4;
+                enum __SIZEOF_PTHREAD_RWLOCK_T = 56;
+                enum __SIZEOF_PTHREAD_RWLOCKATTR_T = 8;
+                enum __SIZEOF_PTHREAD_BARRIER_T = 32;
+                enum __SIZEOF_PTHREAD_BARRIERATTR_T = 4;
+            }
+            else version (MIPS32)
+            {
+                enum __SIZEOF_PTHREAD_ATTR_T = 36;
+                enum __SIZEOF_PTHREAD_MUTEX_T = 24;
+                enum __SIZEOF_PTHREAD_MUTEXATTR_T = 4;
+                enum __SIZEOF_PTHREAD_COND_T = 48;
+                enum __SIZEOF_PTHREAD_CONDATTR_T = 4;
+                enum __SIZEOF_PTHREAD_RWLOCK_T = 32;
+                enum __SIZEOF_PTHREAD_RWLOCKATTR_T = 8;
+                enum __SIZEOF_PTHREAD_BARRIER_T = 20;
+                enum __SIZEOF_PTHREAD_BARRIERATTR_T = 4;
+            }
+            else version (MIPS64)
+            {
+                enum __SIZEOF_PTHREAD_ATTR_T = 56;
+                enum __SIZEOF_PTHREAD_MUTEX_T = 40;
+                enum __SIZEOF_PTHREAD_MUTEXATTR_T = 4;
+                enum __SIZEOF_PTHREAD_COND_T = 48;
+                enum __SIZEOF_PTHREAD_CONDATTR_T = 4;
+                enum __SIZEOF_PTHREAD_RWLOCK_T = 56;
+                enum __SIZEOF_PTHREAD_RWLOCKATTR_T = 8;
+                enum __SIZEOF_PTHREAD_BARRIER_T = 32;
+                enum __SIZEOF_PTHREAD_BARRIERATTR_T = 4;
+            }
+            else version (PPC)
+            {
+                enum __SIZEOF_PTHREAD_ATTR_T = 36;
+                enum __SIZEOF_PTHREAD_MUTEX_T = 24;
+                enum __SIZEOF_PTHREAD_MUTEXATTR_T = 4;
+                enum __SIZEOF_PTHREAD_COND_T = 48;
+                enum __SIZEOF_PTHREAD_CONDATTR_T = 4;
+                enum __SIZEOF_PTHREAD_RWLOCK_T = 32;
+                enum __SIZEOF_PTHREAD_RWLOCKATTR_T = 8;
+                enum __SIZEOF_PTHREAD_BARRIER_T = 20;
+                enum __SIZEOF_PTHREAD_BARRIERATTR_T = 4;
+            }
+            else version (PPC64)
+            {
+                enum __SIZEOF_PTHREAD_ATTR_T = 56;
+                enum __SIZEOF_PTHREAD_MUTEX_T = 40;
+                enum __SIZEOF_PTHREAD_MUTEXATTR_T = 4;
+                enum __SIZEOF_PTHREAD_COND_T = 48;
+                enum __SIZEOF_PTHREAD_CONDATTR_T = 4;
+                enum __SIZEOF_PTHREAD_RWLOCK_T = 56;
+                enum __SIZEOF_PTHREAD_RWLOCKATTR_T = 8;
+                enum __SIZEOF_PTHREAD_BARRIER_T = 32;
+                enum __SIZEOF_PTHREAD_BARRIERATTR_T = 4;
+            }
+            else version (RISCV32)
+            {
+                enum __SIZEOF_PTHREAD_ATTR_T = 36;
+                enum __SIZEOF_PTHREAD_MUTEX_T = 24;
+                enum __SIZEOF_PTHREAD_MUTEXATTR_T = 4;
+                enum __SIZEOF_PTHREAD_COND_T = 48;
+                enum __SIZEOF_PTHREAD_CONDATTR_T = 4;
+                enum __SIZEOF_PTHREAD_RWLOCK_T = 32;
+                enum __SIZEOF_PTHREAD_RWLOCKATTR_T = 8;
+                enum __SIZEOF_PTHREAD_BARRIER_T = 20;
+                enum __SIZEOF_PTHREAD_BARRIERATTR_T = 4;
+            }
+            else version (RISCV64)
+            {
+                enum __SIZEOF_PTHREAD_ATTR_T = 56;
+                enum __SIZEOF_PTHREAD_MUTEX_T = 40;
+                enum __SIZEOF_PTHREAD_MUTEXATTR_T = 4;
+                enum __SIZEOF_PTHREAD_COND_T = 48;
+                enum __SIZEOF_PTHREAD_CONDATTR_T = 4;
+                enum __SIZEOF_PTHREAD_RWLOCK_T = 56;
+                enum __SIZEOF_PTHREAD_RWLOCKATTR_T = 8;
+                enum __SIZEOF_PTHREAD_BARRIER_T = 32;
+                enum __SIZEOF_PTHREAD_BARRIERATTR_T = 4;
+            }
+            else version (SPARC)
+            {
+                enum __SIZEOF_PTHREAD_ATTR_T = 36;
+                enum __SIZEOF_PTHREAD_MUTEX_T = 24;
+                enum __SIZEOF_PTHREAD_MUTEXATTR_T = 4;
+                enum __SIZEOF_PTHREAD_COND_T = 48;
+                enum __SIZEOF_PTHREAD_CONDATTR_T = 4;
+                enum __SIZEOF_PTHREAD_RWLOCK_T = 32;
+                enum __SIZEOF_PTHREAD_RWLOCKATTR_T = 8;
+                enum __SIZEOF_PTHREAD_BARRIER_T = 20;
+                enum __SIZEOF_PTHREAD_BARRIERATTR_T = 4;
+            }
+            else version (SPARC64)
+            {
+                enum __SIZEOF_PTHREAD_ATTR_T = 56;
+                enum __SIZEOF_PTHREAD_MUTEX_T = 40;
+                enum __SIZEOF_PTHREAD_MUTEXATTR_T = 4;
+                enum __SIZEOF_PTHREAD_COND_T = 48;
+                enum __SIZEOF_PTHREAD_CONDATTR_T = 4;
+                enum __SIZEOF_PTHREAD_RWLOCK_T = 56;
+                enum __SIZEOF_PTHREAD_RWLOCKATTR_T = 8;
+                enum __SIZEOF_PTHREAD_BARRIER_T = 32;
+                enum __SIZEOF_PTHREAD_BARRIERATTR_T = 4;
+            }
+            else version (S390)
+            {
+                enum __SIZEOF_PTHREAD_ATTR_T = 36;
+                enum __SIZEOF_PTHREAD_MUTEX_T = 24;
+                enum __SIZEOF_PTHREAD_MUTEXATTR_T = 4;
+                enum __SIZEOF_PTHREAD_COND_T = 48;
+                enum __SIZEOF_PTHREAD_CONDATTR_T = 4;
+                enum __SIZEOF_PTHREAD_RWLOCK_T = 32;
+                enum __SIZEOF_PTHREAD_RWLOCKATTR_T = 8;
+                enum __SIZEOF_PTHREAD_BARRIER_T = 20;
+                enum __SIZEOF_PTHREAD_BARRIERATTR_T = 4;
+            }
+            else version (SystemZ)
+            {
+                enum __SIZEOF_PTHREAD_ATTR_T = 56;
+                enum __SIZEOF_PTHREAD_MUTEX_T = 40;
+                enum __SIZEOF_PTHREAD_MUTEXATTR_T = 4;
+                enum __SIZEOF_PTHREAD_COND_T = 48;
+                enum __SIZEOF_PTHREAD_CONDATTR_T = 4;
+                enum __SIZEOF_PTHREAD_RWLOCK_T = 56;
+                enum __SIZEOF_PTHREAD_RWLOCKATTR_T = 8;
+                enum __SIZEOF_PTHREAD_BARRIER_T = 32;
+                enum __SIZEOF_PTHREAD_BARRIERATTR_T = 4;
+            }
+            else version (LoongArch64)
+            {
+                enum __SIZEOF_PTHREAD_ATTR_T = 56;
+                enum __SIZEOF_PTHREAD_MUTEX_T = 40;
+                enum __SIZEOF_PTHREAD_MUTEXATTR_T = 4;
+                enum __SIZEOF_PTHREAD_COND_T = 48;
+                enum __SIZEOF_PTHREAD_CONDATTR_T = 4;
+                enum __SIZEOF_PTHREAD_RWLOCK_T = 56;
+                enum __SIZEOF_PTHREAD_RWLOCKATTR_T = 8;
+                enum __SIZEOF_PTHREAD_BARRIER_T = 32;
+                enum __SIZEOF_PTHREAD_BARRIERATTR_T = 4;
+            }
+            else
+            {
+                static assert (false, "Unsupported platform");
+            }
+
+            union pthread_attr_t
+            {
+                byte[__SIZEOF_PTHREAD_ATTR_T] __size;
+                c_long __align;
+            }
+
+            private alias __atomic_lock_t = int;
+
+            private struct _pthread_fastlock
+            {
+                c_long          __status;
+                __atomic_lock_t __spinlock;
+            }
+
+            private alias _pthread_descr = void*;
+
+            union pthread_cond_t
+            {
+                byte[__SIZEOF_PTHREAD_COND_T] __size;
+                long  __align;
+            }
+
+            union pthread_condattr_t
+            {
+                byte[__SIZEOF_PTHREAD_CONDATTR_T] __size;
+                int __align;
+            }
+
+            alias pthread_key_t = uint;
+
+            union pthread_mutex_t
+            {
+                byte[__SIZEOF_PTHREAD_MUTEX_T] __size;
+                c_long __align;
+            }
+
+            union pthread_mutexattr_t
+            {
+                byte[__SIZEOF_PTHREAD_MUTEXATTR_T] __size;
+                int __align;
+            }
+
+            alias pthread_once_t = int;
+
+            union pthread_rwlock_t
+            {
+                byte[__SIZEOF_PTHREAD_RWLOCK_T] __size;
+                c_long __align;
+            }
+
+            union pthread_rwlockattr_t
+            {
+                byte[__SIZEOF_PTHREAD_RWLOCKATTR_T] __size;
+                c_long __align;
+            }
+
+            alias pthread_t = c_ulong;
     }
-    else version (X86_64)
+    else version (Hurd)
     {
-        static if (__WORDSIZE == 64)
+        import core.sys.hurd.sys.types;
+        import core.sys.posix.time: clockid_t;
+
+        private struct __sched_param
         {
-            enum __SIZEOF_PTHREAD_ATTR_T = 56;
-            enum __SIZEOF_PTHREAD_MUTEX_T = 40;
-            enum __SIZEOF_PTHREAD_MUTEXATTR_T = 4;
-            enum __SIZEOF_PTHREAD_COND_T = 48;
-            enum __SIZEOF_PTHREAD_CONDATTR_T = 4;
-            enum __SIZEOF_PTHREAD_RWLOCK_T = 56;
-            enum __SIZEOF_PTHREAD_RWLOCKATTR_T = 8;
-            enum __SIZEOF_PTHREAD_BARRIER_T = 32;
-            enum __SIZEOF_PTHREAD_BARRIERATTR_T = 4;
+            int __sched_priority;
+        }
+
+        private struct __pthread;
+
+        struct pthread_attr_t
+        {
+            __sched_param schedparam;
+            void* stackaddr;
+            size_t __stacksize;
+            size_t __guardsize;
+            int __detachstate;
+            int __inheritsched;
+            int __contentionscope;
+            int __schedpolicy;
+        }
+
+        struct pthread_cond_t
+        {
+            pthread_spinlock_t __lock;
+            __pthread *__queue;
+            pthread_condattr_t *__attr;
+            uint __wrefs;
+            void *__data;
+        }
+
+        struct pthread_condattr_t
+        {
+            int __pshared;
+            clockid_t __clock;
+        }
+
+        alias pthread_key_t = int;
+
+        struct pthread_mutex_t
+        {
+            uint __lock;
+            uint __owner_id;
+            uint __cnt;
+            int __shpid;
+            int __type;
+            int __flags;
+            union
+            {
+                uint[2] __reserved;
+                void *__pointer_aligned;
+            }
+        }
+
+        struct pthread_mutexattr_t
+        {
+            int __prioceiling;
+            int __protocol;
+            int __pshared;
+            int __mutex_type;
+        }
+
+        struct pthread_once_t
+        {
+            int __run;
+            pthread_spinlock_t __lock;
+        }
+
+        struct pthread_rwlock_t
+        {
+            pthread_spinlock_t __held;
+            pthread_spinlock_t __lock;
+            int __readers;
+            __pthread *__readerqueue;
+            __pthread *__writerqueue;
+            pthread_rwlockattr_t *__attr;
+            void *__data;
+        }
+
+        struct pthread_rwlockattr_t
+        {
+            int __pshared;
+        }
+
+        alias pthread_t = c_ulong;
+    }
+}
+else version (CRuntime_Musl)
+{
+    version (D_LP64)
+    {
+        version (Emscripten)
+        {
+            struct pthread_attr_t
+            {
+                union
+                {
+                    int[10] __i;
+                    c_ulong[10] __s;
+                }
+                const(char)* _a_transferredcanvases;
+            }
         }
         else
         {
-            enum __SIZEOF_PTHREAD_ATTR_T = 32;
-            enum __SIZEOF_PTHREAD_MUTEX_T = 32;
-            enum __SIZEOF_PTHREAD_MUTEXATTR_T = 4;
-            enum __SIZEOF_PTHREAD_COND_T = 48;
-            enum __SIZEOF_PTHREAD_CONDATTR_T = 4;
-            enum __SIZEOF_PTHREAD_RWLOCK_T = 44;
-            enum __SIZEOF_PTHREAD_RWLOCKATTR_T = 8;
-            enum __SIZEOF_PTHREAD_BARRIER_T = 20;
-            enum __SIZEOF_PTHREAD_BARRIERATTR_T = 4;
+            union pthread_attr_t
+            {
+                int[14] __i;
+                ulong[7] __s;
+            }
         }
-    }
-    else version (AArch64)
-    {
-        enum __SIZEOF_PTHREAD_ATTR_T = 64;
-        enum __SIZEOF_PTHREAD_MUTEX_T = 48;
-        enum __SIZEOF_PTHREAD_MUTEXATTR_T = 8;
-        enum __SIZEOF_PTHREAD_COND_T = 48;
-        enum __SIZEOF_PTHREAD_CONDATTR_T = 8;
-        enum __SIZEOF_PTHREAD_RWLOCK_T = 56;
-        enum __SIZEOF_PTHREAD_RWLOCKATTR_T = 8;
-        enum __SIZEOF_PTHREAD_BARRIER_T = 32;
-        enum __SIZEOF_PTHREAD_BARRIERATTR_T = 8;
-    }
-    else version (ARM)
-    {
-        enum __SIZEOF_PTHREAD_ATTR_T = 36;
-        enum __SIZEOF_PTHREAD_MUTEX_T = 24;
-        enum __SIZEOF_PTHREAD_MUTEXATTR_T = 4;
-        enum __SIZEOF_PTHREAD_COND_T = 48;
-        enum __SIZEOF_PTHREAD_CONDATTR_T = 4;
-        enum __SIZEOF_PTHREAD_RWLOCK_T = 32;
-        enum __SIZEOF_PTHREAD_RWLOCKATTR_T = 8;
-        enum __SIZEOF_PTHREAD_BARRIER_T = 20;
-        enum __SIZEOF_PTHREAD_BARRIERATTR_T = 4;
-    }
-    else version (HPPA)
-    {
-        enum __SIZEOF_PTHREAD_ATTR_T = 36;
-        enum __SIZEOF_PTHREAD_MUTEX_T = 48;
-        enum __SIZEOF_PTHREAD_MUTEXATTR_T = 4;
-        enum __SIZEOF_PTHREAD_COND_T = 48;
-        enum __SIZEOF_PTHREAD_CONDATTR_T = 4;
-        enum __SIZEOF_PTHREAD_RWLOCK_T = 64;
-        enum __SIZEOF_PTHREAD_RWLOCKATTR_T = 8;
-        enum __SIZEOF_PTHREAD_BARRIER_T = 48;
-        enum __SIZEOF_PTHREAD_BARRIERATTR_T = 4;
-    }
-    else version (IA64)
-    {
-        enum __SIZEOF_PTHREAD_ATTR_T = 56;
-        enum __SIZEOF_PTHREAD_MUTEX_T = 40;
-        enum __SIZEOF_PTHREAD_MUTEXATTR_T = 4;
-        enum __SIZEOF_PTHREAD_COND_T = 48;
-        enum __SIZEOF_PTHREAD_CONDATTR_T = 4;
-        enum __SIZEOF_PTHREAD_RWLOCK_T = 56;
-        enum __SIZEOF_PTHREAD_RWLOCKATTR_T = 8;
-        enum __SIZEOF_PTHREAD_BARRIER_T = 32;
-        enum __SIZEOF_PTHREAD_BARRIERATTR_T = 4;
-    }
-    else version (MIPS32)
-    {
-        enum __SIZEOF_PTHREAD_ATTR_T = 36;
-        enum __SIZEOF_PTHREAD_MUTEX_T = 24;
-        enum __SIZEOF_PTHREAD_MUTEXATTR_T = 4;
-        enum __SIZEOF_PTHREAD_COND_T = 48;
-        enum __SIZEOF_PTHREAD_CONDATTR_T = 4;
-        enum __SIZEOF_PTHREAD_RWLOCK_T = 32;
-        enum __SIZEOF_PTHREAD_RWLOCKATTR_T = 8;
-        enum __SIZEOF_PTHREAD_BARRIER_T = 20;
-        enum __SIZEOF_PTHREAD_BARRIERATTR_T = 4;
-    }
-    else version (MIPS64)
-    {
-        enum __SIZEOF_PTHREAD_ATTR_T = 56;
-        enum __SIZEOF_PTHREAD_MUTEX_T = 40;
-        enum __SIZEOF_PTHREAD_MUTEXATTR_T = 4;
-        enum __SIZEOF_PTHREAD_COND_T = 48;
-        enum __SIZEOF_PTHREAD_CONDATTR_T = 4;
-        enum __SIZEOF_PTHREAD_RWLOCK_T = 56;
-        enum __SIZEOF_PTHREAD_RWLOCKATTR_T = 8;
-        enum __SIZEOF_PTHREAD_BARRIER_T = 32;
-        enum __SIZEOF_PTHREAD_BARRIERATTR_T = 4;
-    }
-    else version (PPC)
-    {
-        enum __SIZEOF_PTHREAD_ATTR_T = 36;
-        enum __SIZEOF_PTHREAD_MUTEX_T = 24;
-        enum __SIZEOF_PTHREAD_MUTEXATTR_T = 4;
-        enum __SIZEOF_PTHREAD_COND_T = 48;
-        enum __SIZEOF_PTHREAD_CONDATTR_T = 4;
-        enum __SIZEOF_PTHREAD_RWLOCK_T = 32;
-        enum __SIZEOF_PTHREAD_RWLOCKATTR_T = 8;
-        enum __SIZEOF_PTHREAD_BARRIER_T = 20;
-        enum __SIZEOF_PTHREAD_BARRIERATTR_T = 4;
-    }
-    else version (PPC64)
-    {
-        enum __SIZEOF_PTHREAD_ATTR_T = 56;
-        enum __SIZEOF_PTHREAD_MUTEX_T = 40;
-        enum __SIZEOF_PTHREAD_MUTEXATTR_T = 4;
-        enum __SIZEOF_PTHREAD_COND_T = 48;
-        enum __SIZEOF_PTHREAD_CONDATTR_T = 4;
-        enum __SIZEOF_PTHREAD_RWLOCK_T = 56;
-        enum __SIZEOF_PTHREAD_RWLOCKATTR_T = 8;
-        enum __SIZEOF_PTHREAD_BARRIER_T = 32;
-        enum __SIZEOF_PTHREAD_BARRIERATTR_T = 4;
-    }
-    else version (RISCV32)
-    {
-        enum __SIZEOF_PTHREAD_ATTR_T = 36;
-        enum __SIZEOF_PTHREAD_MUTEX_T = 24;
-        enum __SIZEOF_PTHREAD_MUTEXATTR_T = 4;
-        enum __SIZEOF_PTHREAD_COND_T = 48;
-        enum __SIZEOF_PTHREAD_CONDATTR_T = 4;
-        enum __SIZEOF_PTHREAD_RWLOCK_T = 32;
-        enum __SIZEOF_PTHREAD_RWLOCKATTR_T = 8;
-        enum __SIZEOF_PTHREAD_BARRIER_T = 20;
-        enum __SIZEOF_PTHREAD_BARRIERATTR_T = 4;
-    }
-    else version (RISCV64)
-    {
-        enum __SIZEOF_PTHREAD_ATTR_T = 56;
-        enum __SIZEOF_PTHREAD_MUTEX_T = 40;
-        enum __SIZEOF_PTHREAD_MUTEXATTR_T = 4;
-        enum __SIZEOF_PTHREAD_COND_T = 48;
-        enum __SIZEOF_PTHREAD_CONDATTR_T = 4;
-        enum __SIZEOF_PTHREAD_RWLOCK_T = 56;
-        enum __SIZEOF_PTHREAD_RWLOCKATTR_T = 8;
-        enum __SIZEOF_PTHREAD_BARRIER_T = 32;
-        enum __SIZEOF_PTHREAD_BARRIERATTR_T = 4;
-    }
-    else version (SPARC)
-    {
-        enum __SIZEOF_PTHREAD_ATTR_T = 36;
-        enum __SIZEOF_PTHREAD_MUTEX_T = 24;
-        enum __SIZEOF_PTHREAD_MUTEXATTR_T = 4;
-        enum __SIZEOF_PTHREAD_COND_T = 48;
-        enum __SIZEOF_PTHREAD_CONDATTR_T = 4;
-        enum __SIZEOF_PTHREAD_RWLOCK_T = 32;
-        enum __SIZEOF_PTHREAD_RWLOCKATTR_T = 8;
-        enum __SIZEOF_PTHREAD_BARRIER_T = 20;
-        enum __SIZEOF_PTHREAD_BARRIERATTR_T = 4;
-    }
-    else version (SPARC64)
-    {
-        enum __SIZEOF_PTHREAD_ATTR_T = 56;
-        enum __SIZEOF_PTHREAD_MUTEX_T = 40;
-        enum __SIZEOF_PTHREAD_MUTEXATTR_T = 4;
-        enum __SIZEOF_PTHREAD_COND_T = 48;
-        enum __SIZEOF_PTHREAD_CONDATTR_T = 4;
-        enum __SIZEOF_PTHREAD_RWLOCK_T = 56;
-        enum __SIZEOF_PTHREAD_RWLOCKATTR_T = 8;
-        enum __SIZEOF_PTHREAD_BARRIER_T = 32;
-        enum __SIZEOF_PTHREAD_BARRIERATTR_T = 4;
-    }
-    else version (S390)
-    {
-        enum __SIZEOF_PTHREAD_ATTR_T = 36;
-        enum __SIZEOF_PTHREAD_MUTEX_T = 24;
-        enum __SIZEOF_PTHREAD_MUTEXATTR_T = 4;
-        enum __SIZEOF_PTHREAD_COND_T = 48;
-        enum __SIZEOF_PTHREAD_CONDATTR_T = 4;
-        enum __SIZEOF_PTHREAD_RWLOCK_T = 32;
-        enum __SIZEOF_PTHREAD_RWLOCKATTR_T = 8;
-        enum __SIZEOF_PTHREAD_BARRIER_T = 20;
-        enum __SIZEOF_PTHREAD_BARRIERATTR_T = 4;
-    }
-    else version (SystemZ)
-    {
-        enum __SIZEOF_PTHREAD_ATTR_T = 56;
-        enum __SIZEOF_PTHREAD_MUTEX_T = 40;
-        enum __SIZEOF_PTHREAD_MUTEXATTR_T = 4;
-        enum __SIZEOF_PTHREAD_COND_T = 48;
-        enum __SIZEOF_PTHREAD_CONDATTR_T = 4;
-        enum __SIZEOF_PTHREAD_RWLOCK_T = 56;
-        enum __SIZEOF_PTHREAD_RWLOCKATTR_T = 8;
-        enum __SIZEOF_PTHREAD_BARRIER_T = 32;
-        enum __SIZEOF_PTHREAD_BARRIERATTR_T = 4;
-    }
-    else version (LoongArch64)
-    {
-        enum __SIZEOF_PTHREAD_ATTR_T = 56;
-        enum __SIZEOF_PTHREAD_MUTEX_T = 40;
-        enum __SIZEOF_PTHREAD_MUTEXATTR_T = 4;
-        enum __SIZEOF_PTHREAD_COND_T = 48;
-        enum __SIZEOF_PTHREAD_CONDATTR_T = 4;
-        enum __SIZEOF_PTHREAD_RWLOCK_T = 56;
-        enum __SIZEOF_PTHREAD_RWLOCKATTR_T = 8;
-        enum __SIZEOF_PTHREAD_BARRIER_T = 32;
-        enum __SIZEOF_PTHREAD_BARRIERATTR_T = 4;
+
+        union pthread_cond_t
+        {
+            int[12] __i;
+            void*[6] __p;
+        }
+
+        union pthread_mutex_t
+        {
+            int[10] __i;
+            void*[5] __p;
+        }
+
+        union pthread_rwlock_t
+        {
+            int[14] __i;
+            void*[7] __p;
+        }
     }
     else
     {
-        static assert (false, "Unsupported platform");
-    }
+        version (Emscripten)
+        {
+            struct pthread_attr_t
+            {
+                union
+                {
+                    int[10] __i;
+                    c_ulong[10] __s;
+                }
+                const(char)* _a_transferredcanvases;
+            }
+        }
+        else
+        {
+            union pthread_attr_t
+            {
+                int[9] __i;
+                uint[9] __s;
+            }
+        }
 
-    union pthread_attr_t
-    {
-        byte[__SIZEOF_PTHREAD_ATTR_T] __size;
-        c_long __align;
-    }
+        union pthread_cond_t
+        {
+            int[12] __i;
+            void*[12] __p;
+        }
 
-    private alias __atomic_lock_t = int;
+        union pthread_mutex_t
+        {
+            int[6] __i;
+            void*[6] __p;
+        }
 
-    private struct _pthread_fastlock
-    {
-        c_long          __status;
-        __atomic_lock_t __spinlock;
-    }
-
-    private alias _pthread_descr = void*;
-
-    union pthread_cond_t
-    {
-        byte[__SIZEOF_PTHREAD_COND_T] __size;
-        long  __align;
-    }
-
-    union pthread_condattr_t
-    {
-        byte[__SIZEOF_PTHREAD_CONDATTR_T] __size;
-        int __align;
-    }
-
-    alias pthread_key_t = uint;
-
-    union pthread_mutex_t
-    {
-        byte[__SIZEOF_PTHREAD_MUTEX_T] __size;
-        c_long __align;
-    }
-
-    union pthread_mutexattr_t
-    {
-        byte[__SIZEOF_PTHREAD_MUTEXATTR_T] __size;
-        int __align;
-    }
-
-    alias pthread_once_t = int;
-
-    struct pthread_rwlock_t
-    {
-        byte[__SIZEOF_PTHREAD_RWLOCK_T] __size;
-        c_long __align;
+        union pthread_rwlock_t
+        {
+            int[8] __i;
+            void*[8] __p;
+        }
     }
 
     struct pthread_rwlockattr_t
     {
-        byte[__SIZEOF_PTHREAD_RWLOCKATTR_T] __size;
-        c_long __align;
+        uint[2] __attr;
     }
+
+    alias pthread_key_t = uint;
+
+    struct pthread_condattr_t
+    {
+        uint __attr;
+    }
+
+    struct pthread_mutexattr_t
+    {
+        uint __attr;
+    }
+
+    alias pthread_once_t = int;
 
     alias pthread_t = c_ulong;
 }
-else version (CRuntime_Musl)
+else version (CRuntime_WASI)
 {
     version (D_LP64)
     {
@@ -1350,17 +1657,37 @@ pthread_barrierattr_t
 
 version (CRuntime_Glibc)
 {
-    struct pthread_barrier_t
-    {
-        byte[__SIZEOF_PTHREAD_BARRIER_T] __size;
-        c_long __align;
-    }
+  version (linux)
+  {
+      union pthread_barrier_t
+      {
+          byte[__SIZEOF_PTHREAD_BARRIER_T] __size;
+          c_long __align;
+      }
 
-    struct pthread_barrierattr_t
-    {
-        byte[__SIZEOF_PTHREAD_BARRIERATTR_T] __size;
-        int __align;
-    }
+      union pthread_barrierattr_t
+      {
+          byte[__SIZEOF_PTHREAD_BARRIERATTR_T] __size;
+          int __align;
+      }
+  }
+  else version (Hurd)
+  {
+      struct pthread_barrier_t
+      {
+          pthread_spinlock_t __lock;
+          __pthread *__queue;
+          uint __pending;
+          uint __count;
+          pthread_barrierattr_t *__attr;
+          void *__data;
+      }
+
+      struct pthread_barrierattr_t
+      {
+          int __pshared;
+      }
+  }
 }
 else version (FreeBSD)
 {
@@ -1406,6 +1733,30 @@ else version (CRuntime_Bionic)
 {
 }
 else version (CRuntime_Musl)
+{
+    version (D_LP64)
+    {
+        union pthread_barrier_t
+        {
+            int[8] __i;
+            void*[4] __p;
+        }
+    }
+    else
+    {
+        union pthread_barrier_t
+        {
+            int[5] __i;
+            void*[5] __p;
+        }
+    }
+
+    struct pthread_barrierattr_t
+    {
+        uint __attr;
+    }
+}
+else version (CRuntime_WASI)
 {
     version (D_LP64)
     {
@@ -1484,6 +1835,10 @@ else version (CRuntime_UClibc)
     alias pthread_spinlock_t = int; // volatile
 }
 else version (CRuntime_Musl)
+{
+    alias pthread_spinlock_t = int;
+}
+else version (CRuntime_WASI)
 {
     alias pthread_spinlock_t = int;
 }

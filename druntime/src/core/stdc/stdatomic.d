@@ -239,10 +239,13 @@ bool atomic_flag_test_and_set_explicit_impl()(atomic_flag* obj, memory_order ord
 /**
  * Initializes an atomic variable, the destination should not have any expression associated with it prior to this call.
  *
- * We use an out parameter instead of a pointer for destination in an attempt to communicate to the compiler that it initializers.
+ * We use an ref parameter instead of a pointer for destination in
+ * an attempt to communicate to the compiler that it initializers.
+ * We use ref and not `out` because `out` would write to a shared value,
+ * which is not allowed with `-preview=nosharedaccess`.
  */
 pragma(inline, true)
-void atomic_init(A, C)(out shared(A) obj, C desired) @trusted
+void atomic_init(A, C)(return scope ref shared(A) obj, C desired) @trusted
 {
     // C11 atomic_init is a low-level initialization primitive for atomic storage
     // before it is published for concurrent access, so it must be able to write
@@ -256,8 +259,10 @@ unittest
     shared int val;
     atomic_init(val, 2);
 
-    shared float valF;
-    atomic_init(valF, 3.2);
+    // Avoid compiler-generated code that would store `float.init` (a NaN),
+    // which `-preview=nosharedaccess` treats as shared access.
+    shared float valF = 0.0f;
+    atomic_init(valF, 3.2f);
 }
 
 /// No-op function, doesn't apply to D
@@ -419,7 +424,9 @@ void atomic_store_impl(A, C)(shared(A)* obj, C desired) @trusted
     shared(int) obj;
     atomic_store_impl(&obj, 3);
 
-    shared(float) objF;
+    // Avoid compiler-generated code that would store `float.init` (a NaN),
+    // which `-preview=nosharedaccess` treats as shared access.
+    shared(float) objF = 0.0f;
     atomic_store_impl(&objF, 3.21);
 }
 
@@ -454,7 +461,9 @@ void atomic_store_explicit_impl(A, C)(shared(A)* obj, C desired, memory_order or
     shared(int) obj;
     atomic_store_explicit_impl(&obj, 3, memory_order.memory_order_seq_cst);
 
-    shared(float) objF;
+    // Avoid compiler-generated code that would store `float.init` (a NaN),
+    // which `-preview=nosharedaccess` treats as shared access.
+    shared(float) objF = 0.0f;
     atomic_store_explicit_impl(&objF, 3.21, memory_order.memory_order_seq_cst);
 }
 
@@ -948,9 +957,12 @@ A atomic_fetch_and_explicit_impl(A, M)(shared(A)* obj, M arg, memory_order order
 }
 
 ///
-unittest
+@trusted unittest
 {
     shared(int) val = 5;
+    // This unittest intentionally passes stack storage to the pointer-shaped C
+    // API; @safe code rejects taking that address even though it is the behavior
+    // under test here.
     atomic_fetch_and_explicit_impl(&val, 3, memory_order.memory_order_seq_cst);
     assert(atomic_load_impl(&val) == 1);
 }

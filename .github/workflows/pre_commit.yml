@@ -10,6 +10,7 @@ on:
       - master
       - stable
   workflow_dispatch:
+  workflow_call:
 
 jobs:
   pre-commit:
@@ -17,7 +18,7 @@ jobs:
     env:
       SKIP: no-commit-to-branch
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
     - name: Configure Git
       run: |
         git config --global color.diff.meta       "11"
@@ -29,10 +30,19 @@ jobs:
         git config --global color.diff.whitespace "red reverse"
 
         git config --global diff.wsErrorHighlight "all"
-    - uses: actions/setup-python@v5
+    - uses: actions/setup-python@v7
       with:
         python-version: '3.x'
-    - uses: pre-commit/action@v3.0.1
+    - name: Install pre-commit
+      run: |
+        python -m pip install pre-commit
+        python -m pip freeze --local
+    - uses: actions/cache@v6
+      with:
+        path: ~/.cache/pre-commit
+        key: pre-commit-3|${{ env.pythonLocation }}|${{ hashFiles('.pre-commit-config.yaml') }}
+    - name: Run pre-commit
+      run: pre-commit run --show-diff-on-failure --color=always --all-files
     - name: Check changelog entries
       run: |
         check_prefix="$(find changelog -type f -name '*\.dd' -a ! -name 'dmd\.*' -a ! -name 'druntime\.*')"

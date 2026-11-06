@@ -21,11 +21,11 @@ void runTest(string name)
 
     const unloaded = Runtime.unloadLibrary(h);
     assert(unloaded);
-    assert(tlsDtor == 1);
+    assert(atomicLoad(tlsDtor) == 1);
     static if (isDlcloseNoop)
-        assert(dtor == 0);
+        assert(atomicLoad(dtor) == 0);
     else
-        assert(dtor == 1);
+        assert(atomicLoad(dtor) == 1);
 }
 
 void main(string[] args)

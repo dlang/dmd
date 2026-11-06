@@ -22,6 +22,7 @@ import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
 
+import dmd.backend.backconfig : debugr, debugw;
 import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.code;
@@ -29,10 +30,13 @@ import dmd.backend.x86.code_x86;
 import dmd.backend.codebuilder;
 import dmd.backend.mem;
 import dmd.backend.el;
-import dmd.backend.global;
+import dmd.backend.global : REGSIZE, _align, mask;
+import dmd.backend.cg : tls_get_addr_sym;
+import dmd.backend.debugprint : fl_str, oper_str, tym_str;
 import dmd.backend.obj;
 import dmd.backend.oper;
 import dmd.backend.rtlsym;
+import dmd.backend.symbol;
 import dmd.backend.ty;
 import dmd.backend.type;
 import dmd.backend.machobj  : MachObj_getChkstkSym;
@@ -109,6 +113,7 @@ void loadFromEA(ref code cs, reg_t reg, uint szw, uint szr)
     if (cs.reg != NOREG)
     {
         uint sf = szw == 8;
+        assert(cs.reg < 32);
         void mov()
         {
             if (cs.reg != reg)                  // no need to mov onto itself
@@ -535,7 +540,7 @@ void loadea(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref code cs,uint op,reg_
         printf("loadea: e=%p cs=%p op=x%x reg=%s offset=%lld keepmsk=%s desmsk=%s\n",
                e, &cs, op, regm_str(mask(reg)), cast(ulong)offset, regm_str(keepmsk), regm_str(desmsk));
     assert(e);
-    cs.Iflags = 0;
+    cs.Iflags = CF.zero;
     cs.Iop = op;
     tym_t tym = e.Ety;
     int sz = tysize(tym);
@@ -661,7 +666,7 @@ void getlvalue(ref CGstate cg,ref CodeBuilder cdb,ref code pcs,elem* e,regm_t ke
     enum BP = 29;
     enum SP = 31;
     pcs.IFL1 = fl;
-    pcs.Iflags = CFoff;                  /* only want offsets            */
+    pcs.Iflags = CF.off;                  /* only want offsets            */
     pcs.reg = NOREG;
     pcs.base = NOREG;
     pcs.index = NOREG;
@@ -674,7 +679,7 @@ void getlvalue(ref CGstate cg,ref CodeBuilder cdb,ref code pcs,elem* e,regm_t ke
     if (tyfloating(ty))
         objmod.fltused();
     if (ty & mTYvolatile)
-        pcs.Iflags |= CFvolatile;
+        pcs.Iflags |= CF.volatile;
 
     void Lptr(){
         if (config.flags3 & CFG3ptrchk)
@@ -899,7 +904,7 @@ void getlvalue(ref CGstate cg,ref CodeBuilder cdb,ref code pcs,elem* e,regm_t ke
                     ubyte rexsave = pcs.Irex;
                     pcs.Iop = LEA;
                     code_newreg(&pcs, reg);
-                    pcs.Iflags &= ~CFopsize;
+                    pcs.Iflags &= ~CF.opsize;
                     pcs.Irex |= REX_W;
                     cdb.gen(&pcs);                 // LEA reg,EA
                     cssave(e1,regs,true);
@@ -1143,13 +1148,13 @@ void getlvalue(ref CGstate cg,ref CodeBuilder cdb,ref code pcs,elem* e,regm_t ke
                         pcs.Isib = modregrm(0, 4, 5);  // don't use [RIP] addressing
                         pcs.IFL1 = FL.const_;
                         pcs.IEV1.Vuns = 88;
-                        pcs.Iflags = CFgs;
+                        pcs.Iflags = CF.gs;
                         pcs.Irex |= REX_W;
                         break;
                     }
                     else
                     {
-                        pcs.Iflags |= CFfs;    // add FS: override
+                        pcs.Iflags |= CF.fs;    // add FS: override
                     }
                 }
                 else if (config.exe & (EX_OSX | EX_OSX64))
@@ -1363,7 +1368,7 @@ void tstresult(ref CGstate cg, ref CodeBuilder cdb, regm_t regm, tym_t tym, bool
     }
     else
         gentstreg(cdb,reg,sz == 8);                 // CMP reg,#0
-    code_orflag(cdb.last(),CFpsw);
+    code_orflag(cdb.last(),CF.psw);
 }
 
 
@@ -1677,7 +1682,7 @@ void callclib(ref CGstate cg, ref CodeBuilder cdb, elem* e, uint clib, ref regm_
     }
 
     cdb.gencs1(INSTR.branch_imm(1,0),0,FL.func,s);  // CALL s
-    code_orflag(cdb.last(), CFselfrel26);
+    code_orflag(cdb.last(), CF.selfrel26);
 
 
     if (nalign)
@@ -1754,7 +1759,7 @@ void cdfunc(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
 
     /* Assume called function accesses TLS statics
      */
-    if (config.exe & (EX_LINUX | EX_LINUX64 | EX_OSX | EX_FREEBSD | EX_FREEBSD64 | EX_OPENBSD | EX_OPENBSD64) &&
+    if (config.exe & (EX_LINUX | EX_LINUX64 | EX_OSX | EX_FREEBSD | EX_FREEBSD64 | EX_OPENBSD | EX_OPENBSD64 | EX_HURD | EX_HURD64) &&
         config.flags3 & CFG3pic)
         cg.accessedTLS = true;
 
@@ -2158,8 +2163,8 @@ private void funccall(ref CGstate cg, ref CodeBuilder cdb, elem* e, uint numpara
         s = e1.Vsym;
 
         // Function calls may throw Errors, unless marked that they don't
-        if (s == funcsym_p || !s.Sfunc || !(s.Sfunc.Fflags3 & Fnothrow))
-            funcsym_p.Sfunc.Fflags3 &= ~Fnothrow;
+        if (s == funcsym_p || !s.Sfunc || !(s.Sfunc.Fflags & Fnothrow))
+            funcsym_p.Sfunc.Fflags &= ~Fnothrow;
 
         if (strcmp(s.Sident.ptr, "alloca") == 0)
         {
@@ -2194,7 +2199,7 @@ private void funccall(ref CGstate cg, ref CodeBuilder cdb, elem* e, uint numpara
             cdbe.gencs1(ins,0,fl,schkstk);
             ins = INSTR.ldr_imm_gen(1,R16,R16,0);   // LDR  R16,[R16] GOT_LOAD_PAGEOFF12
             cdbe.gencs1(ins,0,fl,schkstk);
-            cdbe.last.Iflags |= CFadd;
+            cdbe.last.Iflags |= CF.add;
             cdbe.gen1(INSTR.blr(R16));              // BLR R16
 
             retregs = INSTR.ALLREGS & pretregs;
@@ -2262,14 +2267,14 @@ private void funccall(ref CGstate cg, ref CodeBuilder cdb, elem* e, uint numpara
                     assert(0);  // TODO AArch64
                 }
             }
-            code_orflag(cdbe.last(), CFselfrel | CFoff | CFselfrel26);
+            code_orflag(cdbe.last(), CF.selfrel | CF.off | CF.selfrel26);
         }
     }
     else
     {   // Call function via pointer
 
         // Function calls may throw Errors
-        funcsym_p.Sfunc.Fflags3 &= ~Fnothrow;
+        funcsym_p.Sfunc.Fflags &= ~Fnothrow;
 
         if (e1.Eoper != OPind) { printf("e1.fl: %s, e1.Eoper: %s\n", fl_str(el_fl(e1)), oper_str(e1.Eoper)); }
         assert(e1.Eoper == OPind);
@@ -2569,7 +2574,7 @@ void loaddata(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t outretreg
 
     /* not for flags only */
     int sz = _tysize[tym];
-    cs.Iflags = 0;
+    cs.Iflags = CF.zero;
     regm_t flags = outretregs & mPSW;             /* save original                */
     forregs = outretregs & (INSTR.ALLREGS | INSTR.FLOATREGS);     // XMMREGS ?
     bool isPair = isRegisterPair(true,tym,0);
@@ -2785,7 +2790,7 @@ void loaddata(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t outretreg
             if (0 && (outretregs & (mSTACK | mPSW)) == mSTACK)
             {
                 // Note that we allocreg(DOUBLEREGS) needlessly
-                cg.stackchanged = 1;
+                cg.stackchanged = true;
                 int i = sz - REGSIZE;
                 do
                 {

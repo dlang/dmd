@@ -1,7 +1,7 @@
 // Test printf format checking for C long size-dependent cases (32-bit / Windows: long = 4 bytes)
 /*
 REQUIRED_ARGS: -de
-DISABLED: linux64 freebsd64 openbsd64 osx64
+DISABLED: linux64 freebsd64 openbsd64 osx64 hurd64
 TEST_OUTPUT:
 ---
 fail_compilation/chkformat_clong_smalllong.d(20): Deprecation: argument `0LU` of type `ulong` does not match format specification

@@ -22,6 +22,7 @@ import dmd.backend.x86.code_x86;
 import dmd.backend.codebuilder : CodeBuilder;
 import dmd.backend.el : elem;
 import dmd.backend.oper : OPMAX;
+import dmd.backend.symbol;
 import dmd.backend.ty;
 import dmd.backend.type;
 
@@ -75,11 +76,7 @@ union evc
         _LabelDsymbol* Vlsym;   /// pointer to D Label
     }
 
-    struct
-    {
-        size_t len;
-        char* bytes;
-    }                           // asm node (FL.asm)
+    ubyte[] data;               /// asm instructions (FL.asm)
 }
 
 /********************** PUBLIC FUNCTIONS *******************/
@@ -159,7 +156,7 @@ struct CGstate
     bool enforcealign;          // enforced stack alignment
     bool anyiasm;               // !=0 if any inline assembler
     bool setSPtoFPonEpilog;     // set SP to FP in function epilog
-    char calledafunc;           // !=0 if we called a function
+    bool calledafunc;           // true if called a function
 
     int stackclean;             // if != 0, then clean the stack after function call
 
@@ -176,10 +173,10 @@ struct CGstate
     targ_size_t pushoff;        // offset of saved registers
     bool pushoffuse;            // save/restore registers using pushoff rather than PUSH/POP
 
-    char needframe;             // if true, then we will need the frame
+    bool needframe;             // if true, then need the frame
                                 // pointer (BP for the 8088)
 
-    int stackchanged;           /* set to !=0 if any use of the stack
+    bool stackchanged;          /* true if any use of the stack
                                    other than accessing parameters. Used
                                    to see if we can address parameters
                                    with ESP rather than EBP.
@@ -201,10 +198,10 @@ struct CGstate
                                 // as if they were 'pushed' on the stack.
                                 // Special case: if funcargtos==~0, then no
                                 // arguments are there.
-    char gotref;                // !=0 if the GOTsym was referenced
+    bool gotref;                // true if the GOTsym was referenced
     int refparam;               // !=0 if we referenced any parameters
     bool accessedTLS;           // set if accessed Thread Local Storage (TLS)
-    bool calledFinally;         // true if called a BC._finally block
+    bool calledFinally;         // true if called a BC.finally_ block
     int reflocal;               // !=0 if we referenced any locals
 
     regm_t[4] lastRetregs;      // used to not allocate the same register over and over again,
@@ -259,28 +256,24 @@ alias IDXSTR = uint;
 alias IDXSEC = uint;
 alias IDXSYM = uint;
 
-struct seg_data
+struct seg_data                         // SegData is an array of these, indexed by segment index
 {
     segidx_t             SDseg;         // index into SegData[]
     targ_size_t          SDoffset;      // starting offset for data
     int                  SDalignment;   // power of 2
 
-    static if (1) // for Windows
-    {
-        bool isfarseg;
-        int segidx;                     // internal object file segment number
-        int lnameidx;                   // lname idx of segment name
-        int classidx;                   // lname idx of class name
-        uint attr;                      // segment attribute
-        targ_size_t origsize;           // original size
-        int seek;                       // seek position in output file
-        void* ledata;                   // (Ledatarec) current one we're filling in
-    }
-
     //ELFOBJ || MACHOBJ
-    IDXSEC           SDshtidx;          // section header table index
-    OutBuffer       *SDbuf;             // buffer to hold data
-    OutBuffer       *SDrel;             // buffer to hold relocation info
+    IDXSEC           SDshtidx;          // ELFOBJ : index into SecHdrTab[]
+                                        // MACHOBJ: index into section_64s[] or sections[]
+    OutBuffer       *SDbuf;             // buffer to hold segment data
+//    union
+//    struct
+//    {
+        // ELFOBJ
+        OutBuffer        *SDrel;        // buffer to hold segment relocation info
+        // MACHOBJ MSCOFFOBJ
+        Barray!Relocation relocations;  // hold relocations for this segment
+//    }
 
     //ELFOBJ
     IDXSYM           SDsymidx;          // each section is in the symbol table
@@ -298,6 +291,27 @@ struct seg_data
     @trusted
     int isCode() { return config.objfmt == OBJ_MACH ? mach_seg_data_isCode(this) : mscoff_seg_data_isCode(this); }
 }
+
+/*******************************************************
+ * For Machobj
+ * Because the relocations cannot be computed until after
+ * all the segments are written out, and we need more information
+ * than the relocations provide, make our own relocation
+ * type. Later, translate to Mach-O relocation structures `relocation_info` and `scattered_relocation_info`.
+ */
+struct Relocation
+{   // Relocations are attached to the struct seg_data they refer to
+    targ_size_t offset; // location in segment to be fixed up
+    Symbol* funcsym;    // function in which offset lies, if any
+    Symbol* targsym;    // if !=null, then location is to be fixed up
+                        // to address of this symbol
+    uint targseg;       // if !=0, then location is to be fixed up
+                        // to address of start of this segment
+    REL rtype;          // REL.address or REL.rel or REL.add
+    bool subtractor;    // true: emit SUBTRACTOR/UNSIGNED pair (MACHOBJ)
+    short val;          // 0, -1, -2, -4
+}
+
 
 public import dmd.backend.machobj : mach_seg_data_isCode;
 public import dmd.backend.mscoffobj : mscoff_seg_data_isCode;
@@ -320,10 +334,6 @@ __gshared Rarray!(seg_data*) SegData;
 
 @trusted
 ref targ_size_t Offset(int seg) { return SegData[seg].SDoffset; }
-
-ref targ_size_t Doffset() { return Offset(DATA); }
-
-ref targ_size_t CDoffset() { return Offset(CDATA); }
 
 /**************************************************/
 

@@ -1,0 +1,9 @@
+Add new flag `-unittest-roots`
+
+Besides the existing `-unittest` flag dmd now also takes the
+accompanying flag `-unittest-roots`. When passed, only the unittests
+placed in the (root) source files `X`... being explicitly passed to
+the call to dmd are processed like when `-unittest` is passed. All
+other unittests placed in (non-root) modules not present in `X` that
+are (transitively) imported in `X` source files (when `-i` is passed)
+will not be processed.

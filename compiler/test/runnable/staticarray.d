@@ -132,4 +132,84 @@ void main()
 	assert(arr12[0] == 'a');
 	assert(arr12[1] == 'b');
 	assert(arr12[2] == 'c');
+
+	// sparse static array initializer: mixed null and non-null indices
+	auto[$] sparse1 = [ 0, 2:2, 3];
+	assert(sparse1.length == 4);
+	assert(sparse1[0] == 0);
+	assert(sparse1[1] == 0);
+	assert(sparse1[2] == 2);
+	assert(sparse1[3] == 3);
+	static assert(sparse1.length == 4);
+
+	// all-indexed (like [3:42]) with auto[$]
+	auto[$] sparse2 = [ 3:42 ];
+	assert(sparse2.length == 4);
+	assert(sparse2[0] == 0);
+	assert(sparse2[3] == 42);
+	static assert(sparse2.length == 4);
+
+	// float sparse: gaps filled with float.init (NaN)
+	auto[$] sparse3 = [ 1.5, 3:3.5 ];
+	assert(sparse3.length == 4);
+	assert(sparse3[0] == 1.5);
+	assert(sparse3[1] != sparse3[1]); // NaN
+	assert(sparse3[3] == 3.5);
+
+	// mixed types: element type is the common type (int + double → double)
+	auto[$] sparse4 = [ 1, 3:3.5 ];
+	assert(sparse4.length == 4);
+	static assert(is(typeof(sparse4[0]) == double));
+	assert(sparse4[0] == 1);
+	assert(sparse4[1] != sparse4[1]); // double.init = NaN
+	assert(sparse4[3] == 3.5);
+
+	// nested sparse: outer gap filled with inner array default init
+	auto[$][$] sparse5 = [[0, 1], 2:[1, 1]];
+	assert(sparse5.length == 3);
+	assert(sparse5[0] == [0, 1]);
+	assert(sparse5[1] == [0, 0]);
+	assert(sparse5[2] == [1, 1]);
+	static assert(sparse5.length == 3);
+	static assert(sparse5[0].length == 2);
+	static assert(is(typeof(sparse5) == int[2][3]));
+
+	// regression: auto without $ still produces AA
+	auto aa = [3:42];
+	assert(aa.length == 1);
+	assert(aa[3] == 42);
+	static assert(is(typeof(aa) == int[int]));
+
+	// sparse array initializer with an inferred `auto` type:
+	// the gaps are filled with the default value of the element type
+	auto sparse6 = [1:2, 3];
+	static assert(is(typeof(sparse6) == int[]));
+	assert(sparse6.length == 3);
+	assert(sparse6 == [0, 2, 3]);
+
+	auto sparse7 = [0, 2:2, 3];
+	assert(sparse7 == [0, 0, 2, 3]);
+
+	// the same at compile time
+	enum sparse8 = [1:2, 3];
+	static assert(sparse8 == [0, 2, 3]);
+
+	// nested sparse array with an inferred type
+	auto sparse9 = [[0, 1], 2:[1, 1]];
+	static assert(is(typeof(sparse9) == int[][]));
+	assert(sparse9.length == 3);
+	assert(sparse9[0] == [0, 1]);
+	assert(sparse9[1] is null); // int[].init
+	assert(sparse9[2] == [1, 1]);
+
+	// gaps in both the outer and the inner literal
+	auto sparse10 = [[1:2, 3], 4:[5:6, 7]];
+	assert(sparse10.length == 5);
+	assert(sparse10[0] == [0, 2, 3]);
+	assert(sparse10[1] is null);
+	assert(sparse10[4] == [0, 0, 0, 0, 0, 6, 7]);
+
+	// the same at compile time
+	enum sparse11 = [[1:2, 3], [4, 5]];
+	static assert(sparse11 == [[0, 2, 3], [4, 5]]);
 }

@@ -41,6 +41,11 @@ else version (Solaris)
     import core.sys.solaris.link : dl_iterate_phdr, dl_phdr_info, ElfW;
     version = LinuxOrBSD;
 }
+else version (Hurd)
+{
+    import core.sys.hurd.link : dl_iterate_phdr, dl_phdr_info, ElfW;
+    version = LinuxOrBSD;
+}
 
 version (LinuxOrBSD):
 
@@ -93,6 +98,7 @@ struct SharedObject
         else version (NetBSD)  enum IterateManually = true;
         else version (OpenBSD) enum IterateManually = true;
         else version (Solaris) enum IterateManually = true;
+        else version (Hurd)    enum IterateManually = true;
         else                   enum IterateManually = false;
 
         static if (IterateManually)
@@ -222,6 +228,14 @@ version (Linux_Use_GNU)
     const(char)* getprogname()
     {
         import core.sys.linux.errno : program_invocation_name;
+        return program_invocation_name;
+    }
+}
+else version (Hurd)
+{
+    const(char)* getprogname()
+    {
+        import core.sys.hurd.errno : program_invocation_name;
         return program_invocation_name;
     }
 }

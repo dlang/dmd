@@ -20,14 +20,26 @@ import core.memory : GC;
 
 nothrow:
 
+// dmd 2.097: CTFE cannot cast on function, GDC bootstrap fails
+enum UseBumpMalloc = __VERSION__ > 2_097;
+
 extern (C++) struct Mem
 {
     static char* xstrdup(const(char)* s) nothrow
     {
-        if (isGCEnabled)
-            return s ? s[0 .. strlen(s) + 1].dup.ptr : null;
+        if (!s)
+            return null;
 
-        return s ? cast(char*)check(.strdup(s)) : null;
+        if (isGCEnabled)
+            return s[0 .. strlen(s) + 1].dup.ptr;
+
+        static if (UseBumpMalloc)
+        {
+            auto size = strlen(s) + 1;
+            return cast(char*)memcpy(pureBumpMalloc(size), s, size);
+        }
+        else
+            return cast(char*)check(.strdup(s));
     }
 
     static void xfree(void* p) pure nothrow
@@ -35,39 +47,62 @@ extern (C++) struct Mem
         if (isGCEnabled)
             return GC.free(p);
 
-        pureFree(p);
+        static if (UseBumpMalloc)
+            pureBumpFree(p);
+        else
+            pureFree(p);
     }
 
     static void* xmalloc(size_t size) pure nothrow
     {
+        if (!size)
+            return null;
         if (isGCEnabled)
-            return size ? GC.malloc(size) : null;
+            return GC.malloc(size);
 
-        return size ? check(pureMalloc(size)) : null;
+        static if (UseBumpMalloc)
+            return pureBumpMalloc(size);
+        else
+            return check(pureMalloc(size));
     }
 
     static void* xmalloc_noscan(size_t size) pure nothrow
     {
+        if (!size)
+            return null;
         if (isGCEnabled)
-            return size ? GC.malloc(size, GC.BlkAttr.NO_SCAN) : null;
+            return GC.malloc(size, GC.BlkAttr.NO_SCAN);
 
-        return size ? check(pureMalloc(size)) : null;
+        static if (UseBumpMalloc)
+            return pureBumpMalloc(size);
+        else
+            return check(pureMalloc(size));
     }
 
     static void* xcalloc(size_t size, size_t n) pure nothrow
     {
+        if (!(size && n))
+            return null;
         if (isGCEnabled)
-            return size * n ? GC.calloc(size * n) : null;
+            return GC.calloc(size * n);
 
-        return (size && n) ? check(pureCalloc(size, n)) : null;
+        static if (UseBumpMalloc)
+            return pureBumpCalloc(size, n);
+        else
+            return check(pureCalloc(size, n));
     }
 
     static void* xcalloc_noscan(size_t size, size_t n) pure nothrow
     {
+        if (!(size && n))
+            return null;
         if (isGCEnabled)
-            return size * n ? GC.calloc(size * n, GC.BlkAttr.NO_SCAN) : null;
+            return GC.calloc(size * n, GC.BlkAttr.NO_SCAN);
 
-        return (size && n) ? check(pureCalloc(size, n)) : null;
+        static if (UseBumpMalloc)
+            return pureBumpCalloc(size, n);
+        else
+            return check(pureCalloc(size, n));
     }
 
     static void* xrealloc(void* p, size_t size) pure nothrow
@@ -75,13 +110,7 @@ extern (C++) struct Mem
         if (isGCEnabled)
             return GC.realloc(p, size);
 
-        if (!size)
-        {
-            pureFree(p);
-            return null;
-        }
-
-        return check(pureRealloc(p, size));
+        return xrealloc_nogc(p, size);
     }
 
     static void* xrealloc_noscan(void* p, size_t size) pure nothrow
@@ -89,13 +118,23 @@ extern (C++) struct Mem
         if (isGCEnabled)
             return GC.realloc(p, size, GC.BlkAttr.NO_SCAN);
 
+        return xrealloc_nogc(p, size);
+    }
+
+    static void* xrealloc_nogc(void* p, size_t size) pure nothrow
+    {
         if (!size)
         {
-            pureFree(p);
+            static if (UseBumpMalloc)
+                pureBumpFree(p);
+            else
+                pureFree(p);
             return null;
         }
-
-        return check(pureRealloc(p, size));
+        static if (UseBumpMalloc)
+            return pureBumpRealloc(p, size);
+        else
+            return check(pureRealloc(p, size));
     }
 
     static void* error() pure nothrow @nogc @safe
@@ -149,138 +188,56 @@ extern (C++) const __gshared Mem mem;
 
 enum CHUNK_SIZE = (256 * 4096 - 64);
 
-__gshared size_t heapleft = 0;
+enum DEFAULT_ALIGNMENT = 16;
+
+__gshared size_t heappos = CHUNK_SIZE;
 __gshared void* heapp;
 __gshared size_t heapTotal = 0; // Total amount of memory allocated using malloc
 
-extern (D) void* allocmemoryNoFree(size_t m_size) nothrow @nogc
+private void* _allocmemoryNoFree(size_t m_size, size_t alignment, size_t prebytes = 0) nothrow @nogc
 {
-    // 16 byte alignment is better (and sometimes needed) for doubles
-    m_size = (m_size + 15) & ~15;
-
+    size_t pos = (heappos + prebytes + alignment - 1) & -alignment;
     // The layout of the code is selected so the most common case is straight through
-    if (m_size <= heapleft)
+    if (pos + m_size <= CHUNK_SIZE)
     {
-    L1:
-        heapleft -= m_size;
-        auto p = heapp;
-        heapp = cast(void*)(cast(char*)heapp + m_size);
-        return p;
+        heappos = pos + m_size;
+        return heapp + pos;
     }
 
-    if (m_size > CHUNK_SIZE)
+    prebytes = (prebytes + alignment - 1) & -alignment;
+    m_size += prebytes;
+    if (m_size >= CHUNK_SIZE)
     {
         heapTotal += m_size;
-        return Mem.check(malloc(m_size));
+        return Mem.check(malloc(m_size)) + prebytes;
     }
 
-    heapleft = CHUNK_SIZE;
     heapp = Mem.check(malloc(CHUNK_SIZE));
     heapTotal += CHUNK_SIZE;
-    goto L1;
+    heappos = m_size;
+    return heapp + prebytes;
 }
 
-extern (D) void* allocmemory(size_t m_size) nothrow
+// Total amount of memory allocated using _d_allocmemory/allocmemoryNoFree
+__gshared size_t allocatedNoFree = 0;
+
+// callback for closures, or if the compiler does not yet use templated lowerings
+extern (C) void* _d_allocmemory(size_t m_size) nothrow
 {
     if (mem.isGCEnabled)
         return GC.malloc(m_size);
 
-    return allocmemoryNoFree(m_size);
+    allocatedNoFree += m_size;
+    return _allocmemoryNoFree(m_size, DEFAULT_ALIGNMENT);
 }
 
-version (DigitalMars)
+extern (D) void* allocmemoryNoFree(size_t m_size, size_t alignment) nothrow
 {
-    enum OVERRIDE_MEMALLOC = true;
-}
-else version (LDC)
-{
-    // Memory allocation functions gained weak linkage when the @weak attribute was introduced.
-    import ldc.attributes;
-    enum OVERRIDE_MEMALLOC = is(typeof(ldc.attributes.weak));
-}
-else version (GNU)
-{
-    version (IN_GCC)
-        enum OVERRIDE_MEMALLOC = false;
-    else
-        enum OVERRIDE_MEMALLOC = true;
-}
-else
-{
-    enum OVERRIDE_MEMALLOC = false;
-}
+    if (mem.isGCEnabled)
+        return GC.malloc(m_size);
 
-static if (OVERRIDE_MEMALLOC)
-{
-    // Override the host druntime allocation functions in order to use the bump-
-    // pointer allocation scheme (`allocmemoryNoFree()` above) if the GC is disabled.
-    // That scheme is faster and comes with less memory overhead than using a
-    // disabled GC alone.
-
-    extern (C) void* _d_allocmemory(size_t m_size) nothrow
-    {
-        return allocmemory(m_size);
-    }
-
-    private void* allocClass(const ClassInfo ci) nothrow pure
-    {
-        alias BlkAttr = GC.BlkAttr;
-
-        assert(!(ci.m_flags & TypeInfo_Class.ClassFlags.isCOMclass));
-
-        BlkAttr attr = BlkAttr.NONE;
-        if (ci.m_flags & TypeInfo_Class.ClassFlags.hasDtor
-            && !(ci.m_flags & TypeInfo_Class.ClassFlags.isCPPclass))
-            attr |= BlkAttr.FINALIZE;
-        if (ci.m_flags & TypeInfo_Class.ClassFlags.noPointers)
-            attr |= BlkAttr.NO_SCAN;
-        return GC.malloc(ci.initializer.length, attr, ci);
-    }
-
-    extern (C) void* _d_newitemU(const TypeInfo ti) nothrow;
-
-    extern (C) Object _d_newclass(const ClassInfo ci) nothrow
-    {
-        const initializer = ci.initializer;
-
-        auto p = mem.isGCEnabled ? allocClass(ci) : allocmemoryNoFree(initializer.length);
-        memcpy(p, initializer.ptr, initializer.length);
-        return cast(Object) p;
-    }
-
-    version (LDC)
-    {
-        extern (C) Object _d_allocclass(const ClassInfo ci) nothrow
-        {
-            if (mem.isGCEnabled)
-                return cast(Object) allocClass(ci);
-
-            return cast(Object) allocmemoryNoFree(ci.initializer.length);
-        }
-    }
-
-    extern (C) void* _d_newitemT(TypeInfo ti) nothrow
-    {
-        auto p = mem.isGCEnabled ? _d_newitemU(ti) : allocmemoryNoFree(ti.tsize);
-        memset(p, 0, ti.tsize);
-        return p;
-    }
-
-    extern (C) void* _d_newitemiT(TypeInfo ti) nothrow
-    {
-        auto p = mem.isGCEnabled ? _d_newitemU(ti) : allocmemoryNoFree(ti.tsize);
-        const initializer = ti.initializer;
-        memcpy(p, initializer.ptr, initializer.length);
-        return p;
-    }
-
-    // TypeInfo.initializer for compilers older than 2.070
-    static if(!__traits(hasMember, TypeInfo, "initializer"))
-    private const(void[]) initializer(T : TypeInfo)(const T t)
-    nothrow pure @safe @nogc
-    {
-        return t.init;
-    }
+    allocatedNoFree += m_size;
+    return _allocmemoryNoFree(m_size, alignment);
 }
 
 extern (C) pure @nogc nothrow
@@ -312,6 +269,190 @@ extern (C) pure @nogc nothrow
     pragma(mangle, "free") void pureFree(void* ptr) @system;
 
 }
+
+static if (UseBumpMalloc)
+{
+    /////////////////////////////////////
+    // replacement for C malloc/realloc/free using the bump-allocation
+    // memory. It saves the size of the allocation before the returned
+    // memory block.
+    // It takes advantage of being single threaded, and allows releasing
+    // all memory in one go with the bump allocator.
+
+    enum smallAlignmentShift = 4;
+    enum smallAlignment = 1 << smallAlignmentShift;
+    enum maxSmallSize = 1024;
+    __gshared void*[maxSmallSize >> smallAlignmentShift] firstSmallFree;
+
+    enum largeAlignmentShift = 8;
+    enum largeAlignment = 1 << largeAlignmentShift;
+    enum maxLargeSize = 64 * 1024;
+    __gshared void*[maxLargeSize >> largeAlignmentShift] firstLargeFree;
+
+    enum hugeAlignment = 4096;
+    __gshared void* firstHugeFree;
+
+    version (BumpMallocStats)
+    {
+        __gshared ulong[maxSmallSize >> smallAlignmentShift] countSmallAlloc;
+        __gshared ulong[maxSmallSize >> smallAlignmentShift] countSmallFree;
+        __gshared ulong[maxLargeSize >> largeAlignmentShift] countLargeAlloc;
+        __gshared ulong[maxLargeSize >> largeAlignmentShift] countLargeFree;
+        __gshared ulong countHugeAlloc;
+        __gshared ulong memHugeAlloc;
+        __gshared ulong countHugeFree;
+        __gshared ulong memHugeFree;
+    }
+
+    private void encodeSize(void* p, size_t size) pure nothrow
+    {
+        (cast(size_t*)p)[-1] = cast(size_t)size;
+    }
+    private size_t decodeSize(void* p) pure nothrow
+    {
+        return (cast(size_t*)p)[-1];
+    }
+
+    void* bumpMalloc(size_t size)
+    {
+        if (size <= maxSmallSize - smallAlignment)
+        {
+            size = (size + smallAlignment - 1) & ~(smallAlignment - 1);
+            size_t bin = size >> smallAlignmentShift;
+            version (BumpMallocStats) countSmallAlloc[bin]++;
+            if (void* p = firstSmallFree[bin])
+            {
+                firstSmallFree[bin] = *cast(void**)p;
+                return p;
+            }
+        }
+        else if (size <= maxLargeSize - largeAlignment)
+        {
+            size = (size + largeAlignment - 1) & ~(largeAlignment - 1);
+            size_t bin = size >> largeAlignmentShift;
+            version (BumpMallocStats) countLargeAlloc[bin]++;
+            if (void* p = firstLargeFree[bin])
+            {
+                firstLargeFree[bin] = *cast(void**)p;
+                return p;
+            }
+        }
+        else
+        {
+            size = (size + hugeAlignment - 1) & ~(hugeAlignment - 1);
+            void** pfree = &firstHugeFree;
+            version (BumpMallocStats) countHugeAlloc++;
+            version (BumpMallocStats) memHugeAlloc += size;
+            for (auto p = cast(void**)*pfree; p; p = cast(void**)*pfree)
+            {
+                if (decodeSize(p) == size)
+                {
+                    *pfree = *p;
+                    return p;
+                }
+                pfree = p;
+            }
+        }
+        enum alignment = real.alignof > double.alignof ? real.alignof : double.alignof;
+        void* p = _allocmemoryNoFree(size, alignment, size_t.sizeof);
+        encodeSize(p, size);
+        return p;
+    }
+
+    void bumpFree(void* p)
+    {
+        if (!p)
+            return;
+
+        size_t size = decodeSize(p);
+        if (size <= maxSmallSize - smallAlignment)
+        {
+            size_t bin = size >> smallAlignmentShift;
+
+            *cast(void**)p = firstSmallFree[bin];
+            firstSmallFree[bin] = p;
+            version (BumpMallocStats) countSmallFree[bin]++;
+        }
+        else if (size <= maxLargeSize - largeAlignment)
+        {
+            size_t bin = size >> largeAlignmentShift;
+
+            *cast(void**)p = firstLargeFree[bin];
+            firstLargeFree[bin] = p;
+            version (BumpMallocStats) countLargeFree[bin]++;
+        }
+        else
+        {
+            *cast(void**)p = firstHugeFree;
+            version (BumpMallocStats) countHugeFree++;
+            version (BumpMallocStats) memHugeFree += size;
+        }
+    }
+
+    enum pureBumpMalloc = cast(void* function(size_t) pure nothrow)&bumpMalloc;
+    enum pureBumpFree  = cast(void function(void*p) pure nothrow)&bumpFree;
+
+    void* pureBumpCalloc(size_t size, size_t n) pure nothrow
+    {
+        size_t nsize = n * size;
+        void* p = pureBumpMalloc(nsize);
+        memset(p, 0, nsize);
+        return p;
+    }
+
+    void* pureBumpRealloc(void* p, size_t size) pure nothrow
+    {
+        if (!p)
+            return pureBumpMalloc(size);
+
+        size_t oldsize = decodeSize(p);
+        size_t alignment =
+            size <= maxSmallSize - smallAlignment ? smallAlignment :
+            size <= maxLargeSize - largeAlignment ? largeAlignment : hugeAlignment;
+        size_t oldalignment =
+            oldsize <= maxSmallSize - smallAlignment ? smallAlignment :
+            oldsize <= maxLargeSize - largeAlignment ? largeAlignment : hugeAlignment;
+
+        if (alignment == oldalignment)
+            if (((size + alignment - 1) & ~(alignment - 1)) == ((oldsize + alignment - 1) & ~(alignment - 1)))
+                return p;
+
+        void* np = pureBumpMalloc(size);
+        memcpy(np, p, size < oldsize ? size : oldsize);
+        pureBumpFree(p);
+        return np;
+    }
+
+    version (BumpMallocStats) shared static ~this()
+    {
+        for (size_t i = 1; i < firstSmallFree.length; i++)
+        {
+            size_t unused = 0;
+            for (auto p = firstSmallFree[i]; p; p = *cast(void**)p)
+                unused++;
+            printf("%5zx-%5zx: %llu malloc, %llu free, %zu unused\n", i * smallAlignment - smallAlignment + 1, i * smallAlignment,
+                   countSmallAlloc[i], countSmallFree[i], unused);
+        }
+        for (size_t i = 1; i < firstLargeFree.length; i++)
+        {
+            size_t unused = 0;
+            for (auto p = firstLargeFree[i]; p; p = *cast(void**)p)
+                unused++;
+            printf("%5zx-%5zx: %llu malloc, %llu free, %zu unused\n", i * largeAlignment - largeAlignment + 1, i * largeAlignment,
+                   countLargeAlloc[i], countLargeFree[i], unused);
+        }
+        size_t unused = 0;
+        size_t unusedMem = 0;
+        for (auto p = firstHugeFree; p; p = *cast(void**)p)
+        {
+            unused++;
+            unusedMem += (cast(size_t*)p)[1];
+        }
+        printf(">=%9x: %llu malloc, %llu free, %zd MB - %zd MB, %zu unused (%zd MB)\n", maxLargeSize,
+               countHugeAlloc, countHugeFree, memHugeAlloc >> 20, memHugeFree >> 20,
+               unused, unusedMem);
+    }
+} // UseBumpMalloc
 
 /**
 Makes a null-terminated copy of the given string on newly allocated memory.
@@ -362,7 +503,7 @@ extern (D) T[] arraydup(T)(const scope T[] s) pure nothrow
         return null;
 
     const dim = s.length;
-    auto p = (cast(T*)mem.xmalloc(T.sizeof * dim))[0 .. dim];
+    auto p = (cast(T*)mem.xmalloc_noscan(T.sizeof * dim))[0 .. dim];
     p[] = s;
     return p;
 }
@@ -377,4 +518,270 @@ pure nothrow unittest
     assert(s2 == [4, 1, 2]);
     string sEmpty;
     assert(sEmpty.arraydup is null);
+}
+
+static if(__VERSION__ >= 2_096):
+// access to conservative GC not available before this version, so we cannot proxy it
+
+/////////////////////////////////////
+// BumpPointerGC is a GC that uses the bump-pointer for most allocations, i.e.
+//  it never frees anything, but uses the conservative GC for arrays
+//
+// Retrictions:
+//  realloc and extend don't work on memory allocated without BlkAttr.APPENDABLE
+//
+import core.gc.gcinterface : GCInterface = GC, Root, Range, RootIterator, RangeIterator;
+import core.internal.gc.impl.conservative.gc;
+
+private extern(C) pragma(crt_constructor) void register_bump_gc()
+{
+    import core.gc.registry;
+    registerGCFactory("bump", &BumpPointerGC.initialize);
+}
+
+class BumpPointerGC : GCInterface
+{
+    GCInterface gc;
+    ulong allocated;
+
+    static GCInterface initialize()
+    {
+        __gshared ubyte[__traits(classInstanceSize, BumpPointerGC)] buf;
+
+        auto init = typeid(BumpPointerGC).initializer();
+        assert(init.length == buf.length);
+        auto instance = cast(BumpPointerGC) memcpy(buf.ptr, init.ptr, init.length);
+        instance.__ctor();
+        return instance;
+    }
+
+    this()
+    {
+        // unfortunately, registry cannot be invoked twice, and
+        // initialize for ConservativeGC is private
+        __gshared ubyte[__traits(classInstanceSize, ConservativeGC)] buf;
+
+        auto init = typeid(ConservativeGC).initializer();
+        assert(init.length == __traits(classInstanceSize, ConservativeGC));
+        auto instance = cast(ConservativeGC) memcpy(buf.ptr, init.ptr, init.length);
+        instance.__ctor();
+
+        gc = instance;
+        gc.disable();
+    }
+
+    ~this()
+    {
+        destroy(gc);
+
+        import core.gc.config;
+        if (config.profile)
+            printf("\tAllocated by BumpGC:  %llu MB + %zd MB of %zd\n", allocated >> 20, allocatedNoFree >> 20, heapTotal >> 20);
+    }
+
+    void enable()
+    {
+        // never enable collection in the conservative GC, memory from the
+        // bump-pointer-allocation is not scanned
+    }
+    void disable()
+    {
+        gc.disable();
+    }
+
+    void collect() nothrow
+    {
+        gc.collect();
+    }
+
+    static if(__VERSION__ < 2_109)
+        void collectNoStack() nothrow
+        {
+            gc.collectNoStack();
+        }
+
+    void minimize() nothrow
+    {
+        gc.minimize();
+    }
+    uint getAttr(void* p) nothrow
+    {
+        return gc.getAttr(p);
+    }
+    uint setAttr(void* p, uint mask) nothrow
+    {
+        return gc.setAttr(p, mask);
+    }
+    uint clrAttr(void* p, uint mask) nothrow
+    {
+        return gc.clrAttr(p, mask);
+    }
+
+    static size_t determineAlignment(uint bits) nothrow
+    {
+        static if (is(typeof(GC.BlkAttr.ALIGNMENT_MASK)))
+        {
+            auto alignAttr = cast(GC.BlkAttr)(bits & GC.BlkAttr.ALIGNMENT_MASK);
+            return alignAttr ? GC.convertBlkAttrToAlignment(alignAttr) : DEFAULT_ALIGNMENT;
+        }
+        else
+            return DEFAULT_ALIGNMENT;
+    }
+
+    void* malloc(size_t size, uint bits, const TypeInfo ti) nothrow
+    {
+        if (bits & GC.BlkAttr.APPENDABLE)
+            return gc.malloc(size, bits, ti);
+        version (none)
+            assert(ti, "unexpected malloc, this usually happens for closure allocations");
+        allocated += size;
+        return _allocmemoryNoFree(size, determineAlignment(bits));
+    }
+
+    GC.BlkInfo qalloc(size_t size, uint bits, scope const TypeInfo ti) nothrow
+    {
+        if (bits & GC.BlkAttr.APPENDABLE)
+            return gc.qalloc(size, bits, ti);
+        allocated += size;
+        GC.BlkInfo bi;
+        bi.base = _allocmemoryNoFree(size, determineAlignment(bits));
+        bi.size = size;
+        return bi;
+    }
+
+    void* calloc(size_t size, uint bits, const TypeInfo ti) nothrow
+    {
+        if (bits & GC.BlkAttr.APPENDABLE)
+            return gc.calloc(size, bits, ti);
+        allocated += size;
+        void* p = _allocmemoryNoFree(size, determineAlignment(bits));
+        memset(p, 0, size);
+        return p;
+    }
+
+    void* realloc(void* p, size_t size, uint bits, const TypeInfo ti) nothrow
+    {
+        if (!p || gc.query(p).base)
+            return gc.realloc(p, size, bits, ti);
+        assert(false, "GC.realloc must not be called on non-GC memory");
+    }
+
+    size_t extend(void* p, size_t minsize, size_t maxsize, const TypeInfo ti) nothrow
+    {
+        if (gc.query(p).base)
+            return gc.extend(p, minsize, maxsize, ti);
+        assert(false, "GC.extend must not be called on non-GC memory");
+    }
+
+    size_t reserve(size_t size) nothrow
+    {
+        return gc.reserve(size);
+    }
+
+    void free(void* p) nothrow
+    {
+        gc.free(p);
+    }
+
+    void* addrOf(void* p) nothrow
+    {
+        return gc.addrOf(p);
+    }
+    size_t sizeOf(void* p) nothrow
+    {
+        return gc.sizeOf(p);
+    }
+
+    GC.BlkInfo query(void* p) nothrow
+    {
+        return gc.query(p);
+    }
+
+    GC.Stats stats() nothrow
+    {
+        return gc.stats();
+    }
+    GC.ProfileStats profileStats() nothrow
+    {
+        return gc.profileStats();
+    }
+
+    void addRoot(void* p) nothrow @nogc
+    {
+        gc.addRoot(p);
+    }
+    void removeRoot(void* p) nothrow @nogc
+    {
+        gc.removeRoot(p);
+    }
+    @property RootIterator rootIter() @nogc
+    {
+        return gc.rootIter();
+    }
+
+    void addRange(void* p, size_t sz, const TypeInfo ti) nothrow @nogc
+    {
+        gc.addRange(p, sz, ti);
+    }
+    void removeRange(void* p) nothrow @nogc
+    {
+        gc.removeRange(p);
+    }
+
+    @property RangeIterator rangeIter() @nogc
+    {
+        return gc.rangeIter();
+    }
+
+    static if (__VERSION__ >= 2087)
+        void runFinalizers(scope const void[] segment) nothrow
+        {
+            gc.runFinalizers(segment);
+        }
+    else
+        void runFinalizers(in void[] segment) nothrow
+        {
+            gc.runFinalizers(segment);
+        }
+
+    bool inFinalizer() nothrow
+    {
+        return gc.inFinalizer();
+    }
+    ulong allocatedInCurrentThread() nothrow
+    {
+        return gc.allocatedInCurrentThread();
+    }
+
+    static if(__VERSION__ >= 2_111)
+    {
+        void[] getArrayUsed(void *ptr, bool atomic = false) nothrow
+        {
+            return gc.getArrayUsed(ptr, atomic);
+        }
+        bool expandArrayUsed(void[] slice, size_t newUsed, bool atomic = false) nothrow @safe
+        {
+            return gc.expandArrayUsed(slice, newUsed, atomic);
+        }
+        size_t reserveArrayCapacity(void[] slice, size_t request, bool atomic = false) nothrow @safe
+        {
+            return gc.reserveArrayCapacity(slice, request, atomic);
+        }
+        bool shrinkArrayUsed(void[] slice, size_t existingUsed, bool atomic = false) nothrow
+        {
+            return gc.shrinkArrayUsed(slice, existingUsed, atomic);
+        }
+    }
+    static if(__VERSION__ >= 2_112)
+    {
+        import core.thread.threadbase : ThreadBase;
+        void initThread(ThreadBase thread) nothrow @nogc
+        {
+            gc.initThread(thread);
+        }
+        void cleanupThread(ThreadBase thread) nothrow @nogc
+        {
+            gc.cleanupThread(thread);
+        }
+    }
 }

@@ -86,7 +86,7 @@ struct OutBuffer
     /**
     Frees resources associated.
     */
-    extern (C++) void dtor() pure nothrow @trusted
+    extern (C++) void dtor() pure nothrow @nogc @trusted
     {
         if (fileMapping)
         {
@@ -103,7 +103,7 @@ struct OutBuffer
     /**
     Frees resources associated automatically.
     */
-    extern (C++) ~this() pure nothrow @trusted
+    extern (C++) ~this() pure nothrow @nogc @trusted
     {
         dtor();
     }
@@ -141,7 +141,7 @@ struct OutBuffer
     memory buffer. The config variables `notlinehead`, `doindent` etc. are
     not changed.
     */
-    extern (C++) void destroy() pure nothrow
+    extern (C++) void destroy() pure nothrow @nogc
     {
         dtor();
         fileMapping = null;
@@ -156,7 +156,7 @@ struct OutBuffer
     Params:
     nbytes = the number of additional bytes to reserve
     */
-    extern (C++) void reserve(size_t nbytes) pure nothrow @trusted
+    extern (C++) void reserve(size_t nbytes) pure nothrow @nogc @trusted
     {
         //debug (stomp) printf("OutBuffer::reserve: size = %lld, offset = %lld, nbytes = %lld\n", data.length, offset, nbytes);
         const minSize = offset + nbytes;
@@ -210,7 +210,7 @@ struct OutBuffer
         offset = 0;
     }
 
-    private void indent() pure nothrow @safe
+    private void indent() pure nothrow @nogc @safe
     {
         if (level)
         {
@@ -232,7 +232,7 @@ struct OutBuffer
 
     alias put = write;  // transition to output range which uses put()
 
-    void write(ubyte b) pure nothrow @safe
+    void write(ubyte b) pure nothrow @nogc @safe
     {
         if (doindent && !notlinehead && b != '\n')
             indent();
@@ -246,7 +246,7 @@ struct OutBuffer
         put(data[0 .. nbytes]);
     }
 
-    void write(scope const(void)[] buf) pure nothrow @trusted
+    void write(scope const(void)[] buf) pure nothrow @nogc @trusted
     {
         if (doindent && !notlinehead)
             indent();
@@ -255,7 +255,7 @@ struct OutBuffer
         offset += buf.length;
     }
 
-    void write(scope string buf) pure nothrow @trusted // so write("hello") chooses this overload
+    void write(scope string buf) pure nothrow @nogc @trusted // so write("hello") chooses this overload
     {
         if (doindent && !notlinehead)
             indent();
@@ -264,7 +264,7 @@ struct OutBuffer
         offset += buf.length;
     }
 
-    extern (C++) void write(scope const(char)* s) pure nothrow @trusted
+    extern (C++) void write(scope const(char)* s) pure nothrow @nogc @trusted
     {
         if (!s)
             return;
@@ -310,19 +310,19 @@ struct OutBuffer
     }
 
     /// Buffer will NOT be zero-terminated
-    extern (C++) void writestring(const(char)* s) pure nothrow @system
+    extern (C++) void writestring(const(char)* s) pure nothrow @nogc @system
     {
         put(s);
     }
 
     /// ditto
-    void writestring(scope const(char)[] s) pure nothrow @safe
+    void writestring(scope const(char)[] s) pure nothrow @nogc @safe
     {
         put(s);
     }
 
     /// ditto
-    void writestring(scope string s) pure nothrow @safe
+    void writestring(scope string s) pure nothrow @nogc @safe
     {
         put(s);
     }
@@ -412,7 +412,7 @@ struct OutBuffer
         this.data[offset++] = b;
     }
 
-    extern (C++) void writeByte(ubyte b) pure nothrow @safe
+    extern (C++) void writeByte(ubyte b) pure nothrow @nogc @safe
     {
         if (doindent && !notlinehead && b != '\n')
             indent();
@@ -710,7 +710,7 @@ struct OutBuffer
      *                   This is useful to call C functions or store
      *                   the result in `Strings`. Defaults to `false`.
      */
-    extern (D) char[] extractSlice(bool nullTerminate = false) pure nothrow
+    extern (D) char[] extractSlice(bool nullTerminate = false) pure nothrow @nogc
     {
         const length = offset;
         if (!nullTerminate)
@@ -722,13 +722,13 @@ struct OutBuffer
         return extractData()[0 .. length];
     }
 
-    extern (D) byte[] extractUbyteSlice(bool nullTerminate = false) pure nothrow
+    extern (D) byte[] extractUbyteSlice(bool nullTerminate = false) pure nothrow @nogc
     {
         return cast(byte[]) extractSlice(nullTerminate);
     }
 
     // Append terminating null if necessary and get view of internal buffer
-    extern (C++) char* peekChars() pure nothrow
+    extern (C++) char* peekChars() pure nothrow @nogc
     {
         if (!offset || data[offset - 1] != '\0')
         {
@@ -739,13 +739,13 @@ struct OutBuffer
     }
 
     // Peek at slice of data without taking ownership
-    extern (D) ubyte[] peekSlice() pure nothrow
+    extern (D) ubyte[] peekSlice() pure nothrow @nogc
     {
         return data[0 .. offset];
     }
 
     // Append terminating null if necessary and take ownership of data
-    extern (C++) char* extractChars() pure nothrow @safe
+    extern (C++) char* extractChars() pure nothrow @nogc @safe
     {
         if (!offset || data[offset - 1] != '\0')
             writeByte(0);

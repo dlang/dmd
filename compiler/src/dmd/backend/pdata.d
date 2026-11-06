@@ -19,28 +19,19 @@ import core.stdc.string;
 import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.code;
-import dmd.backend.x86.code_x86;
+import dmd.backend.x86.code_x86 : BP;
 import dmd.backend.dt;
-import dmd.backend.el;
-import dmd.backend.global;
+import dmd.backend.global : symbol_keep;
+import dmd.backend.dout : outdata;
 import dmd.backend.mscoffobj;
 import dmd.backend.obj;
-import dmd.backend.rtlsym;
-import dmd.backend.ty;
+import dmd.backend.symbol;
+import dmd.backend.ty : TYint;
 import dmd.backend.type;
 
 
 nothrow:
 @safe:
-
-// Determine if this Symbol is stored in a COMDAT
-@trusted
-private bool symbol_iscomdat3(Symbol* s)
-{
-    return s.Sclass == SC.comdat ||
-        config.flags2 & CFG2comdat && s.Sclass == SC.inline ||
-        config.flags4 & CFG4allcomdat && s.Sclass == SC.global;
-}
 
 version (AArch64)
     enum ALLOCA_LIMIT = 0;      // TODO AArch64
@@ -97,6 +88,16 @@ public void win64_pdata(Symbol* sf, targ_size_t localsize)
 }
 
 private:
+
+// Determine if this Symbol is stored in a COMDAT
+@trusted
+private bool symbol_iscomdat3(Symbol* s)
+{
+    return s.Sclass == SC.comdat ||
+        config.flags2 & CFG2comdat && s.Sclass == SC.inline ||
+        config.flags4 & CFG4allcomdat && s.Sclass == SC.global;
+}
+
 
 /**************************************************
  * Unwind data symbol goes in the .xdata section.
@@ -202,12 +203,35 @@ static if (0)
 }
 }
 
-
+/******************************************
+ * Compute unwind info and return it as a dt_t.
+ * Params:
+ *      localsize = offset to symbols on stack
+ * Returns:
+ *      slice of ui as dt_t anonymous bytes
+ */
 @trusted
 private dt_t* unwind_data(targ_size_t localsize)
 {
     UNWIND_INFO ui;
+    const(ubyte)[] slice = unwind_info_slice(&ui, localsize);
+    auto dtb = DtBuilder(0);
+    dtb.nbytes(slice);
+    return dtb.finish();
+}
 
+/******************************************
+ * Fill in `ui` and return a slice of it.
+ * Params:
+ *      localsize = offset to symbols on stack
+ *      ui = unwind info to be filled in
+ * Returns:
+ *      slice of ui as anonymous bytes
+ */
+@trusted
+private
+const(ubyte)[] unwind_info_slice(UNWIND_INFO* ui, targ_size_t localsize)
+{
     /* 4 allocation size strategy:
      *  0:           no unwind instruction
      *  8..128:      UWOP.ALLOC_SMALL
@@ -268,14 +292,8 @@ static if (0)
     }
 }
 
-static if (1)
-{
     ui.UnwindCode[ui.CountOfCodes-2].FrameOffset = setUnwindCode(4, UWOP.SET_FPREG, 0);
-}
-
     ui.UnwindCode[ui.CountOfCodes-1].FrameOffset = setUnwindCode(1, UWOP.PUSH_NONVOL, BP);
 
-    auto dtb = DtBuilder(0);
-    dtb.nbytes((cast(const(ubyte*)) &ui)[0 .. 4 + ((ui.CountOfCodes + 1) & ~1) * 2]);
-    return dtb.finish();
+    return (cast(const(ubyte*))ui)[0 .. 4 + ((ui.CountOfCodes + 1) & ~1) * 2];
 }

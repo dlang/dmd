@@ -19,6 +19,7 @@
  * For special casing ImportC code.
  */
 #define __IMPORTC__ 1
+#define __IMPORTC_DMD__ 1
 
 /********************
  * Some compilers define `__restrict` instead of `restrict` as C++ compilers don't
@@ -74,6 +75,21 @@
 typedef unsigned short __uint16_t;
 typedef unsigned int __uint32_t;
 typedef unsigned long long __uint64_t;
+
+/* wchar_t */
+#if defined(_WIN32)
+#ifndef _WCHAR_T_DEFINED
+// On Windows, wchar_t is defined as an unsigned 16-bit integer: the same as D's wchar.
+typedef __importc_wchar wchar_t;
+#define _WCHAR_T_DEFINED 1
+#define _NATIVE_WCHAR_T_DEFINED 1
+
+#ifdef _MSC_VER
+// Microsoft go a step further and have a proper built-in type.
+typedef __importc_wchar __wchar_t;
+#endif
+#endif
+#endif
 
 /*********************
  * Obsolete detritus
@@ -179,7 +195,7 @@ typedef unsigned long long __uint64_t;
 #endif
 
 #define _Float16 float
-#ifdef __linux__  // Microsoft won't allow the following macro
+#if defined(__linux__) || defined(__GNU__)  // Microsoft won't allow the following macro
 // Ubuntu's assert.h uses this
 #define __PRETTY_FUNCTION__ __func__
 
@@ -202,7 +218,7 @@ typedef struct {} __SVFloat32_t;
 typedef struct {} __SVFloat64_t;
 #endif
 
-#endif // __linux__
+#endif // __linux__ || __GNU__
 
 #if __APPLE__
 #undef __SIZEOF_INT128__

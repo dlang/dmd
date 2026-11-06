@@ -17,6 +17,7 @@ module core.sync.semaphore;
 
 public import core.sync.exception;
 public import core.time;
+import core.thread : isSingleThreaded;
 
 version (OSX)
     version = Darwin;
@@ -42,6 +43,10 @@ else version (Darwin)
     import core.sys.darwin.mach.kern_return : KERN_ABORTED, KERN_OPERATION_TIMED_OUT;
     import core.sys.darwin.mach.semaphore : mach_task_self, mach_timespec_t, semaphore_create, semaphore_destroy,
         semaphore_signal, semaphore_t, semaphore_timedwait, semaphore_wait, SYNC_POLICY_FIFO;
+}
+else version (WASI)
+{
+    // Dummy no-op
 }
 else version (Posix)
 {
@@ -101,6 +106,10 @@ class Semaphore
             if ( rc )
                 throw new SyncError( "Unable to create semaphore" );
         }
+        else version (WASI)
+        {
+            m_hndl = count;
+        }
         else version (Posix)
         {
             int rc = sem_init( &m_hndl, 0, count );
@@ -121,6 +130,10 @@ class Semaphore
         {
             auto rc = semaphore_destroy( mach_task_self(), m_hndl );
             assert( !rc, "Unable to destroy semaphore" );
+        }
+        else version (WASI)
+        {
+
         }
         else version (Posix)
         {
@@ -161,6 +174,12 @@ class Semaphore
                     continue;
                 throw new SyncError( "Unable to wait for semaphore" );
             }
+        }
+        else version (WASI)
+        {
+            if (m_hndl == 0) throw new SyncError( "Unable to wait for semaphore" );
+
+            m_hndl -= 1;
         }
         else version (Posix)
         {
@@ -252,6 +271,11 @@ class Semaphore
                     throw new SyncError( "Unable to wait for semaphore" );
             }
         }
+        else version (WASI)
+        {
+            wait();
+            return true;
+        }
         else version (Posix)
         {
             timespec t = void;
@@ -291,6 +315,13 @@ class Semaphore
             if ( rc )
                 throw new SyncError( "Unable to notify semaphore" );
         }
+        else version (WASI)
+        {
+            if (m_hndl < typeof(m_hndl).max)
+                m_hndl += 1;
+            else
+                throw new SyncError( "Unable to notify semaphore" );
+        }
         else version (Posix)
         {
             int rc = sem_post( &m_hndl );
@@ -328,6 +359,11 @@ class Semaphore
         {
             return wait( dur!"hnsecs"(0) );
         }
+        else version (WASI)
+        {
+            wait();
+            return true;
+        }
         else version (Posix)
         {
             while ( true )
@@ -350,6 +386,8 @@ protected:
     /// ditto
     else version (Darwin)    alias Handle = semaphore_t;
     /// ditto
+    else version (WASI)      alias Handle = uint;
+    /// ditto
     else version (Posix)     alias Handle = sem_t;
 
     /// Handle to the system-specific semaphore.
@@ -361,6 +399,7 @@ protected:
 // Unit Tests
 ////////////////////////////////////////////////////////////////////////////////
 
+static if(!isSingleThreaded)
 unittest
 {
     import core.atomic;

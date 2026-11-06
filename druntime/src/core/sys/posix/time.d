@@ -19,7 +19,10 @@ import core.sys.posix.config;
 import core.sys.posix.endian;
 public import core.stdc.time;
 public import core.sys.posix.sys.types;
-public import core.sys.posix.signal; // for sigevent
+
+version (CRuntime_WASI) {}
+else
+    public import core.sys.posix.signal; // for sigevent
 
 version (OSX)
     version = Darwin;
@@ -86,6 +89,10 @@ else version (CRuntime_Bionic)
 else version (CRuntime_Musl)
 {
     pragma(mangle, muslRedirTime64Mangle!("timegm", "__timegm_time64"))
+    time_t timegm(tm*);
+}
+else version (CRuntime_WASI)
+{
     time_t timegm(tm*);
 }
 else version (CRuntime_UClibc)
@@ -156,6 +163,21 @@ else version (Darwin)
 else version (Solaris)
 {
     enum CLOCK_MONOTONIC = 4;
+}
+else version (Hurd)
+{
+    enum CLOCK_MONOTONIC = 1;
+}
+else version (Emscripten)
+{
+    enum CLOCK_MONOTONIC = 1;
+}
+else version (CRuntime_WASI)
+{
+    struct __clockid;
+
+    extern const __clockid _CLOCK_MONOTONIC;
+    enum CLOCK_MONOTONIC = &_CLOCK_MONOTONIC;
 }
 else
 {
@@ -259,6 +281,32 @@ else version (Solaris)
     }
 
     alias timestruc_t = timespec;
+}
+else version (Hurd)
+{
+    struct timespec
+    {
+        time_t  tv_sec;
+        c_long  tv_nsec;
+    }
+}
+else version (Emscripten)
+{
+    struct timespec
+    {
+        time_t  tv_sec;
+        int : 8 * (time_t.sizeof - c_long.sizeof) * (BYTE_ORDER == BIG_ENDIAN);
+        c_long  tv_nsec;
+        int : 8 * (time_t.sizeof - c_long.sizeof) * (BYTE_ORDER != BIG_ENDIAN);
+    }
+}
+else version (CRuntime_WASI)
+{
+    struct timespec
+    {
+        time_t  tv_sec;
+        c_long  tv_nsec;
+    }
 }
 else
 {
@@ -517,6 +565,28 @@ else version (CRuntime_Musl)
     int timer_settime(timer_t, int, const scope itimerspec*, itimerspec*);
     int timer_getoverrun(timer_t);
 }
+else version (CRuntime_WASI)
+{
+    alias clockid_t = const __clockid*;
+    alias timer_t = void*;
+
+    struct itimerspec
+    {
+        timespec it_interval;
+        timespec it_value;
+    }
+
+    enum TIMER_ABSTIME = 1;
+
+    extern const __clockid _CLOCK_REALTIME;
+    enum CLOCK_REALTIME = &_CLOCK_REALTIME;
+
+    int nanosleep(const scope timespec*, timespec*);
+
+    int clock_getres(clockid_t, timespec*);
+    int clock_gettime(clockid_t, timespec*);
+    int clock_nanosleep(clockid_t, int, const scope timespec*, timespec*);
+}
 else version (CRuntime_UClibc)
 {
     enum CLOCK_REALTIME             = 0;
@@ -628,6 +698,13 @@ else version (CRuntime_Musl)
     pragma(mangle, muslRedirTime64Mangle!("localtime_r", "__localtime64_r"))
     tm*   localtime_r(const scope time_t*, tm*);
 }
+else version (CRuntime_WASI)
+{
+    char* asctime_r(const scope tm*, char*);
+    char* ctime_r(const scope time_t*, char*);
+    tm*   gmtime_r(const scope time_t*, tm*);
+    tm*   localtime_r(const scope time_t*, tm*);
+}
 else version (CRuntime_UClibc)
 {
     char* asctime_r(const scope tm*, char*);
@@ -710,6 +787,11 @@ else version (CRuntime_Musl)
     extern __gshared int daylight;
     extern __gshared c_long timezone;
 
+    tm*   getdate(const scope char*);
+    char* strptime(const scope char*, const scope char*, tm*);
+}
+else version (CRuntime_WASI)
+{
     tm*   getdate(const scope char*);
     char* strptime(const scope char*, const scope char*, tm*);
 }

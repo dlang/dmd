@@ -32,8 +32,10 @@ import dmd.backend.x86.code_x86;
 import dmd.backend.codebuilder;
 import dmd.backend.mem;
 import dmd.backend.el;
-import dmd.backend.global;
+import dmd.backend.global : REGSIZE, mask;
+import dmd.backend.debugprint : fl_str;
 import dmd.backend.oper;
+import dmd.backend.symbol;
 import dmd.backend.ty;
 import dmd.backend.type;
 import dmd.backend.x86.xmm;
@@ -894,22 +896,7 @@ void cdcond(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     else
         codelem(cg,cdb1,e21,retregs,false);
 
-    if (CPP && e2.Eoper == OPcolon2)
-    {
-        code cs;
-
-        // This is necessary so that any cleanup code on one branch
-        // is redone on the other branch.
-        cs.Iop = PSOP.mark2;
-        cs.Iflags = 0;
-        cs.Irex = 0;
-        cdb.gen(&cs);
-        cdb.append(cdb1);
-        cs.Iop = PSOP.release2;
-        cdb.gen(&cs);
-    }
-    else
-        cdb.append(cdb1);
+    cdb.append(cdb1);
 
     const regconsave = cg.regcon;
     cg.regcon = cast()regconold;
@@ -1861,7 +1848,7 @@ void cdstreq(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             loadFromEA(csrc,Rv,4,4);
             cdb.genc1(csrc.Iop,0,FL.offset,offset);
             storeToEA(cdst,Rv,4);
-            cdb.genc1(csrc.Iop,0,FL.offset,offset);
+            cdb.genc1(cdst.Iop,0,FL.offset,offset);
             offset += 4;
             numbytes -= 4;
         }
@@ -1871,7 +1858,7 @@ void cdstreq(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             loadFromEA(csrc,Rv,4,2);
             cdb.genc1(csrc.Iop,0,FL.offset,offset);
             storeToEA(cdst,Rv,2);
-            cdb.genc1(csrc.Iop,0,FL.offset,offset);
+            cdb.genc1(cdst.Iop,0,FL.offset,offset);
             offset += 2;
             numbytes -= 2;
         }
@@ -1881,7 +1868,7 @@ void cdstreq(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             loadFromEA(csrc,Rv,4,1);
             cdb.genc1(csrc.Iop,0,FL.offset,offset);
             storeToEA(cdst,Rv,1);
-            cdb.genc1(csrc.Iop,0,FL.offset,offset);
+            cdb.genc1(cdst.Iop,0,FL.offset,offset);
         }
     }
     else
@@ -2057,7 +2044,7 @@ void getoffset(ref CGstate cg, ref CodeBuilder cdb,elem* e,reg_t reg)
     enum log = false;
     if (log) printf("getoffset(e = %p, reg = %s)\n", e, regm_str(mask(reg)));
     code cs;
-    cs.Iflags = 0;
+    cs.Iflags = CF.zero;
     ubyte rex = 0;
     cs.Irex = rex;
     assert(e.Eoper == OPvar || e.Eoper == OPrelconst);
@@ -2078,7 +2065,7 @@ void getoffset(ref CGstate cg, ref CodeBuilder cdb,elem* e,reg_t reg)
                 cdb.gencs1(ins,0,fl,e.Vsym);
                 ins = INSTR.ldr_imm_gen(1,reg,reg,0);   // LDR  reg,[reg] RELOC_TLVP_LOAD_PAGEOFF12
                 cdb.gencs1(ins,0,fl,e.Vsym);
-                cdb.last.Iflags |= CFadd;
+                cdb.last.Iflags |= CF.add;
                 return;
             }
             if (config.exe & EX_posix)
@@ -2092,7 +2079,7 @@ void getoffset(ref CGstate cg, ref CodeBuilder cdb,elem* e,reg_t reg)
 
                 ins = INSTR.addsub_imm(1,0,0,0,0,reg,reg);          // ADD reg,reg,#0
                 cdb.gencs1(ins,0,fl,e.Vsym);
-                cdb.last.Iflags |= CFadd;
+                cdb.last.Iflags |= CF.add;
                 return;
             }
             assert(0);
@@ -2196,7 +2183,7 @@ static if (0)
             {
                 cdb.genpush(reg);        // PUSH reg
                 cdb.genadjesp(REGSIZE);
-                cg.stackchanged = 1;
+                cg.stackchanged = true;
             }
         }
         else if (config.exe & EX_windos)
@@ -2225,10 +2212,11 @@ static if (0)
 
         case FL.func:
             fl = FL.extern_;                  /* don't want PC relative addresses */
-            goto L4;
+            //goto L4;
+            goto case;
 
         case FL.extern_:
-            if (config.exe & EX_posix)
+            if (config.exe & EX_posix && (e.Vsym.ty() & mTYthread))
             {
                 if (log) printf("posix extern threaded\n");
                 regm_t scratch = INSTR.ALLREGS & ~mask(reg);
@@ -2241,14 +2229,29 @@ static if (0)
 
                 ins = INSTR.ldr_imm_gen(1,reg,reg,0);              // LDR  reg,[reg]
                 cdb.gencs1(ins,0,fl,e.Vsym);
-                cdb.last.Iflags |= CFadd;
+                cdb.last.Iflags |= CF.add;
 
                 cdb.gen1(INSTR.addsub_shift(1,0,0,0,reg,0,r,reg)); // ADD reg,r,reg
                 return;
             }
+            else if (config.objfmt == OBJ_ELF)
+                goto L4;
+            else
+            {
+                uint ins = INSTR.adr(1,0,reg);                     // ADRP reg,0<foo>
+                cdb.gencs1(ins,0,fl,e.Vsym);
+
+                ins = INSTR.ldr_imm_gen(1,reg,reg,0);              // LDR  reg,[reg]
+                cdb.gencs1(ins,0,fl,e.Vsym);
+                cdb.last.Iflags |= CF.add;
+
+                if (e.Voffset)
+                    cdb.gen1(INSTR.addsub_imm(1,0,0,0,cast(uint)e.Voffset,reg,reg)); // ADD reg,reg,#Voffset
+            }
+            break;
 //            if (config.exe & EX_WIN64 && e.Vsym.ty() & mTYthread)
 //                goto Lwin64;
-            goto L4;
+//            goto L4;
 
         case FL.data:
             if (config.exe & EX_OSX64 && cg.AArch64)
@@ -2266,7 +2269,7 @@ static if (0)
             cs.IEV1.Voffset = e.Voffset;
         L3:
             if (reg == STACK)
-            {   cg.stackchanged = 1;
+            {   cg.stackchanged = true;
                 cs.Iop = 0x68;              /* PUSH immed16                 */
                 cdb.genadjesp(REGSIZE);
                 cs.IFL1 = fl;
@@ -2277,10 +2280,9 @@ static if (0)
                 uint ins = INSTR.adr(1,0,reg);                // ADRP reg,0<foo>
                 cdb.gencs1(ins,0,fl,e.Vsym);
 
-                cs.Iop = INSTR.addsub_imm(1,0,0,0,0,reg,reg); // ADD reg,reg,#0
-                cs.Iflags |= CFadd;
-                cs.IFL1 = fl;
-                cdb.gen(&cs);
+                ins = INSTR.addsub_imm(1,0,0,0,0,reg,reg); // ADD reg,reg,#0
+                cdb.gencs1(ins,0,fl,e.Vsym);
+                cdb.last.Iflags |= CF.add;
 
                 if (e.Voffset)
                     cdb.gen1(INSTR.addsub_imm(1,0,0,0,cast(uint)e.Voffset,reg,reg)); // ADD reg,reg,#Voffset
@@ -2310,7 +2312,7 @@ static if (0)
                     code_orrex(cdb.last(), REX_W);
                 cdb.genpush(reg);               // PUSH reg
                 cdb.genadjesp(REGSIZE);
-                cg.stackchanged = 1;
+                cg.stackchanged = true;
             }
             else
             {

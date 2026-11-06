@@ -30,9 +30,9 @@ import dmd.dversion;
 import dmd.dscope;
 import dmd.dstruct;
 import dmd.dtemplate;
-import dmd.errors;
 import dmd.expression;
 import dmd.func;
+import dmd.hdrgen : toErrMsg;
 import dmd.identifier;
 import dmd.location;
 import dmd.mtype;
@@ -151,6 +151,7 @@ extern (C++) private class AddCommentVisitor: Visitor
         }
     }
     override void visit(StaticForeachDeclaration sfd) {}
+    override void visit(UnpackDeclaration upd) {}
 }
 
 
@@ -263,7 +264,6 @@ struct FieldState
 
     uint fieldOffset;   /// byte offset for the start of the bit field
     uint fieldSize;     /// byte size of field
-    uint fieldAlign;    /// byte alignment of field
     uint bitOffset;     /// bit offset for field
 
     bool inFlight;      /// bit field is in flight
@@ -319,6 +319,7 @@ enum DSYM : ubyte
     bitFieldDeclaration,
     typeInfoDeclaration,
     tupleDeclaration,
+    unpackDeclaration,
     aliasDeclaration,
     aggregateDeclaration,
     funcDeclaration,
@@ -679,7 +680,7 @@ extern (C++) class Dsymbol : ASTNode
         return ident;
     }
 
-    const(char)* toPrettyChars(bool QualifyTypes = false)
+    const(char)* toPrettyChars(bool QualifyTypes = false, bool keepOneMember = false)
     {
         //printf("Dsymbol::toPrettyChars() '%s'\n", toChars());
         if (!parent)
@@ -695,6 +696,18 @@ extern (C++) class Dsymbol : ASTNode
             if (p.parent)
             {
                 addQualifiers(p.parent);
+
+                if (!keepOneMember)
+                {
+                    import dmd.dsymbolsem : oneMembers;
+                    Dsymbol sym;
+                    if (auto ti = p.parent.isTemplateInstance())
+                        if (auto ident = p.getIdent())
+                            if (ident is ti.name)
+                                if (oneMembers(ti.members, sym, ident) && sym is p)
+                                    return;
+                }
+
                 buf.writeByte('.');
             }
             const s = QualifyTypes ? p.toPrettyCharsHelper() : p.toChars();
@@ -948,6 +961,7 @@ extern (C++) class Dsymbol : ASTNode
     inout(BitFieldDeclaration)         isBitFieldDeclaration()         inout { return dsym == DSYM.bitFieldDeclaration ? cast(inout(BitFieldDeclaration)) cast(void*) this : null; }
     inout(TypeInfoDeclaration)         isTypeInfoDeclaration()         inout { return dsym == DSYM.typeInfoDeclaration ? cast(inout(TypeInfoDeclaration)) cast(void*) this : null; }
     inout(TupleDeclaration)            isTupleDeclaration()            inout { return dsym == DSYM.tupleDeclaration ? cast(inout(TupleDeclaration)) cast(void*) this : null; }
+    inout(UnpackDeclaration)           isUnpackDeclaration()           inout { return dsym == DSYM.unpackDeclaration ? cast(inout(UnpackDeclaration)) cast(void*) this : null; }
     inout(AliasDeclaration)            isAliasDeclaration()            inout { return dsym == DSYM.aliasDeclaration ? cast(inout(AliasDeclaration)) cast(void*) this : null; }
     inout(AggregateDeclaration)        isAggregateDeclaration()        inout {
         switch (dsym)
@@ -1086,7 +1100,7 @@ extern (C++) class ScopeDsymbol : Dsymbol
 {
     Dsymbols* members;          // all Dsymbol's in this scope
     DsymbolTable symtab;        // members[] sorted into table
-    uint endlinnum;             // the linnumber of the statement after the scope (0 if unknown)
+    Loc endloc;                 // the linnumber of the statement after the scope (0 if unknown)
     /// symbols whose members have been imported, i.e. imported modules and template mixins
     Dsymbols* importedScopes;
     Visibility.Kind* visibilities; // array of Visibility.Kind, one for each import
@@ -1118,7 +1132,7 @@ public:
         ScopeDsymbol sds = s ? cast(ScopeDsymbol)s : new ScopeDsymbol(ident);
         sds.addComment(comment);
         sds.members = arraySyntaxCopy(members);
-        sds.endlinnum = endlinnum;
+        sds.endloc = endloc;
         return sds;
     }
 
@@ -1205,6 +1219,8 @@ public:
 
     static void multiplyDefined(Loc loc, Dsymbol s1, Dsymbol s2)
     {
+        import dmd.globals : global;
+        auto eSink = global.errorSink;
         version (none)
         {
             printf("ScopeDsymbol::multiplyDefined()\n");
@@ -1213,9 +1229,9 @@ public:
         }
         if (loc.isValid())
         {
-            .error(loc, "`%s` matches conflicting symbols:", s1.ident.toErrMsg());
-            errorSupplemental(s1.loc, "%s `%s`", s1.kind(), s1.toPrettyChars());
-            errorSupplemental(s2.loc, "%s `%s`", s2.kind(), s2.toPrettyChars());
+            eSink.error(loc, "`%s` matches conflicting symbols:", s1.ident.toErrMsg());
+            eSink.errorSupplemental(s1.loc, "%s `%s`", s1.kind(), s1.toPrettyChars());
+            eSink.errorSupplemental(s2.loc, "%s `%s`", s2.kind(), s2.toPrettyChars());
 
             static if (0)
             {
@@ -1239,7 +1255,7 @@ public:
         }
         else
         {
-            .error(s1.loc, "%s `%s` conflicts with %s `%s` at %s", s1.kind, s1.toPrettyChars, s2.kind(), s2.toPrettyChars(), s2.loc.toChars());
+            eSink.error(s1.loc, "%s `%s` conflicts with %s `%s` at %s", s1.kind, s1.toPrettyChars, s2.kind(), s2.toPrettyChars(), s2.loc.toChars());
         }
     }
 
@@ -1289,7 +1305,7 @@ extern (C++) final class WithScopeSymbol : ScopeDsymbol
     extern (D) this(WithStatement withstate, ScopeDsymbol parent) nothrow @safe
     {
         this.withstate = withstate;
-        this.endlinnum = withstate.endloc.linnum;
+        this.endloc = withstate.endloc;
         this.parent = parent;
         this.dsym = DSYM.withScopeSymbol;
     }

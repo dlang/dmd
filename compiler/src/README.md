@@ -55,21 +55,12 @@ created C++ headers in the source directory.
 
 Note: This is currently not supported on windows.
 
-### cxx-headers-test
+### cpp-layout-test
 
-Automatically generates a C++ header from the compilers source code using
-the integrated [C++ header generator `dtoh`](dmd/dtoh.d) and compares it
-to the [reference header](dmd/frontend.h).
+Verifies that the manually maintained C++ headers in
+[`compiler/include/dmd/`](../include/dmd/) stay in sync with the D
+`extern(C++)` declarations in the compiler source. Checks enum constant
+values, field offsets and sizes, class instance sizes, vtable indices,
+and C++ mangled names.
 
-Changes to the C++ interface need to be reflected in both the reference
-and the manually curated header (named `XXX.h` for `XXX.d`). The first
-can be done automatically by passing `AUTO_UPDATE=1` when running this
-target.
-
-```console
-./build.d cxx-headers-test AUTO_UPDATE=1
-```
-
-Note that `dtoh` is currently experimental and may emit invalid code for
-certain declarations, so `frontend.h` is not required to be compilable
-until the remaining issues are resolved.
+Note: Linux/64-bit only (Itanium ABI mangling).

@@ -425,6 +425,21 @@ void testShared()
     cast(void)iprocesses.byKeyValue;
     //iprocesses.remove(3);
     assert(2 in iprocesses);
+
+    const shared int[int] cprocesses = [1: 1, 2:4, 3:9];
+
+    cast(void)cprocesses.sizeof;
+    cast(void)cprocesses.length;
+    cast(void)cprocesses.dup;          // fails in 2.111
+    //cast(void)cprocesses.rehash;
+    //cast(void)cprocesses.clear;
+    //cast(void)cprocesses.keys;       // fails in 2.111
+    //cast(void)cprocesses.values;     // fails in 2.111
+    //cast(void)cprocesses.byKey;      // fails in 2.111
+    //cast(void)cprocesses.byValue;    // fails in 2.111
+    //cast(void)cprocesses.byKeyValue; // fails in 2.111
+    //cprocesses.remove(3);
+    assert(2 in cprocesses);
 }
 
 // https://github.com/dlang/dmd/issues/22556
@@ -443,6 +458,74 @@ void test22556()
     static assert(!__traits(compiles, foo.clear));
 }
 
+// https://github.com/dlang/dmd/issues/23064
+void test23064()
+{
+    static struct A(T)
+    {
+        static assert(is(typeof((T[string]).init == (T[string]).init)),
+                      "is(typeof(...)) is false for " ~ (T[string]).stringof);
+    }
+
+    static struct B { A!B x; }
+}
+
+// https://github.com/dlang/dmd/issues/23065
+void test23065()
+{
+    static struct C(T)
+    {
+        bool opEquals(R)(R rhs)
+            if (is(typeof(T.init == T.init)))
+            {
+                return false;
+            }
+    }
+
+    static struct A(T)
+    {
+        alias _ = C!(T[string]);
+
+        bool opEquals()(A rhs)
+        {
+            T[string] v;
+            return v == v;
+        }
+    }
+
+    static struct B { A!B x; }
+
+    A!B a;
+    cast(void) (a == a);
+}
+
+// https://github.com/dlang/dmd/issues/23182
+void test23182()
+{
+    int[][string] aarr;
+    aarr["key"] = [];
+    aarr["key"].length++;
+
+    int calls = 0;
+    int[] a;
+    ref int[] arr()
+    {
+        calls++;
+        return a;
+    }
+    arr().length++;
+    assert(a.length == 1);
+    assert(calls == 1);
+}
+
+// https://github.com/dlang/dmd/issues/23711
+void test23711()
+{
+    alias AliasSeq(T...) = T;
+    alias Cases = AliasSeq!(["first": [1]]);
+    assert(Cases[0]);
+}
+
 /***************************************************/
 
 // https://github.com/dlang/dmd/issues/22567
@@ -458,6 +541,45 @@ void test22567()
     foo["bar"] = S();
     foo["bar"]["baz"] = "boom";
     assert(foo["bar"]["baz"] == "boom");
+}
+
+// https://github.com/dlang/dmd/issues/19829
+void test19829()
+{
+    auto foo() {
+        bool[string] p;
+        return p.keys ~ "bar";
+    }
+    enum a = foo;
+    static assert(a == ["bar"]);
+    assert(foo == ["bar"]);
+
+    auto bar() {
+        bool[string] p;
+        return p.values ~ true;
+    }
+    enum b = bar;
+    static assert(b == [true]);
+    assert(bar == [true]);
+}
+
+// https://github.com/dlang/dmd/issues/23964
+void test23964()
+{
+    struct S
+    {
+        int[] data;
+
+        void opIndexAssign(int rhs, size_t i)
+        {
+            data[i] = rhs;
+        }
+    }
+
+    S[string] aa;
+    aa["a"] = S([1, 2, 3]);
+    aa["a"][0] = 11;
+    assert(aa["a"].data == [11, 2, 3]);
 }
 
 /***************************************************/
@@ -491,4 +613,8 @@ void main()
     testShared();
     test22567();
     test22556();
+    test19829();
+    test23182();
+    test23711();
+    test23964();
 }

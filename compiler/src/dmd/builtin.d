@@ -15,7 +15,7 @@ module dmd.builtin;
 
 import dmd.arraytypes;
 import dmd.astenums;
-import dmd.errors;
+import dmd.errorsink;
 import dmd.expression;
 import dmd.expressionsem : toInteger, toReal;
 import dmd.typesem : isFloating, toBasetype;
@@ -378,7 +378,11 @@ Expression eval_bsf(Loc loc, FuncDeclaration fd, Expression[] arguments)
     assert(arg0.op == EXP.int64);
     auto n = arg0.toInteger();
     if (n == 0)
-        error(loc, "`bsf(0)` is undefined");
+    {
+        import dmd.globals : global;
+        auto eSink = global.errorSink;
+        eSink.error(loc, "`bsf(0)` is undefined");
+    }
     return new IntegerExp(loc, core.bitop.bsf(n), Type.tint32);
 }
 
@@ -388,7 +392,11 @@ Expression eval_bsr(Loc loc, FuncDeclaration fd, Expression[] arguments)
     assert(arg0.op == EXP.int64);
     auto n = arg0.toInteger();
     if (n == 0)
-        error(loc, "`bsr(0)` is undefined");
+    {
+        import dmd.globals : global;
+        auto eSink = global.errorSink;
+        eSink.error(loc, "`bsr(0)` is undefined");
+    }
     return new IntegerExp(loc, core.bitop.bsr(n), Type.tint32);
 }
 

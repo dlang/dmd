@@ -25,13 +25,13 @@ import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.x86.code_x86 : isXMMreg;
 import dmd.backend.oper;
-import dmd.backend.global;
+import dmd.backend.global : REGSIZE, err_nomem;
+import dmd.backend.debugprint : tym_str;
 import dmd.backend.el;
-import dmd.backend.symtab;
+import dmd.backend.symbol;
 import dmd.backend.ty;
 import dmd.backend.type;
 
-import dmd.backend.dlist;
 import dmd.backend.dvec;
 
 
@@ -364,9 +364,9 @@ if (enable) // disable while we test the inliner
         if (log) printf("slice1 [%d]: %s\n", cast(int)si, s.Sident.ptr);
 
         //if (strcmp(s.Sident.ptr, "__inlineretval3".ptr) == 0) { printf("can't\n"); sia[si].canSlice = false; continue; }
-        if (!(s.Sflags & SFLunambig))   // if somebody took the address of s
+        if (!(s.Sflags & SFLdistinct))   // if somebody took the address of s
         {
-            if (log) printf(" can't because SFLunambig\n");
+            if (log) printf(" can't because SFLdistinct\n");
             sia[si].canSlice = false;
             continue;
         }

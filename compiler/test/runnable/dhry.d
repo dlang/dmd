@@ -343,7 +343,6 @@ Deprecation caused by https://issues.dlang.org/show_bug.cgi?id=20645
 import core.stdc.stdio;
 import core.stdc.string;
 import core.stdc.stdlib;
-import std.string;
 
 
 /* Compiler and system dependent definitions: */
@@ -931,6 +930,21 @@ version (NetBSD)
 }
 
 version (OpenBSD)
+{
+    import core.sys.posix.sys.time;
+
+    double dtime()
+    {
+     double q;
+     timeval tv;
+
+     gettimeofday(&tv,null);
+     q = cast(double)tv.tv_sec + cast(double)tv.tv_usec * 1.0e-6;
+
+     return q;
+    }
+}
+version (Hurd)
 {
     import core.sys.posix.sys.time;
 

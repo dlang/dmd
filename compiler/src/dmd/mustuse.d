@@ -12,7 +12,7 @@ module dmd.mustuse;
 
 import dmd.dscope;
 import dmd.dsymbol;
-import dmd.errors;
+import dmd.errorsink;
 import dmd.expression;
 import dmd.identifier;
 import dmd.location;
@@ -39,7 +39,9 @@ bool checkMustUse(Expression e, Scope* sc)
         // isStructDeclaration returns non-null for both structs and unions
         if (sd && hasMustUseAttribute(sd, sc) && !isAssignment(e) && !isIncrementOrDecrement(e))
         {
-            error(e.loc, "ignored value of `@%s` type `%s`; prepend a `cast(void)` if intentional",
+            import dmd.globals : global;
+            auto eSink = global.errorSink;
+            eSink.error(e.loc, "ignored value of `@%s` type `%s`; prepend a `cast(void)` if intentional",
                 Id.udaMustUse.toChars(), e.type.toPrettyChars(true));
             return true;
         }
@@ -66,15 +68,17 @@ void checkMustUseReserved(Dsymbol sym)
     foreachUdaNoSemantic(sym, (exp) {
         if (isMustUseAttribute(exp))
         {
+            import dmd.globals : global;
+            auto eSink = global.errorSink;
             if (sym.isFuncDeclaration())
             {
-                error(sym.loc, "`@%s` on functions is reserved for future use",
+                eSink.error(sym.loc, "`@%s` on functions is reserved for future use",
                     Id.udaMustUse.toChars());
                 sym.errors = true;
             }
             else if (sym.isClassDeclaration() || sym.isEnumDeclaration())
             {
-                error(sym.loc, "`@%s` on `%s` types is reserved for future use",
+                eSink.error(sym.loc, "`@%s` on `%s` types is reserved for future use",
                     Id.udaMustUse.toChars(), sym.kind());
                 sym.errors = true;
             }
@@ -151,7 +155,7 @@ private bool isIncrementOrDecrement(Expression e)
                         {
                             if (auto op = argExp.isStringExp())
                             {
-                                if (op.len == 2 && op.sz == 1)
+                                if (op.length == 2 && op.sz == 1)
                                 {
                                     const s = op.peekString();
                                     if (s == "++" || s == "--")

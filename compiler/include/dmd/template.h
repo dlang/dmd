@@ -83,6 +83,10 @@ public:
 
     TemplatePrevious *previous;         // threaded list of previous instantiation attempts on stack
 
+    Expression *lastConstraint;     // the constraint after the last failed evaluation
+    Expressions lastConstraintNegs; // its negative parts
+    Objects *lastConstraintTiargs;  // template instance arguments for lastConstraint
+
     TemplateDeclaration *syntaxCopy(Dsymbol *) override;
     const char *kind() const override;
 
@@ -109,8 +113,8 @@ public:
 class TemplateParameter : public ASTNode
 {
 public:
-    Loc loc;
     Identifier *ident;
+    Loc loc;
 
     /* True if this is a part of precedent parameter specialization pattern.
      *

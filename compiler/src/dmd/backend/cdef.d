@@ -17,12 +17,11 @@ module dmd.backend.cdef;
 
 import dmd.common.int128;
 
-import dmd.backend.cc: Classsym, Symbol, param_t, config;
+import dmd.backend.cc: Classsym, param_t, config;
 import dmd.backend.el;
+import dmd.backend.symbol;
 import dmd.backend.ty : I32;
 import dmd.backend.global : REGSIZE;
-
-import dmd.backend.dlist;
 
 @nogc:
 nothrow:
@@ -44,6 +43,7 @@ enum TARGET_OPENBSD = xversion!`OpenBSD`;
 enum TARGET_SOLARIS = xversion!`Solaris`;
 enum TARGET_WINDOS  = xversion!`Windows`;
 enum TARGET_DRAGONFLYBSD  = xversion!`DragonFlyBSD`;
+enum TARGET_HURD    = xversion!`Hurd`;
 
 //
 //      Attributes
@@ -82,9 +82,6 @@ else
 
 // Generate cleanup code
 enum TERMCODE = 0;
-
-// C++ Language Features
-enum ANGLE_BRACKET_HACK = 0;       // >> means two template arglist closes
 
 // C/C++ Language Features
 enum IMPLIED_PRAGMA_ONCE = 1;       // include guards count as #pragma once
@@ -184,23 +181,6 @@ enum REGMAX = 57;      // registers are numbered 0...63
 enum reg_t NOREG = REGMAX;  // no register
 
 alias tym_t = uint;    // data type big enough for type masks
-
-/**********************************
- * Configuration
- */
-
-/* Linkage type         */
-enum linkage_t
-{
-    LINK_C,                     /* C style                              */
-    LINK_CPP,                   /* C++ style                            */
-    LINK_PASCAL,                /* Pascal style                         */
-    LINK_FORTRAN,
-    LINK_SYSCALL,
-    LINK_STDCALL,
-    LINK_D,                     // D code
-    LINK_MAXDIM                 /* array dimension                      */
-}
 
 /**********************************
  * Exception handling method
@@ -304,6 +284,8 @@ enum
     EX_OPENBSD      = 0x400000,
     EX_OPENBSD64    = 0x800000,
     EX_DRAGONFLYBSD64 = 0x1000000,
+    EX_HURD         = 0x2000000,
+    EX_HURD64       = 0x4000000,
 }
 
 // All of them
@@ -328,7 +310,9 @@ enum exefmt_t EX_all =
     EX_SOLARIS64 |
     EX_OPENBSD   |
     EX_OPENBSD64 |
-    EX_DRAGONFLYBSD64;
+    EX_DRAGONFLYBSD64 |
+    EX_HURD |
+    EX_HURD64;
 
 // All segmented memory models
 enum exefmt_t EX_segmented = EX_DOSX | EX_ZPM | EX_RATIONAL | EX_PHARLAP |
@@ -350,6 +334,7 @@ enum exefmt_t EX_posix = EX_LINUX   | EX_LINUX64   |
                          EX_FREEBSD | EX_FREEBSD64 |
                          EX_SOLARIS | EX_SOLARIS64 |
                          EX_OPENBSD | EX_OPENBSD64 |
+                         EX_HURD    | EX_HURD64    |
                          EX_DRAGONFLYBSD64;
 
 // All 16 bit targets
@@ -362,7 +347,8 @@ enum exefmt_t EX_32 = EX_DOSX | EX_OS2 | EX_PHARLAP |
                 EX_OSX     |
                 EX_FREEBSD |
                 EX_SOLARIS |
-                EX_OPENBSD;
+                EX_OPENBSD |
+                EX_HURD;
 
 // All 64 bit targets
 enum exefmt_t EX_64 =
@@ -372,6 +358,7 @@ enum exefmt_t EX_64 =
                 EX_FREEBSD64 |
                 EX_SOLARIS64 |
                 EX_OPENBSD64 |
+                EX_HURD64    |
                 EX_DRAGONFLYBSD64;
 
 // Constraints
@@ -444,20 +431,7 @@ enum
     CFG3strcod      = 4,       // strings are placed in code segment
     CFG3eseqds      = 8,       // ES == DS at all times
     CFG3ptrchk      = 0x10,    // generate pointer validation code
-    CFG3strictproto = 0x20,    // strict prototyping
-    CFG3autoproto   = 0x40,    // auto prototyping
-    CFG3rtti        = 0x80,    // add RTTI support
-    CFG3relax       = 0x100,   // relaxed type checking (C only)
-    CFG3cpp         = 0x200,   // C++ compile
-    CFG3igninc      = 0x400,   // ignore standard include directory
-    CFG3mars        = 0x800,   // use mars libs and headers
-    CFG3nofar       = 0x1000,  // ignore __far and __huge keywords
-    CFG3noline      = 0x2000,  // do not output #line directives
-    CFG3comment     = 0x4000,  // leave comments in preprocessed output
-    CFG3cppcomment  = 0x8000,  // allow C++ style comments
     CFG3wkfloat     = 0x10000, // make floating point references weak externs
-    CFG3digraphs    = 0x20000, // support ANSI C++ digraphs
-    CFG3semirelax   = 0x40000, // moderate relaxed type checking (non-Windows targets)
     CFG3pic         = 0x80000, // position independent code
     CFG3pie         = 0x10_0000, // position independent executable (CFG3pic also set)
     CFG3ibt         = 0x20_0000, // indirect branch tracking
@@ -471,84 +445,24 @@ enum
     CFG4allcomdat        = 4,          // place all functions in COMDATs
     CFG4fastfloat        = 8,          // fast floating point (-ff)
     CFG4fdivcall         = 0x10,       // make function call for FDIV opcodes
-    CFG4tempinst         = 0x20,       // instantiate templates for undefined functions
     CFG4oldstdmangle     = 0x40,       // do stdcall mangling without @
-    CFG4pascal           = 0x80,       // default to pascal linkage
-    CFG4stdcall          = 0x100,      // default to std calling convention
-    CFG4cacheph          = 0x200,      // cache precompiled headers in memory
-    CFG4alternate        = 0x400,      // if alternate digraph tokens
     CFG4bool             = 0x800,      // support 'bool' as basic type
-    CFG4wchar_t          = 0x1000,     // support 'wchar_t' as basic type
-    CFG4notempexp        = 0x2000,     // no instantiation of template functions
-    CFG4anew             = 0x4000,     // allow operator new[] and delete[] overloading
-    CFG4oldtmangle       = 0x8000,     // use old template name mangling
-    CFG4dllrtl           = 0x10000,    // link with DLL RTL
-    CFG4noemptybaseopt   = 0x20000,    // turn off empty base class optimization
-    CFG4nowchar_t        = 0x40000,    // use unsigned short name mangling for wchar_t
-    CFG4forscope         = 0x80000,    // new C++ for scoping rules
-    CFG4warnccast        = 0x100000,   // warn about C style casts
-    CFG4adl              = 0x200000,   // argument dependent lookup
-    CFG4enumoverload     = 0x400000,   // enum overloading
-    CFG4implicitfromvoid = 0x800000,   // allow implicit cast from void* to T*
-    CFG4dependent        = 0x1000000,  // dependent / non-dependent lookup
-    CFG4wchar_is_long    = 0x2000000,  // wchar_t is 4 bytes
     CFG4underscore       = 0x4000000,  // prepend _ for C mangling
 }
 
 enum config_flags4_t CFG4optimized  = CFG4speed | CFG4space;
 enum config_flags4_t CFG4stackalign = CFG4speed;       // align stack to 8 bytes
 
-alias config_flags5_t = uint;
-enum
-{
-    CFG5debug       = 1,      // compile in __debug code
-    CFG5in          = 2,      // compile in __in code
-    CFG5out         = 4,      // compile in __out code
-    CFG5invariant   = 8,      // compile in __invariant code
-}
-
-/* CFGX: flags ignored in precompiled headers
- * CFGY: flags copied from precompiled headers into current config
- */
-enum config_flags_t CFGX   = CFGnowarning;
-enum config_flags2_t CFGX2 = CFG2warniserr | CFG2phuse | CFG2phgen | CFG2phauto |
-                             CFG2once | CFG2hdrdebug | CFG2noobj | CFG2noerrmax |
-                             CFG2expand | CFG2nodeflib | CFG2stomp | CFG2gms;
-enum config_flags3_t CFGX3 = CFG3strcod | CFG3ptrchk;
-enum config_flags4_t CFGX4 = CFG4optimized | CFG4fastfloat | CFG4fdivcall |
-                             CFG4tempinst | CFG4cacheph | CFG4notempexp |
-                             CFG4stackalign | CFG4dependent;
-
-enum config_flags4_t CFGY4 = CFG4nowchar_t | CFG4noemptybaseopt | CFG4adl |
-                             CFG4enumoverload | CFG4implicitfromvoid |
-                             CFG4wchar_is_long | CFG4underscore;
-
-// Configuration flags for HTOD executable
-alias htod_flags_t = uint;
-enum
-{
-    HTODFinclude    = 1,      // -hi drill down into #include files
-    HTODFsysinclude = 2,      // -hs drill down into system #include files
-    HTODFtypedef    = 4,      // -ht drill down into typedefs
-    HTODFcdecl      = 8,      // -hc skip C declarations as comments
-}
-
 // This part of the configuration is saved in the precompiled header for use
 // in comparing to make sure it hasn't changed.
 
 struct Config
 {
-    char language;              // 'C' = C, 'D' = C++
     string _version;            /// Compiler version
-    char[3] exetype;            // distinguish exe types so PH
-                                // files are distinct (= SUFFIX)
 
     cpu_target_t target_cpu;       // instruction selection
     cpu_target_t target_scheduler; // instruction scheduling (normally same as selection)
 
-    short versionint;           // intermediate file version (= VERSIONINT)
-    int defstructalign;         // struct alignment specified by command line
-    short hxversion;            // HX version number
     symbolic_debug_t fulltypes; // format of symbolic debug info
 
     windows_flags_t wflags;     // flags for Windows code generation
@@ -567,18 +481,11 @@ struct Config
     config_flags2_t flags2;
     config_flags3_t flags3;
     config_flags4_t flags4;
-    config_flags5_t flags5;
 
-    htod_flags_t htodFlags;     // configuration for htod
-    ubyte ansi_c;               // strict ANSI C
-                                // 89 for ANSI C89, 99 for ANSI C99
-    ubyte asian_char;           // 0: normal, 1: Japanese, 2: Chinese
-                                // and Taiwanese, 3: Korean
     uint threshold;             // data larger than threshold is assumed to
                                 // be far (16 bit models only)
                                 // if threshold == THRESHMAX, all data defaults
                                 // to near
-    linkage_t linkage;          // default function call linkage
     EHmethod ehmethod;          // exception handling method
     bool useModuleInfo;         // implement ModuleInfo
     bool useTypeInfo;           // implement TypeInfo
@@ -592,9 +499,7 @@ struct Config
     ubyte verbose;              // 0: compile quietly (no messages)
                                 // 1: show progress to DLL (default)
                                 // 2: full verbosity
-    char* csegname;             // code segment name
-    char* deflibname;           // default library name
-    int errmax;                 // max error count
+    const(char)[] vasmName;     // name of file to vasm
 }
 
 enum THRESHMAX = 0xFFFF;
@@ -707,7 +612,6 @@ enum SC : ubyte
     unde,           /// undefined
     auto_,          /// automatic (stack)
     static_,        /// statically allocated
-    thread,         /// thread local
     extern_,        /// external
     register,       /// registered variable
     pseudo,         /// pseudo register variable
@@ -718,38 +622,21 @@ enum SC : ubyte
     fastpar,        /// function parameter passed in register
     shadowreg,      /// function parameter passed in register, shadowed on stack
     typedef_,       /// type definition
-    explicit,       /// explicit
-    mutable,        /// mutable
-    label,          /// goto label
     struct_,        /// struct/class/union tag name
     enum_,          /// enum tag name
     field,          /// bit field of struct or union
     const_,         /// constant integer
     member,         /// member of struct or union
-    anon,           /// member of anonymous union
     inline,         /// for inline functions
     sinline,        /// for static inline functions
     einline,        /// for extern inline functions
-    overload,       /// for overloaded function names
-    friend,         /// friend of a class
-    virtual,        /// virtual function
     locstat,        /// static, but local to a function
-    template_,      /// class template
-    functempl,      /// function template
-    ftexpspec,      /// function template explicit specialization
-    linkage,        /// function linkage symbol
-    public_,        /// generate a pubdef for this
     comdef,         /// uninitialized common block
     bprel,          /// variable at fixed offset from frame pointer
-    namespace,      /// namespace
     alias_,         /// alias to another symbol
     funcalias,      /// alias to another function symbol
-    memalias,       /// alias to base class member
     stack,          /// offset from stack pointer (not frame pointer)
-    adl,            /// list of ADL symbols for overloading
 }
-
-enum SCMAX = SC.max + 1;
 
 int ClassInline(int c) { return c == SC.inline || c == SC.sinline || c == SC.einline; }
 int SymInline(Symbol* s) { return ClassInline(s.Sclass); }

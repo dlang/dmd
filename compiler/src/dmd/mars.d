@@ -389,7 +389,7 @@ void setDefaultLibraries(const ref Target target, ref const(char)[] defaultlibna
         {
             defaultlibname = target.isX86_64 ? "phobos64" : "phobos32mscoff";
         }
-        else if (target.os & (Target.OS.linux | Target.OS.FreeBSD | Target.OS.OpenBSD | Target.OS.Solaris | Target.OS.DragonFlyBSD))
+        else if (target.os & (Target.OS.linux | Target.OS.FreeBSD | Target.OS.OpenBSD | Target.OS.Solaris | Target.OS.DragonFlyBSD | Target.OS.Hurd))
         {
             defaultlibname = "libphobos2.a";
         }
@@ -694,29 +694,13 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, out Param 
             }
         }
         else if (arg == "-de")               // https://dlang.org/dmd.html#switch-de
-            params.useDeprecated = DiagnosticReporting.error;
+            global.errorSink.useDeprecated = DiagnosticReporting.error;
         else if (arg == "-d")                // https://dlang.org/dmd.html#switch-d
-            params.useDeprecated = DiagnosticReporting.off;
+            global.errorSink.useDeprecated = DiagnosticReporting.off;
         else if (arg == "-dw")               // https://dlang.org/dmd.html#switch-dw
-            params.useDeprecated = DiagnosticReporting.inform;
+            global.errorSink.useDeprecated = DiagnosticReporting.inform;
         else if (arg == "-c")                // https://dlang.org/dmd.html#switch-c
             driverParams.link = false;
-        else if (startsWith(p + 1, "checkactionfinally")) // https://dlang.org/dmd.html#switch-checkactionfinally
-        {
-            enum len = "-checkactionfinally".length;
-            switch(arg[len .. $])
-            {
-                case "=off":
-                    params.rewriteNoExceptionToSeq = true;
-                    break;
-                case "=on":
-                    params.rewriteNoExceptionToSeq = false;
-                    break;
-                default:
-                    errorInvalidSwitch(p, "-checkactionerror argument may only be `on` or `off`");
-                    return false;
-            }
-        }
         else if (startsWith(p + 1, "checkaction")) // https://dlang.org/dmd.html#switch-checkaction
         {
             /* Parse:
@@ -1062,10 +1046,26 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, out Param 
         }
         else if (arg == "-v") // https://dlang.org/dmd.html#switch-v
             params.v.verbose = true;
+        else if (startsWith(p + 1, "vasm")) // https://dlang.org/dmd.html#switch-vasm
+        {
+            driverParams.vasm = true;
+            enum len = "-vasm".length;
+            const char c = p[len];
+            if (c)
+            {
+                if (c != '=')
+                {
+                    errorInvalidSwitch(p, "Expected string following `-vasm=`, e.g. `-vasm=<string>`");
+                    return true;
+                }
+                driverParams.vasmName = p[len + 1 .. arg.length];
+            }
+            //printf("vasm: %.*s\n", cast(int)driverParams.vasmName.length, driverParams.vasmName.ptr);
+        }
         else if (arg == "-vcg-ast")
             params.vcg_ast = true;
-        else if (arg == "-vasm") // https://dlang.org/dmd.html#switch-vasm
-            driverParams.vasm = true;
+        else if (arg == "-vnan")  // https://dlang.org/dmd.html#switch-vnan
+            params.v.nanInit = true;
         else if (arg == "-vtls") // https://dlang.org/dmd.html#switch-vtls
             params.v.tls = true;
         else if (startsWith(p + 1, "vtemplates")) // https://dlang.org/dmd.html#switch-vtemplates
@@ -1097,7 +1097,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, out Param 
             }
             if (startsWith(p + 9, "spec"))
             {
-                params.v.showGaggedErrors = true;
+                global.errorSink.showGaggedErrors = true;
             }
             else if (startsWith(p + 9, "simple"))
             {
@@ -1111,6 +1111,10 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, out Param 
             {
                 errorInvalidSwitch(p, "Only a number, `spec`, `simple`, or `context` are allowed for `-verrors`");
                 return true;
+            }
+            else
+            {
+                global.errorSink.errorLimit = params.v.errorLimit;
             }
         }
         else if (startsWith(p + 1, "verror-supplements"))
@@ -1188,7 +1192,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, out Param 
             enum len = "-os=".length;
             // Parse:
             //      -os=identifier
-            immutable string msg = "Only `host`, `linux`, `windows`, `osx`,`openbsd`, `freebsd`, `solaris`, `dragonflybsd` allowed for `-os`";
+            immutable string msg = "Only `host`, `linux`, `windows`, `osx`,`openbsd`, `freebsd`, `solaris`, `dragonflybsd`, `hurd` allowed for `-os`";
             if (Identifier.isValidIdentifier(p + len))
             {
                 const ident = p + len;
@@ -1202,6 +1206,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, out Param 
                 case "freebsd":      target.os = Target.OS.FreeBSD;      break;
                 case "solaris":      target.os = Target.OS.Solaris;      break;
                 case "dragonflybsd": target.os = Target.OS.DragonFlyBSD; break;
+                case "hurd":         target.os = Target.OS.Hurd;         break;
                 default:
                     errorInvalidSwitch(p, msg);
                     return false;
@@ -1347,9 +1352,9 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, out Param 
             }
         }
         else if (arg == "-w")   // https://dlang.org/dmd.html#switch-w
-            params.useWarnings = DiagnosticReporting.error;
+            global.errorSink.useWarnings = DiagnosticReporting.error;
         else if (arg == "-wi")  // https://dlang.org/dmd.html#switch-wi
-            params.useWarnings = DiagnosticReporting.inform;
+            global.errorSink.useWarnings = DiagnosticReporting.inform;
         else if (arg == "-wo")  // https://dlang.org/dmd.html#switch-wo
         {
             // Obsolete features has been obsoleted until a DIP for "editions"
@@ -1615,7 +1620,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, out Param 
             params.ehnogc = true;
         }
         else if (arg == "-lib")         // https://dlang.org/dmd.html#switch-lib
-            driverParams.lib = true;
+            driverParams.lib = params.fullyQualifiedObjectFiles = true;
         else if (arg == "-nofloat")
             driverParams.nofloat = true;
         else if (arg == "-quiet")
@@ -1666,8 +1671,17 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, out Param 
         {
             params.useExceptions = false;
         }
+        else if (arg == "-nothrow-optimizations") // https://dlang.org/dmd.html#switch-nothrow-optimizations
+        {
+            params.nothrowOptimizations = true;
+        }
         else if (arg == "-unittest")
             params.useUnitTests = true;
+        else if (arg == "-unittest-roots")
+        {
+            params.useUnitTests = true;
+            params.useUnitTestsRootOnly = true;
+        }
         else if (p[1] == 'I')              // https://dlang.org/dmd.html#switch-I
         {
             params.imppath.push(ImportPathInfo(p + 2 + (p[2] == '=')));
@@ -1936,7 +1950,7 @@ bool createModule(const(char)* file, ref Strings libmodules, ref Param params, c
         libmodules.push(file);
         return false;
     }
-    if (target.os & (Target.OS.linux | Target.OS.OSX| Target.OS.FreeBSD | Target.OS.OpenBSD | Target.OS.Solaris | Target.OS.DragonFlyBSD))
+    if (target.os & (Target.OS.linux | Target.OS.OSX| Target.OS.FreeBSD | Target.OS.OpenBSD | Target.OS.Solaris | Target.OS.DragonFlyBSD | Target.OS.Hurd))
     {
         if (FileName.equals(ext, target.dll_ext))
         {
@@ -2084,7 +2098,7 @@ Module moduleWithEmptyMain()
 {
     auto result = new Module(Loc.initial, "__main.d", Identifier.idPool("__main"), false, false);
     // need 2 trailing nulls for sentinel and 2 for lexer
-    auto data = arraydup("version(D_BetterC)extern(C)int main(){return 0;}else int main(){return 0;}\0\0\0\0");
+    auto data = xarraydup("version(D_BetterC)extern(C)int main(){return 0;}else int main(){return 0;}\0\0\0\0");
     result.src = cast(ubyte[]) data[0 .. $-4];
     result.parse();
     result.importedFrom = result;

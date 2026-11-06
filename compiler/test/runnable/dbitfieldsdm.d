@@ -2,7 +2,7 @@
  * Note that this test is for win32 only
  *
  *
- * DISABLED: win32mscoff win64 linux freebsd osx
+ * DISABLED: win32mscoff win64 linux freebsd osx hurd
  * RUN_OUTPUT:
 ---
                 DM |   MS |  P32 |  P64

@@ -25,6 +25,7 @@ class ThisDeclaration;
 class BitFieldDeclaration;
 class TypeInfoDeclaration;
 class TupleDeclaration;
+class UnpackDeclaration;
 class AliasDeclaration;
 class AggregateDeclaration;
 class EnumDeclaration;
@@ -113,7 +114,7 @@ namespace dmd
 
 struct Visibility
 {
-    enum Kind
+    enum Kind : uint8_t
     {
         undefined,
         none,           // no access
@@ -168,7 +169,6 @@ struct FieldState
 
     unsigned fieldOffset;
     unsigned fieldSize;
-    unsigned fieldAlign;
     unsigned bitOffset;
 
     d_bool inFlight;
@@ -224,7 +224,7 @@ public:
     DYNCAST dyncast() const override final { return DYNCAST_DSYMBOL; }
 
     virtual Identifier *getIdent();
-    virtual const char *toPrettyChars(bool QualifyTypes = false);
+    virtual const char *toPrettyChars(bool QualifyTypes = false, bool keepOneMember = false);
     virtual const char *kind() const;
     virtual bool isforwardRef();
     virtual AggregateDeclaration *isThis();     // is a 'this' required to access the member
@@ -266,6 +266,7 @@ public:
     BitFieldDeclaration *isBitFieldDeclaration();
     TypeInfoDeclaration *isTypeInfoDeclaration();
     TupleDeclaration *isTupleDeclaration();
+    UnpackDeclaration *isUnpackDeclaration();
     AliasDeclaration *isAliasDeclaration();
     AggregateDeclaration *isAggregateDeclaration();
     FuncDeclaration *isFuncDeclaration();
@@ -315,7 +316,7 @@ class ScopeDsymbol : public Dsymbol
 public:
     Dsymbols *members;          // all Dsymbol's in this scope
     DsymbolTable *symtab;       // members[] sorted into table
-    unsigned endlinnum;         // the linnumber of the statement after the scope (0 if unknown)
+    Loc endloc;                 // the linnumber of the statement after the scope (0 if unknown)
     Dsymbols *importedScopes;   // imported Dsymbol's
     Visibility::Kind *visibilities;   // array of `Visibility.Kind`, one for each import
 
@@ -426,7 +427,6 @@ namespace dmd
     bool hasPointers(Dsymbol *d);
     Type *getType(Dsymbol *d);
     uinteger_t size(Dsymbol *ds, Loc loc);
-    void semantic3OnDependencies(Module *m);
     void addDeferredSemantic(Dsymbol *s);
     void addDeferredSemantic2(Dsymbol *s);
     void addDeferredSemantic3(Dsymbol *s);

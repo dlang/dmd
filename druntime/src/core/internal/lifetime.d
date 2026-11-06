@@ -106,8 +106,12 @@ if (!is(T == const) && !is(T == immutable) && !is(T == inout))
         import core.stdc.string : memset;
         memset(cast(void*) &chunk, 0, T.sizeof);
     }
+    else static if (is(T == enum) && __traits(compiles, (){ T chunk; chunk = T.init; }))
+    {
+        chunk = T.init;
+    }
     else static if (__traits(isScalar, T) ||
-                    T.sizeof <= 16 && !hasElaborateAssign!T && __traits(compiles, (){ T chunk; chunk = T.init; }))
+        T.sizeof <= 16 && !hasElaborateAssign!T && __traits(compiles, (){ T chunk; chunk = T.init; }))
     {
         chunk = T.init;
     }
@@ -176,6 +180,51 @@ if (!is(T == const) && !is(T == immutable) && !is(T == inout))
     testInitializer!ElaborateAndZero();
     testInitializer!ElaborateAndNonZero();
     testInitializer!LargeNonZeroUnion();
+
+    enum ScalarEnum : int { a = 1, b = 2 }
+    testInitializer!ScalarEnum();
+
+    enum ZeroEnum : int { a = 0, b = 1 }
+    testInitializer!ZeroEnum();
+
+    enum StaticArrayEnum : int[5]
+    {
+        a = [1, 2, 3, 4, 5],
+        b = [6, 7, 8, 9, 10],
+    }
+    {
+        import core.stdc.string : memcmp;
+        const StaticArrayEnum expected = StaticArrayEnum.a;
+        StaticArrayEnum dst = StaticArrayEnum.b;
+        shared StaticArrayEnum sharedDst = StaticArrayEnum.b;
+        emplaceInitializer(dst);
+        emplaceInitializer(sharedDst);
+        () @trusted {
+            assert(memcmp(&expected, &dst, StaticArrayEnum.sizeof) == 0);
+            assert(memcmp(&expected, cast(void*) &sharedDst, StaticArrayEnum.sizeof) == 0);
+        }();
+        static assert(!__traits(compiles, emplaceInitializer(expected)));
+    }
+
+    struct StructEnumBase { int[8] a = 7; }
+    enum StructEnum : StructEnumBase
+    {
+        a = StructEnumBase([1, 2, 3, 4, 5, 6, 7, 8]),
+        b = StructEnumBase([8, 7, 6, 5, 4, 3, 2, 1]),
+    }
+    {
+        import core.stdc.string : memcmp;
+        const StructEnum expected = StructEnum.a;
+        StructEnum dst = StructEnum.b;
+        shared StructEnum sharedDst = StructEnum.b;
+        emplaceInitializer(dst);
+        emplaceInitializer(sharedDst);
+        () @trusted {
+            assert(memcmp(&expected, &dst, StructEnum.sizeof) == 0);
+            assert(memcmp(&expected, cast(void*) &sharedDst, StructEnum.sizeof) == 0);
+        }();
+        static assert(!__traits(compiles, emplaceInitializer(expected)));
+    }
 
     static if (is(__vector(double[4])))
     {

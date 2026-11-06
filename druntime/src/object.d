@@ -578,7 +578,6 @@ struct Interface
 {
     /// Class info returned by `typeid` for this interface (not for containing class)
     TypeInfo_Class   classinfo;
-    void*[]     vtbl;
     size_t      offset;     /// offset to Interface 'this' from Object 'this'
 }
 
@@ -1717,7 +1716,6 @@ class TypeInfo_Class : TypeInfo
                                  * (init.length gives size in bytes of class)
                                  */
     string      name;           /// class name
-    void*[]     vtbl;           /// virtual function pointer table
     Interface[] interfaces;     /// interfaces this class implements
     TypeInfo_Class   base;      /// base class
     void*       destructor;
@@ -2326,6 +2324,21 @@ enum
     MIimportedModules = 0x400,
     MIlocalClasses = 0x800,
     MIname       = 0x1000,
+    MIunitTests  = 0x2000,
+}
+
+/*****************************************
+ * Information about an individual compiled unittest block.
+ *
+ * Records are emitted by the compiler and live for the lifetime of their module.
+ * Future fields may be appended; existing fields retain their offsets and types.
+ * Check `size` before accessing a field introduced by a newer runtime.
+ */
+struct UnitTestInfo
+{
+    size_t size;           /// Size of this emitted record in bytes.
+    void function() func;  /// Function executing this unittest block.
+    string name;           /// Compiler-generated name; not guaranteed unique or stable across builds.
 }
 
 /*****************************************
@@ -2353,7 +2366,7 @@ const:
     private void* addrOf(int flag) return nothrow pure @nogc
     in
     {
-        assert(flag >= MItlsctor && flag <= MIname);
+        assert(flag >= MItlsctor && flag <= MIunitTests);
         assert(!(flag & (flag - 1)) && !(flag & ~(flag - 1) << 1));
     }
     do
@@ -2410,7 +2423,12 @@ const:
         if (true || flags & MIname) // always available for now
         {
             if (flag == MIname) return p;
-            p += strlen(cast(immutable char*)p);
+            p += strlen(cast(immutable char*)p) + 1;
+        }
+        if (flags & MIunitTests)
+        {
+            p += (size_t.sizeof - cast(size_t)p % size_t.sizeof) % size_t.sizeof;
+            if (flag == MIunitTests) return p;
         }
         assert(0);
     }
@@ -2480,6 +2498,22 @@ const:
     @property void function() unitTest() nothrow pure @nogc
     {
         return flags & MIunitTest ? *cast(typeof(return)*)addrOf(MIunitTest) : null;
+    }
+
+    /************************
+     * Discover individual unittest blocks in the order used by `unitTest`.
+     * Calling these functions does not perform module initialization or catch
+     * test failures; those remain the responsibility of the caller.
+     *
+     * Returns:
+     *  Read-only pointers to immutable, compiler-emitted records. The slice and
+     *  records remain valid while the module is loaded. Returns an empty slice
+     *  when metadata is unavailable, including modules built by older compilers
+     *  and modules without emitted tests. `unitTest` may still be non-null.
+     */
+    @property const(immutable(UnitTestInfo)*)[] unitTests() return nothrow pure @nogc
+    {
+        return flags & MIunitTests ? *cast(typeof(return)*)addrOf(MIunitTests) : null;
     }
 
     /****************
@@ -3918,6 +3952,7 @@ private size_t getArrayHash(const scope TypeInfo element, const scope void* ptr,
 }
 
 
+import core.internal.array.capacity : _d_arraygetcapacity;
 // HACK:  This is a lie.  `_d_arraysetcapacity` is neither `nothrow` nor `pure`, but this lie is
 // necessary for now to prevent breaking code.
 import core.internal.array.capacity : _d_arraysetcapacityPureNothrow;
@@ -3937,9 +3972,7 @@ Note: The _capacity of a slice may be impacted by operations on other slices.
 @property size_t capacity(T)(T[] arr) pure nothrow @trusted
 {
     const isshared = is(T == shared);
-    alias Unqual_T = Unqual!T;
-    // The postblit of T may be impure, so we need to use the `pure nothrow` wrapper
-    return _d_arraysetcapacityPureNothrow!Unqual_T(0, cast(void[]*)&arr, isshared);
+    return _d_arraygetcapacity(T.sizeof, cast(void[]*)&arr, isshared);
 }
 
 ///
@@ -3963,6 +3996,18 @@ Note: The _capacity of a slice may be impacted by operations on other slices.
         assert(a.capacity == b.capacity + 1); //both a and b share the same tail
     }
     assert(c.capacity == 0);              //an append to c must relocate c.
+}
+
+// https://github.com/dlang/dmd/issues/23102
+@safe unittest
+{
+    static struct S
+    {
+        @disable this(this);
+    }
+
+    S[] s;
+    auto c = s.capacity;
 }
 
 /**
@@ -4053,22 +4098,36 @@ auto ref inout(T[]) assumeSafeAppend(T)(auto ref inout(T[]) arr) nothrow @system
     return arr;
 }
 
-///
-@system unittest
+version (D_Ddoc)
 {
-    int[] a = [1, 2, 3, 4];
-
-    // Without assumeSafeAppend. Appending relocates.
-    int[] b = a [0 .. 3];
-    b ~= 5;
-    assert(a.ptr != b.ptr);
-
-    debug(SENTINEL) {} else
+    ///
+    @system unittest
     {
+        int[] a = [1, 2, 3, 4];
+        // Without assumeSafeAppend. Appending relocates.
+        int[] b = a [0 .. 3];
+        b ~= 5;
+        assert(a.ptr != b.ptr);
         // With assumeSafeAppend. Appending overwrites.
         int[] c = a [0 .. 3];
         c.assumeSafeAppend() ~= 5;
         assert(a.ptr == c.ptr);
+    }
+}
+else
+{
+    @system unittest
+    {
+        debug (SENTINEL) {} else
+        {
+            int[] a = [1, 2, 3, 4];
+            int[] b = a [0 .. 3];
+            b ~= 5;
+            assert(a.ptr != b.ptr);
+            int[] c = a [0 .. 3];
+            c.assumeSafeAppend() ~= 5;
+            assert(a.ptr == c.ptr);
+        }
     }
 }
 

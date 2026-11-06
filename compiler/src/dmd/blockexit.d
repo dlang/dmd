@@ -18,13 +18,14 @@ import dmd.astenums;
 import dmd.canthrow;
 import dmd.dclass;
 import dmd.declaration;
-import dmd.errors;
 import dmd.errorsink;
 import dmd.expression;
 import dmd.expressionsem : toBool;
+import dmd.hdrgen : toErrMsg;
 import dmd.typesem : toBasetype;
 import dmd.func;
 import dmd.globals;
+import dmd.hdrgen : toErrMsg;
 import dmd.id;
 import dmd.identifier;
 import dmd.location;
@@ -124,7 +125,7 @@ int blockExit(Statement s, FuncDeclaration func, ErrorSink eSink)
             // it sees through compound blocks and skips intermediate non-case statements (e.g.
             // static foreach loop variable declarations). https://github.com/dlang/dmd/issues/20242
             Statement slastCase = null;
-            foreach (s; *cs.statements)
+            foreach (s; cs.statements)
             {
                 if (!s)
                     continue;
@@ -141,11 +142,12 @@ int blockExit(Statement s, FuncDeclaration func, ErrorSink eSink)
                     if (sl && (!sl.hasCode() || sl.isErrorStatement()))
                     {
                     }
-                    else if (func.getModule().filetype != FileType.c)
+                    else if (func && func.getModule().filetype != FileType.c)
                     {
                         const(char)* gototype = s.isCaseStatement() ? "case" : "default";
                         // https://issues.dlang.org/show_bug.cgi?id=22999
-                        global.errorSink.error(s.loc, "switch case fallthrough - use 'goto %s;' if intended", gototype);
+                        auto eSink = global.errorSink;
+                        eSink.error(s.loc, "switch case fallthrough - use 'goto %s;' if intended", gototype);
                     }
                 }
 
@@ -163,7 +165,7 @@ int blockExit(Statement s, FuncDeclaration func, ErrorSink eSink)
         void visitUnrolledLoop(UnrolledLoopStatement uls)
         {
             result = BE.fallthru;
-            foreach (s; *uls.statements)
+            foreach (s; uls.statements)
             {
                 if (!s)
                     continue;

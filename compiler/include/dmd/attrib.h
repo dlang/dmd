@@ -88,7 +88,7 @@ public:
 
     VisibilityDeclaration *syntaxCopy(Dsymbol *s) override;
     const char *kind() const override;
-    const char *toPrettyChars(bool unused) override;
+    const char *toPrettyChars(bool unused, bool unused2 = false) override;
     void accept(Visitor *v) override { v->visit(this); }
 };
 
@@ -106,7 +106,6 @@ class AnonDeclaration final : public AttribDeclaration
 {
 public:
     d_bool isunion;
-    int sem;                    // 1 if successful semantic()
     unsigned anonoffset;        // offset of anonymous struct
     unsigned anonstructsize;    // size of anonymous struct
     unsigned anonalignsize;     // size of anonymous struct for alignment purposes
@@ -195,6 +194,26 @@ public:
     Expressions *atts;
 
     UserAttributeDeclaration *syntaxCopy(Dsymbol *s) override;
+    const char *kind() const override;
+    void accept(Visitor *v) override { v->visit(this); }
+};
+
+/***********************************************************
+ * Unpack declarations look like, e.g.:
+ * auto (a, b) = init;
+ * (int a, string b) = init;
+ */
+class UnpackDeclaration final : public AttribDeclaration
+{
+public:
+    Expression *_init;
+    ScopeDsymbol *scopesym;
+    StorageClass declared_storage_class;
+    StorageClass storage_class;
+    bool onStack;
+    bool lowered;
+
+    UnpackDeclaration *syntaxCopy(Dsymbol *) override;
     const char *kind() const override;
     void accept(Visitor *v) override { v->visit(this); }
 };

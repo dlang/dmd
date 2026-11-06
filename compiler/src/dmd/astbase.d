@@ -262,6 +262,20 @@ struct ASTBase
         {
             v.visit(this);
         }
+
+        extern (D) static Dsymbols* arraySyntaxCopy(Dsymbols* a)
+        {
+            Dsymbols* b = null;
+            if (a)
+            {
+                b = a.copy();
+                for (size_t i = 0; i < b.length; i++)
+                {
+                    (*b)[i] = (*b)[i].syntaxCopy(null);
+                }
+            }
+            return b;
+        }
     }
 
     extern (C++) class AliasThis : Dsymbol
@@ -1346,6 +1360,33 @@ struct ASTBase
         }
     }
 
+    extern (C++) final class UnpackDeclaration : AttribDeclaration
+    {
+        Dsymbols* vars;
+        Expression _init;
+        StorageClass storage_class;
+
+        extern (D) this(Loc loc, Dsymbols* vars, Expression _init, StorageClass storage_class)
+        {
+            super(null);
+            this.loc = loc;
+            this.vars = vars;
+            this._init = _init;
+            this.storage_class = storage_class;
+        }
+
+        override UnpackDeclaration syntaxCopy(Dsymbol s)
+        {
+            return new UnpackDeclaration(loc, Dsymbol.arraySyntaxCopy(vars), _init ? _init.syntaxCopy() : null, storage_class);
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
+    }
+
+
     extern (C++) final class EnumMember : VarDeclaration
     {
         Expression origValue;
@@ -1703,16 +1744,18 @@ struct ASTBase
         Identifier ident;
         Expression defaultArg;
         UserAttributeDeclaration userAttribDecl; // user defined attributes
+        UnpackDeclaration unpack;
 
         extern (D) alias ForeachDg = int delegate(size_t idx, Parameter param);
 
-        final extern (D) this(Loc loc, StorageClass storageClass, Type type, Identifier ident, Expression defaultArg, UserAttributeDeclaration userAttribDecl)
+        final extern (D) this(Loc loc, StorageClass storageClass, Type type, Identifier ident, Expression defaultArg, UserAttributeDeclaration userAttribDecl, UnpackDeclaration unpack)
         {
             this.storageClass = storageClass;
             this.type = type;
             this.ident = ident;
             this.defaultArg = defaultArg;
             this.userAttribDecl = userAttribDecl;
+            this.unpack = unpack;
         }
 
         static size_t dim(Parameters* parameters)
@@ -1779,7 +1822,7 @@ struct ASTBase
 
         Parameter syntaxCopy()
         {
-            return new Parameter(loc, storageClass, type ? type.syntaxCopy() : null, ident, defaultArg ? defaultArg.syntaxCopy() : null, userAttribDecl ? userAttribDecl.syntaxCopy(null) : null);
+            return new Parameter(loc, storageClass, type ? type.syntaxCopy() : null, ident, defaultArg ? defaultArg.syntaxCopy() : null, userAttribDecl ? userAttribDecl.syntaxCopy(null) : null, unpack ? unpack.syntaxCopy(null) : null);
         }
 
         override void accept(Visitor v)
@@ -2052,7 +2095,6 @@ struct ASTBase
         Expression condition;
         Statement ifbody;
         Statement elsebody;
-        VarDeclaration match;   // for MatchExpression results
         Loc endloc;                 // location of closing curly bracket
 
         extern (D) this(Loc loc, Parameter param, Expression condition, Statement ifbody, Statement elsebody, Loc endloc)
@@ -2464,24 +2506,23 @@ struct ASTBase
 
     extern (C++) class CompoundStatement : Statement
     {
-        Statements* statements;
+        Statements statements;
 
-        final extern (D) this(Loc loc, Statements* statements)
+        final extern (D) this(Loc loc, Statements statements)
         {
             super(loc, STMT.Compound);
-            this.statements = statements;
+            this.statements = statements.move();
         }
 
-        final extern (D) this(Loc loc, Statements* statements, STMT stmt)
+        final extern (D) this(Loc loc, Statements statements, STMT stmt)
         {
             super(loc, stmt);
-            this.statements = statements;
+            this.statements = statements.move();
         }
 
         final extern (D) this(Loc loc, Statement[] sts...)
         {
             super(loc, STMT.Compound);
-            statements = new Statements();
             statements.reserve(sts.length);
             foreach (s; sts)
                 statements.push(s);
@@ -2509,9 +2550,9 @@ struct ASTBase
 
     extern (C++) final class CompoundDeclarationStatement : CompoundStatement
     {
-        final extern (D) this(Loc loc, Statements* statements)
+        final extern (D) this(Loc loc, Statements statements)
         {
-            super(loc, statements, STMT.CompoundDeclaration);
+            super(loc, statements.move(), STMT.CompoundDeclaration);
         }
 
         override void accept(Visitor v)
@@ -2524,9 +2565,9 @@ struct ASTBase
     {
         StorageClass stc;
 
-        final extern (D) this(Loc loc, Statements* s, StorageClass stc)
+        final extern (D) this(Loc loc, Statements s, StorageClass stc)
         {
-            super(loc, s, STMT.CompoundAsm);
+            super(loc, s.move(), STMT.CompoundAsm);
             this.stc = stc;
         }
 
@@ -3638,7 +3679,7 @@ struct ASTBase
                     Expression e = (*exps)[i];
                     if (e.type.ty == Ttuple)
                         error(e.loc, "cannot form sequence of sequences");
-                    auto arg = new Parameter(e.loc, STC.none, e.type, null, null, null);
+                    auto arg = new Parameter(e.loc, STC.none, e.type, null, null, null, null);
                     (*arguments)[i] = arg;
                 }
             }
@@ -4898,7 +4939,7 @@ struct ASTBase
             wchar* wstring; // if sz == 2
             dchar* dstring; // if sz == 4
         }                   // (const if ownedByCtfe == OwnedBy.code)
-        size_t len;         // number of code units
+        size_t length;      // number of code units
         ubyte sz = 1;       // 1: char, 2: wchar, 4: dchar
         char postfix = 0;   // 'c', 'w', 'd'
 
@@ -4911,7 +4952,7 @@ struct ASTBase
         {
             super(loc, EXP.string_, __traits(classInstanceSize, StringExp));
             this.string = cast(char*)string.ptr;
-            this.len = string.length;
+            this.length = string.length;
             this.sz = 1;                    // work around LDC bug #1286
         }
 
@@ -4919,7 +4960,7 @@ struct ASTBase
         {
             super(loc, EXP.string_, __traits(classInstanceSize, StringExp));
             this.string = cast(char*)string;
-            this.len = len;
+            this.length = len;
             this.postfix = postfix;
             this.sz = 1;                    // work around LDC bug #1286
             this.cMacro = cMacro;
@@ -4947,9 +4988,9 @@ struct ASTBase
             }
             if (sz == encSize)
             {
-                memcpy(dest, string, len * sz);
+                memcpy(dest, string, length * sz);
                 if (zero)
-                    memset(dest + len * sz, 0, sz);
+                    memset(dest + length * sz, 0, sz);
             }
             else
                 assert(0);
@@ -4957,7 +4998,7 @@ struct ASTBase
 
         extern (D) const(char)[] toStringz() const
         {
-            auto nbytes = len * sz;
+            auto nbytes = length * sz;
             char* s = cast(char*)mem.xmalloc_noscan(nbytes + sz);
             writeTo(s, true);
             return s[0 .. nbytes];
@@ -5495,12 +5536,9 @@ struct ASTBase
 
     extern (C++) final class DeleteExp : UnaExp
     {
-        bool isRAII;
-
-        extern (D) this(Loc loc, Expression e, bool isRAII)
+        extern (D) this(Loc loc, Expression e)
         {
             super(loc, EXP.delete_, __traits(classInstanceSize, DeleteExp), e);
-            this.isRAII = isRAII;
         }
 
         override void accept(Visitor v)
@@ -6542,7 +6580,7 @@ struct ASTBase
 
     extern (C++) final class ArrayInitializer : Initializer
     {
-        Expressions index;
+        Initializers index;
         Initializers value;
         uint dim;
         Type type;
@@ -6552,7 +6590,7 @@ struct ASTBase
             super(loc, InitKind.array);
         }
 
-        void addInit(Expression index, Initializer value)
+        void addInit(Initializer index, Initializer value)
         {
             this.index.push(index);
             this.value.push(value);

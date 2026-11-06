@@ -219,7 +219,7 @@ assert(s.a == [0, 1]);
 ---
 )
 
-        $(NOTE For backward compatibility, if the above rewrites fail to compile and
+        $(LEGACY_PANEL For backward compatibility, if the above rewrites fail to compile and
         $(D opSliceUnary) is defined, then the rewrites
         $(D a.opSliceUnary!(op)(i, j)) and
         $(D a.opSliceUnary!(op)) are tried instead, respectively.)
@@ -750,22 +750,28 @@ $(H3 $(LNAME2 index_assignment_operator, Index Assignment Operator Overloading))
         $(P If the left hand side of an assignment is an index operation
         on a struct or class instance,
         it can be overloaded by providing an $(D opIndexAssign) member function.
-        Expressions of the form `a[`$(ARGUMENTS)`] = c` are rewritten
-        as `a.opIndexAssign$(LPAREN)c,` $(ARGUMENTS)`$(RPAREN)`.
         )
 
+        $(TABLE
+        $(THEAD $(I op), $(I rewrite))
+        $(TROW `a[`$(ARGUMENTS)`] = c`, `a.opIndexAssign(c,` $(ARGUMENTS)`)`)
+        )
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 -------
 struct A
 {
-    int $(CODE_HIGHLIGHT opIndexAssign)(int value, size_t i1, size_t i2);
+    int opIndexAssign(int value, size_t i1, size_t i2);
 }
 
 void test()
 {
     A a;
-    a$(CODE_HIGHLIGHT [)i,3$(CODE_HIGHLIGHT ]) = 7;  // same as a.opIndexAssign(7,i,3);
+    size_t i;
+    a[i,3] = 7;  // same as a.opIndexAssign(7,i,3);
 }
 -------
+)
 
 $(H3 $(LNAME2 slice_assignment_operator, Slice Assignment Operator Overloading))
 
@@ -773,15 +779,19 @@ $(H3 $(LNAME2 slice_assignment_operator, Slice Assignment Operator Overloading))
         struct or class instance, it can be overloaded by implementing an
         `opIndexAssign` member function that takes the return value of the
         `opSlice` function as parameter(s).
-        Expressions of the form $(CODE a[)$(SLICE)$(D ] = c) are rewritten as
-        $(CODE a.opIndexAssign$(LPAREN)c,) $(D a.opSlice!0$(LPAREN))$(SLICE2)$(D $(RPAREN)$(RPAREN)),
-        and $(CODE a[] = c) as $(CODE a.opIndexAssign(c)).
         )
 
-        $(P See $(RELATIVE_LINK2 array-ops, Array
-        Indexing and Slicing Operators Overloading) for more details.
+        $(TABLE
+        $(THEAD $(I op), $(I rewrite))
+        $(TROW $(CODE a[] = c), $(CODE a.opIndexAssign(c)))
+        $(TROW $(CODE a[)$(SLICE)$(D ] = c),
+            $(CODE a.opIndexAssign$(LPAREN)c,) $(D a.opSlice!0$(LPAREN))$(SLICE2)$(D $(RPAREN)$(RPAREN)))
         )
 
+        $(P See $(RELATIVE_LINK2 slice, Slice Operator Overloading) for more details.
+        )
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 -------
 struct A
 {
@@ -799,8 +809,8 @@ void test()
     a[3..4] = v;  // same as a.opIndexAssign(v, a.opSlice!0(3,4));
 }
 -------
-
-        $(P For backward compatibility, if rewriting $(D a[)$(SLICE)$(D ]) as
+)
+        $(LEGACY_PANEL For backward compatibility, if rewriting $(D a[)$(SLICE)$(D ]) as
         $(D a.opIndexAssign$(LPAREN)a.opSlice!0$(LPAREN))$(SLICE2)$(D $(RPAREN)$(RPAREN))
         fails to compile, the legacy rewrite
         $(D opSliceAssign$(LPAREN)c,) $(SLICE2)$(D $(RPAREN)) is used instead.
@@ -884,7 +894,7 @@ a[] $(METACODE op)= c
 a.opIndexOpAssign!($(METACODE "op"))(c)
 ---
 
-        $(P For backward compatibility, if the above rewrites fail and
+        $(LEGACY_PANEL For backward compatibility, if the above rewrites fail and
         `opSliceOpAssign` is defined, then the rewrites
         $(D a.opSliceOpAssign(c, i, j)) and $(D a.opSliceOpAssign(c)) are
         tried, respectively.
@@ -936,6 +946,11 @@ $(H3 $(LEGACY_LNAME2 Slice, slice, Slice Operator Overloading))
         $(P To overload $(D a[]), simply define $(D opIndex) with no parameters:
         )
 
+        $(TABLE
+        $(THEAD $(I op), $(I rewrite))
+        $(TROW `a[]`, `a.opIndex()`)
+        )
+
 $(SPEC_RUNNABLE_EXAMPLE_RUN
 -----
 struct S
@@ -957,10 +972,17 @@ void main()
 )
 
         $(P To overload array slicing of the form $(D a[)$(SLICE)$(D ]),
-        two steps are needed.  First, the expressions of the form $(SLICE) are
-        translated via $(D opSlice!0) into objects that encapsulate
-        the endpoints $(I i) and $(I j). Then these objects are
-        passed to $(D opIndex) to perform the actual slicing.)
+        two steps are needed.  First, the slice argument $(SLICE) is
+        translated by a call to $(D opSlice) into an object that encapsulates
+        the endpoints $(I i) and $(I j). Then this object is
+        passed to $(D opIndex) to perform the actual slicing:)
+
+        $(TABLE
+        $(THEAD $(I op), $(I rewrite))
+        $(TROW `a[`$(SLICE)`]`, `a.opIndex(a.opSlice(`$(SLICE2)`))`)
+        )
+
+        $(P Below, `opSlice` returns `int[]`, so `opIndex` needs to accept this type:)
 
 $(SPEC_RUNNABLE_EXAMPLE_RUN
 ---
@@ -968,7 +990,7 @@ struct S
 {
     int[] impl;
 
-    int[] opSlice(size_t dim: 0)(size_t i, size_t j)
+    int[] opSlice(size_t i, size_t j)
     {
         return impl[i..j];
     }
@@ -978,7 +1000,7 @@ struct S
 void main()
 {
     auto s = S([1, 2, 3]);
-    int[] t = s[0..2]; // calls s.opIndex(s.opSlice!0(0, 2))
+    int[] t = s[0..2]; // calls s.opIndex(s.opSlice(0, 2))
     assert(t == [1, 2]);
 }
 ---
@@ -990,12 +1012,18 @@ void main()
         $(D arr[1, 2..3, 4]).
         More precisely, an expression of the form $(D arr[)$(ARGUMENTS)$(D ])
         is translated into $(D arr.opIndex$(LPAREN))$(ARGUMENTS2)$(D $(RPAREN)).
-        Each argument $(I b)$(SUBSCRIPT i) can be either a single expression,
-        in which case it is passed directly as the corresponding argument $(I
-        c)$(SUBSCRIPT i) to $(D opIndex); or it can be a slice expression of
-        the form $(I x)$(SUBSCRIPT i)$(D ..)$(I y)$(SUBSCRIPT i), in which case
-        the corresponding argument $(I c)$(SUBSCRIPT i) to $(D opIndex) is
-        $(D arr.opSlice!i$(LPAREN))$(I x)$(SUBSCRIPT i)$(D , )$(I y)$(SUBSCRIPT i)$(D $(RPAREN)). Namely:
+        Each argument $(I b)$(SUBSCRIPT i) can be either:)
+
+        - A single expression,
+          in which case it is passed directly as the corresponding argument $(I
+          c)$(SUBSCRIPT i) to $(D opIndex).
+        - A slice argument of
+          the form $(I x)$(SUBSCRIPT i)$(D ..)$(I y)$(SUBSCRIPT i), in which case
+          the corresponding argument $(I c)$(SUBSCRIPT i) to $(D opIndex) is
+          `arr.opSlice!`*i*`(`$(I x)$(SUBSCRIPT i)$(D , )$(I y)$(SUBSCRIPT i)`)`.
+          When *n* is 1, `opSlice` does not need a template parameter.
+
+        $(P Examples:
         )
 
         $(TABLE2 ,
@@ -1033,13 +1061,11 @@ void main()
         $(P The intention is that $(D opSlice!i) should return a user-defined
         object that represents an interval of indices along the $(D i)'th
         dimension of the array. This object is then passed to $(D opIndex) to
-        perform the actual slicing operation.  If only one-dimensional slicing
-        is desired, $(D opSlice) may be declared without the compile-time
-        parameter $(D i).
+        perform the actual slicing operation.
         )
 
         $(P Note that in all cases, $(D arr) is only evaluated once. Thus, an
-        expression like $(D getArray()[1, 2..3, $-1]=c) has the effect of:)
+        expression like $(D getArray()[1, 2..3, $-1] = c) has the effect of:)
 
 ------
 auto __tmp = getArray();
@@ -1049,7 +1075,7 @@ __tmp.opIndexAssign(c, 1, __tmp.opSlice!1(2,3), __tmp.opDollar!2 - 1);
         once.
         )
 
-        $(NOTE For backward compatibility, $(D a[]) and $(D a[)$(SLICE)$(D ]) can
+        $(LEGACY_PANEL For backward compatibility, $(D a[]) and $(D a[)$(SLICE)$(D ]) can
         also be overloaded by implementing $(D opSlice()) with no arguments and
         $(D opSlice$(LPAREN))$(SLICE2)$(D $(RPAREN)) with two arguments,
         respectively.  This only applies for one-dimensional slicing, and dates

@@ -18,19 +18,19 @@ import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
 
+import dmd.backend.backconfig : debugf;
 import dmd.backend.cdef;
 import dmd.backend.cc;
 import dmd.backend.el;
-import dmd.backend.global;
+import dmd.backend.evalu8 : iftrue;
 import dmd.backend.code;
 import dmd.backend.x86.code_x86;
-import dmd.backend.goh;
+import dmd.backend.go;
 import dmd.backend.oper;
-import dmd.backend.symtab;
+import dmd.backend.symbol;
 import dmd.backend.ty;
 import dmd.backend.type;
 
-import dmd.backend.dlist;
 import dmd.backend.dvec;
 
 
@@ -38,7 +38,7 @@ nothrow:
 @safe:
 
 @trusted
-void ferr(const(char)* p) { printf("%s", p); }
+void ferr(const char* p) { printf("%s", p); }
 
 /*******************************
  * Params:
@@ -53,51 +53,35 @@ const(char)* class_str(SC c)
     return sc[c].ptr;
 }
 
-private immutable char[10][SCMAX] sc =
+private immutable char[10][SC.max + 1] sc =
 [
-    "unde",
-    "auto",
-    "static",
-    "thread",
-    "extern",
-    "register",
-    "pseudo",
-    "global",
-    "comdat",
-    "parameter",
-    "regpar",
-    "fastpar",
-    "shadowreg",
-    "typedef",
-    "explicit",
-    "mutable",
-    "label",
-    "struct",
-    "enum",
-    "field",
-    "const",
-    "member",
-    "anon",
-    "inline",
-    "sinline",
-    "einline",
-    "overload",
-    "friend",
-    "virtual",
-    "locstat",
-    "template",
-    "functempl",
-    "ftexpspec",
-    "linkage",
-    "public",
-    "comdef",
-    "bprel",
-    "namespace",
-    "alias",
-    "funcalias",
-    "memalias",
-    "stack",
-    "adl",
+    SC.unde      : SC.unde     .stringof,
+    SC.auto_     : SC.auto_    .stringof,
+    SC.static_   : SC.static_  .stringof,
+    SC.extern_   : SC.extern_  .stringof,
+    SC.register  : SC.register .stringof,
+    SC.pseudo    : SC.pseudo   .stringof,
+    SC.global    : SC.global   .stringof,
+    SC.comdat    : SC.comdat   .stringof,
+    SC.parameter : SC.parameter.stringof,
+    SC.regpar    : SC.regpar   .stringof,
+    SC.fastpar   : SC.fastpar  .stringof,
+    SC.shadowreg : SC.shadowreg.stringof,
+    SC.typedef_  : SC.typedef_ .stringof,
+    SC.struct_   : SC.struct_  .stringof,
+    SC.enum_     : SC.enum_    .stringof,
+    SC.field     : SC.field    .stringof,
+    SC.const_    : SC.const_   .stringof,
+    SC.member    : SC.member   .stringof,
+    SC.inline    : SC.inline   .stringof,
+    SC.sinline   : SC.sinline  .stringof,
+    SC.einline   : SC.einline  .stringof,
+    SC.locstat   : SC.locstat  .stringof,
+    SC.comdef    : SC.comdef   .stringof,
+    SC.bprel     : SC.bprel    .stringof,
+    SC.alias_    : SC.alias_   .stringof,
+    SC.funcalias : SC.funcalias.stringof,
+    SC.stack     : SC.stack    .stringof,
 ];
 
 /***************************
@@ -125,7 +109,7 @@ const(char)* oper_str(uint oper) pure
 const(char)* tym_str(tym_t ty)
 {
     enum MAX = 100;
-    __gshared char[MAX + 1] buf;
+    __gshared char[MAX + 1] buf;  // globals are not a threading issue with debug code
 
     char* pstart = &buf[0];
     char* p = pstart;
@@ -173,7 +157,7 @@ const(char)* tym_str(tym_t ty)
  *      pointer to string
  */
 @trusted
-const(char)* bc_str(uint bc)
+immutable(char)* bc_str(uint bc)
 {
     return bcs[bc].ptr;
 }
@@ -181,33 +165,11 @@ const(char)* bc_str(uint bc)
 private immutable char[8][BC.max + 1] bcs =
 [
     "unde   ", "goto_  ", "true   ", "ret   ", "retexp ",
-    "exit   ", "asm_   ", "switch_", "ifthen", "jmptab ",
-    "try_   ", "catch_ ", "jump   ", "_try  ", "_filter",
-    "_final ", "_ret   ", "_excep ", "jcatch", "_lpad  ",
+    "exit   ", "asm_   ", "switch ", "ifthen", "jmptab ",
+    "cpptry ", "catch_ ", "jump   ", "try   ", "filter ",
+    "final  ", "finRet ", "except ", "jcatch", "lpad   ",
 ];
 
-
-/************************
- * Write arglst
- */
-
-@trusted
-void WRarglst(list_t a)
-{
-    if (a)
-    {
-        int n = 1;
-        do
-        {
-            const(char)* c = cast(const(char)*)list_ptr(a);
-            printf("arg %d: '%s'\n", n, c ? c : "NULL");
-            a = a.next;
-            n++;
-        } while (a);
-    }
-    else
-        printf("0 args\n");
-}
 
 /***************************
  * Write out equation elem.
@@ -321,12 +283,10 @@ void WReqn(elem* e)
 }
 
 @trusted
-void WRblocklist(list_t bl)
+void WRblockarray(block*[] bl)
 {
-    foreach (bl2; ListRange(bl))
+    foreach (b; bl)
     {
-        block* b = list_block(bl2);
-
         if (b && b.Bweight)
             printf("B%d (%p) ",b.Bdfoidx,b);
         else
@@ -340,7 +300,7 @@ void WRdefnod(ref GlobalOptimizer go)
 {
     foreach (i; 0 .. go.defnod.length)
     {
-        printf("defnod[%d] in B%zu = (", go.defnod[i].DNblock.Bdfoidx, i);
+        printf("defnod[%d] in B%u = (", go.defnod[i].DNblock.Bdfoidx, cast(uint)i);
         WReqn(go.defnod[i].DNelem);
         printf(");\n");
     }
@@ -411,12 +371,10 @@ void WRblock(block* b)
         }
         printf(" flags=x%x weight=%d",b.Bflags,b.Bweight);
         //printf("\tfile %p, line %d",b.Bfilptr,b.Blinnum);
-        printf(" BC.%s Btry=%p Bindex=%d",bc_str(b.bc),b.Btry,b.Bindex);
-        if (b.bc == BC.try_)
-            printf(" catchvar = %p",b.catchvar);
+        printf(" BC.%s Btry=%p",bc_str(b.bc),b.Btry);
         printf("\n");
-        printf("\tBpred: "); WRblocklist(b.Bpred);
-        printf("\tBsucc: "); WRblocklist(b.Bsucc);
+        printf("\tBpred: "); WRblockarray(b.Bpred[]);
+        printf("\tBsucc: "); WRblockarray(b.Bsucc[]);
         if (b.Belem)
         {
             if (debugf)                     /* if full output       */
@@ -438,9 +396,7 @@ void WRblock(block* b)
         printf("%2d: BC.%s", b.Bnumber, bc_str(b.bc));
         if (b.Btry)
             printf(" Btry=B%d",b.Btry ? b.Btry.Bnumber : 0);
-        if (b.Bindex)
-            printf(" Bindex=%d",b.Bindex);
-        if (b.bc == BC._finally)
+        if (b.bc == BC.finally_)
             printf(" b_ret=B%d", b.b_ret ? b.b_ret.Bnumber : 0);
         if (b.Bsrcpos.Sfilename)
             printf(" %s(%u)", b.Bsrcpos.Sfilename, b.Bsrcpos.Slinnum);
@@ -456,11 +412,11 @@ void WRblock(block* b)
                 printf(";\n");
             }
         }
-        if (b.Bpred)
+        if (b.Bpred.length)
         {
             printf("\tBpred:");
-            foreach (bl; ListRange(b.Bpred))
-                printf(" B%d",list_block(bl).Bnumber);
+            foreach (bl; b.Bpred[])
+                printf(" B%d",bl.Bnumber);
             printf("\n");
         }
 
@@ -468,32 +424,32 @@ void WRblock(block* b)
         {
             case BC.switch_:
                 printf("\tncases = %d\n", cast(int)b.Bswitch.length);
-                list_t bl = b.Bsucc;
-                printf("\tdefault: B%d\n",list_block(bl) ? list_block(bl).Bnumber : 0);
+                printf("\tdefault: B%d\n",b.Bsucc.length ? b.Bsucc[0].Bnumber : 0);
+                int j = 1;
                 foreach (val; b.Bswitch)
                 {
-                    bl = list_next(bl);
-                    printf("\tcase %lld: B%d\n", cast(long)val, list_block(bl).Bnumber);
+                    printf("\tcase %lld: B%d\n", cast(long)val, b.Bsucc[j].Bnumber);
+                    ++j;
                 }
                 break;
 
             case BC.iftrue:
             case BC.goto_:
             case BC.asm_:
-            case BC.try_:
+            case BC.cpptry:
             case BC.catch_:
             case BC.jcatch:
-            case BC._try:
-            case BC._filter:
-            case BC._finally:
-            case BC._lpad:
-            case BC._ret:
-            case BC._except:
-                if (list_t bl = b.Bsucc)
+            case BC.try_:
+            case BC.filter:
+            case BC.finally_:
+            case BC.lpad:
+            case BC.finRet:
+            case BC.except:
+                if (b.Bsucc.length)
                 {
                     printf("\tBsucc:");
-                    for ( ; bl; bl = list_next(bl))
-                        printf(" B%d",list_block(bl).Bnumber);
+                    foreach (ba; b.Bsucc[])
+                        printf(" B%d", ba.Bnumber);
                     printf("\n");
                 }
                 break;

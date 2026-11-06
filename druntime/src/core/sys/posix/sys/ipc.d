@@ -14,6 +14,9 @@
  */
 module core.sys.posix.sys.ipc;
 
+version (WASI) {}
+else:
+
 import core.sys.posix.config;
 public import core.sys.posix.sys.types; // for uid_t, gid_t, mode_t, key_t
 
@@ -245,6 +248,49 @@ else version (Solaris)
     enum IPC_RMID       = 10;
     enum IPC_SET        = 11;
     enum IPC_STAT       = 12;
+}
+else version (Hurd)
+{
+    version (X86)
+    {
+        struct ipc_perm
+        {
+            key_t   __key;
+            ushort   uid;
+            ushort   gid;
+            ushort   cuid;
+            ushort   cgid;
+            ushort  mode;
+            ushort  __seq;
+        }
+    }
+    else version (X86_64)
+    {
+        struct ipc_perm
+        {
+            key_t   __key;
+            uid_t   uid;
+            gid_t   gid;
+            uid_t   cuid;
+            gid_t   cgid;
+            mode_t  mode;
+            ushort  __seq;
+        }
+    }
+    else
+    {
+        static assert(false, "Unsupported platform");
+    }
+
+    enum IPC_CREAT      = 0x0200; // 01000
+    enum IPC_EXCL       = 0x0400; // 02000
+    enum IPC_NOWAIT     = 0x0800; // 04000
+
+    enum key_t IPC_PRIVATE = 0;
+
+    enum IPC_RMID       = 0;
+    enum IPC_SET        = 1;
+    enum IPC_STAT       = 2;
 }
 else
 {

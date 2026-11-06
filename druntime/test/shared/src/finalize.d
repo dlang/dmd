@@ -1,3 +1,4 @@
+import core.atomic : atomicLoad;
 import core.runtime;
 import core.stdc.string : strrchr;
 import core.thread;
@@ -28,7 +29,7 @@ class NoFinalizeBig : NoFinalize
     ubyte[4096] _big = void;
 }
 
-extern (C) alias SetFinalizeCounter = void function(shared(size_t*));
+extern (C) alias SetFinalizeCounter = void function(shared(size_t)*);
 
 void main(string[] args)
 {
@@ -59,7 +60,7 @@ void main(string[] args)
         assert(0);
     static if (!isDlcloseNoop)
     {
-        if (finalizeCounter != 4)
+        if (atomicLoad(finalizeCounter) != 4)
             assert(0);
     }
     if (nf1._finalizeCounter)

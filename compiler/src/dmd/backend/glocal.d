@@ -19,18 +19,20 @@ import core.stdc.stdlib;
 import core.stdc.string;
 import core.stdc.time;
 
+import dmd.backend.backconfig : debugc;
+import dmd.backend.blockopt : BlockOpt, bo;
 import dmd.backend.cc;
-import dmd.backend.blockopt : BlockOpt;
 import dmd.backend.cdef;
 import dmd.backend.oper;
-import dmd.backend.global;
-import dmd.backend.goh;
+import dmd.backend.blockopt : blockopt;
+import dmd.backend.cgelem : doptelem;
+import dmd.backend.debugprint : WReqn;
 import dmd.backend.el;
+import dmd.backend.symbol;
 import dmd.backend.ty;
 import dmd.backend.type;
 
 import dmd.backend.barray;
-import dmd.backend.dlist;
 import dmd.backend.dvec;
 
 
@@ -74,7 +76,7 @@ struct loc_t
 // temporary generation and register usage.
 
 @trusted
-void localize(ref GlobalOptimizer go, ref BlockOpt bo)
+void localize(ref BlockOpt bo, ref uint changes)
 {
     if (debugc) printf("localize()\n");
 
@@ -96,7 +98,7 @@ void localize(ref GlobalOptimizer go, ref BlockOpt bo)
              */
             !b.Btry)
         {
-            local_exp(go, loctab,b.Belem,0);
+            local_exp(loctab, b.Belem, 0, changes);
         }
     }
 }
@@ -107,7 +109,7 @@ void localize(ref GlobalOptimizer go, ref BlockOpt bo)
 //
 
 @trusted
-private void local_exp(ref GlobalOptimizer go, ref Barray!loc_t lt, elem* e, int goal)
+private void local_exp(ref Barray!loc_t lt, elem* e, int goal, ref uint changes)
 {
     elem* e1;
     OPER op1;
@@ -118,13 +120,13 @@ Loop:
     switch (op)
     {
         case OPcomma:
-            local_exp(go, lt,e.E1,0);
+            local_exp(lt,e.E1,0, changes);
             e = e.E2;
             goto Loop;
 
         case OPandand:
         case OPoror:
-            local_exp(go, lt,e.E1,1);
+            local_exp(lt,e.E1,1, changes);
             lt.setLength(0);         // we can do better than this, fix later
             break;
 
@@ -150,7 +152,7 @@ Loop:
         case OPddtor:
             lt.setLength(0);         // don't move expressions across ctor/dtor
                                 // boundaries, it would goof up EH cleanup
-            local_exp(go, lt,e.E1,0);
+            local_exp(lt,e.E1,0, changes);
             lt.setLength(0);
             break;
 
@@ -158,11 +160,11 @@ Loop:
         case OPstreq:
         case OPvecsto:
             e1 = e.E1;
-            local_exp(go, lt,e.E2,1);
+            local_exp(lt,e.E2,1, changes);
             if (e1.Eoper == OPvar)
             {
                 const s = e1.Vsym;
-                if (s.Sflags & SFLunambig)
+                if (s.Sflags & SFLdistinct)
                 {   local_symdef(lt, s);
                     if (!goal)
                         local_ins(lt, e);
@@ -173,9 +175,9 @@ Loop:
             else
             {
                 assert(!OTleaf(e1.Eoper));
-                local_exp(go, lt,e1.E1,1);
+                local_exp(lt,e1.E1,1, changes);
                 if (OTbinary(e1.Eoper))
-                    local_exp(go, lt,e1.E2,1);
+                    local_exp(lt,e1.E2,1, changes);
                 local_ambigdef(lt);
             }
             break;
@@ -195,15 +197,15 @@ Loop:
         case OPorass:
         case OPcmpxchg:
             if (ERTOL(e))
-            {   local_exp(go, lt,e.E2,1);
+            {   local_exp(lt,e.E2,1, changes);
         case OPnegass:
                 e1 = e.E1;
                 op1 = e1.Eoper;
                 if (op1 != OPvar)
                 {
-                    local_exp(go, lt,e1.E1,1);
+                    local_exp(lt,e1.E1,1, changes);
                     if (OTbinary(op1))
-                        local_exp(go, lt,e1.E2,1);
+                        local_exp(lt,e1.E2,1, changes);
                 }
                 else if (lt.length && (op == OPaddass || op == OPxorass))
                 {
@@ -220,7 +222,7 @@ Loop:
                            )
                         {   // Change (x += a),(x += b) to
                             // (x + a),(x += a + b)
-                            go.changes++;
+                            ++changes;
                             e.E2 = el_bin(opeqtoop(op),e.E2.Ety,em.E2,e.E2);
                             em.Eoper = cast(ubyte)opeqtoop(op);
                             em.E2 = el_copytree(em.E2);
@@ -244,25 +246,25 @@ Loop:
                 op1 = e1.Eoper;
                 if (op1 != OPvar)
                 {
-                    local_exp(go, lt,e1.E1,1);
+                    local_exp(lt,e1.E1,1, changes);
                     if (OTbinary(op1))
-                        local_exp(go, lt,e1.E2,1);
+                        local_exp(lt,e1.E2,1, changes);
                 }
                 if (lt.length)
                 {
                     Symbol* s;
                     if (op1 == OPvar &&
-                        ((s = e1.Vsym).Sflags & SFLunambig))
+                        ((s = e1.Vsym).Sflags & SFLdistinct))
                         local_symref(lt, s);
                     else
                         local_ambigref(lt);
                 }
-                local_exp(go, lt,e.E2,1);
+                local_exp(lt,e.E2,1, changes);
             }
 
             Symbol* s;
             if (op1 == OPvar &&
-                ((s = e1.Vsym).Sflags & SFLunambig))
+                ((s = e1.Vsym).Sflags & SFLdistinct))
             {   local_symref(lt, s);
                 local_symdef(lt, s);
                 if (op == OPaddass || op == OPxorass)
@@ -276,15 +278,15 @@ Loop:
 
         case OPstrlen:
         case OPind:
-            local_exp(go, lt,e.E1,1);
+            local_exp(lt,e.E1,1, changes);
             local_ambigref(lt);
             break;
 
         case OPstrcmp:
         case OPmemcmp:
         case OPbt:
-            local_exp(go, lt,e.E1,1);
-            local_exp(go, lt,e.E2,1);
+            local_exp(lt,e.E1,1, changes);
+            local_exp(lt,e.E2,1, changes);
             local_ambigref(lt);
             break;
 
@@ -293,21 +295,21 @@ Loop:
         case OPstrcat:
         case OPcall:
         case OPcallns:
-            local_exp(go, lt,e.E2,1);
-            local_exp(go, lt,e.E1,1);
+            local_exp(lt,e.E2,1, changes);
+            local_exp(lt,e.E1,1, changes);
             goto Lrd;
 
         case OPstrctor:
         case OPucall:
         case OPucallns:
-            local_exp(go, lt,e.E1,1);
+            local_exp(lt,e.E1,1, changes);
             goto Lrd;
 
         case OPbtc:
         case OPbtr:
         case OPbts:
-            local_exp(go, lt,e.E1,1);
-            local_exp(go, lt,e.E2,1);
+            local_exp(lt,e.E1,1, changes);
+            local_exp(lt,e.E2,1, changes);
             goto Lrd;
 
         case OPasm:
@@ -316,20 +318,20 @@ Loop:
             break;
 
         case OPmemset:
-            local_exp(go, lt,e.E2,1);
+            local_exp(lt,e.E2,1, changes);
             if (e.E1.Eoper == OPvar)
             {
                 /* Don't want to rearrange (p = get(); p memset 0;)
                  * as elemxxx() will rearrange it back.
                  */
                 const s = e.E1.Vsym;
-                if (s.Sflags & SFLunambig)
+                if (s.Sflags & SFLdistinct)
                     local_symref(lt, s);
                 else
                     local_ambigref(lt);     // ambiguous reference
             }
             else
-                local_exp(go, lt,e.E1,1);
+                local_exp(lt,e.E1,1, changes);
             local_ambigdef(lt);
             break;
 
@@ -338,7 +340,7 @@ Loop:
             if (lt.length)
             {
                 // If potential candidate for replacement
-                if (s.Sflags & SFLunambig)
+                if (s.Sflags & SFLdistinct)
                 {
                     foreach (const u; 0 .. lt.length)
                     {
@@ -368,7 +370,7 @@ Loop:
                                     printf(";\n");
                                 }
 
-                                go.changes++;
+                                changes++;
                                 em.Ety = e.Ety;
                                 el_copy(e,em);
                                 em.E1 = em.E2 = null;
@@ -391,7 +393,7 @@ Loop:
             const s = e.E1.Vsym;
             if (lt.length)
             {
-                if (s.Sflags & SFLunambig)
+                if (s.Sflags & SFLdistinct)
                     local_symref(lt, s);
                 else
                     local_ambigref(lt);     // ambiguous reference
@@ -431,7 +433,7 @@ Loop:
             }
         case_bin:
             if (OTbinary(e.Eoper))
-            {   local_exp(go, lt,e.E1,1);
+            {   local_exp(lt,e.E1,1, changes);
                 goal = 1;
                 e = e.E2;
                 goto Loop;
@@ -485,7 +487,7 @@ private void local_ins(ref Barray!loc_t lt, elem* e)
     {
         const s = e.E1.Vsym;
         symbol_debug(s);
-        if (s.Sflags & SFLunambig)     // if can only be referenced directly
+        if (s.Sflags & SFLdistinct)     // if can only be referenced directly
         {
             const flags = local_getflags(e.E2,null);
             if (!(flags & (LFvolatile | LFinp | LFoutp)) &&
@@ -529,7 +531,7 @@ private int local_getflags(const(elem)* e, const Symbol* s)
                 if (e.E1.Eoper == OPvar)
                 {
                     const s1 = e.E1.Vsym;
-                    if (s1.Sflags & SFLunambig)
+                    if (s1.Sflags & SFLdistinct)
                         flags |= (s1 == s) ? LFsymdef : LFunambigdef;
                     else
                         flags |= LFambigdef;
@@ -555,7 +557,7 @@ private int local_getflags(const(elem)* e, const Symbol* s)
                 if (e.E1.Eoper == OPvar)
                 {
                     const s1 = e.E1.Vsym;
-                    if (s1.Sflags & SFLunambig)
+                    if (s1.Sflags & SFLdistinct)
                         flags |= (s1 == s) ? LFsymdef | LFsymref
                                            : LFunambigdef | LFunambigref;
                     else
@@ -589,7 +591,7 @@ private int local_getflags(const(elem)* e, const Symbol* s)
             case OPvar:
                 if (e.Vsym == s)
                     flags |= LFsymref;
-                else if (!(e.Vsym.Sflags & SFLunambig))
+                else if (!(e.Vsym.Sflags & SFLdistinct))
                     flags |= LFambigref;
                 break;
 

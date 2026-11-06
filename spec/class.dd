@@ -107,7 +107,7 @@ $(H3 $(LNAME2 access_control, Access Control))
         )
 
 
-$(H3 $(LNAME2 super_class, Super Class))
+$(H3 $(LNAME2 super_class, Inheritance))
 
         $(P
         All classes inherit from a super class. If one is not specified,
@@ -125,6 +125,19 @@ class B : A { } // B inherits from A
         If a super class is declared, it must come before any interfaces.
         Commas are used to separate inherited types.)
 
+        $(P A class instance implicitly converts to its inherited types.
+        Converting a base class instance to a subclass requires a
+        $(DDSUBLINK spec/expression, cast_class, dynamic cast):)
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+-------------------
+class Base {}
+class Derived : Base {}
+
+Base b = new Derived();         // implicit conversion
+Derived d = cast(Derived) b;    // explicit conversion
+-------------------
+)
 
 $(H3 $(LNAME2 fields, Fields))
 
@@ -803,7 +816,8 @@ $(H3 $(LNAME2 field-init, Field initialization inside a constructor))
         }
         ------
 
-        $(P If a field's type has disabled default construction, then it must be initialized
+        $(P If a field's type has $(DDSUBLINK spec/struct, disable_default_construction,
+        disabled default construction), then it must be initialized
         in the constructor.)
         ---
         struct S { int y; @disable this(); }

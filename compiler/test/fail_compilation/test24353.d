@@ -4,21 +4,27 @@
 REQUIRED_ARGS: -verrors=context
 TEST_OUTPUT:
 ---
-fail_compilation/test24353.d(37): Error: mutable method `test24353.S.opApply` is not callable using a `const(S)` foreach aggregate
+fail_compilation/test24353.d(43): Error: mutable method `test24353.S.opApply` is not callable using a `const(S)` foreach aggregate
     foreach (e; s) {} // mod error
                 ^
-fail_compilation/test24353.d(28):        Consider adding a method type qualifier here
+fail_compilation/test24353.d(34):        Consider adding a method type qualifier here
     int opApply(int delegate(int) dg)
         ^
-fail_compilation/test24353.d(40): Error:  shared const method `test24353.S2.opApply` is not callable using a `const(S2)` foreach aggregate
+fail_compilation/test24353.d(46): Error:  shared const method `test24353.S2.opApply` is not callable using a `const(S2)` foreach aggregate
     foreach (i, e; s2) {} // mod error
                    ^
-fail_compilation/test24353.d(47):        Consider adding a method type qualifier here
+fail_compilation/test24353.d(53):        Consider adding a method type qualifier here
     int opApply(int delegate(int, int) dg) const shared;
         ^
-fail_compilation/test24353.d(42): Error: cannot uniquely infer `foreach` argument types
+fail_compilation/test24353.d(48): Error: cannot uniquely infer `foreach` argument types
     foreach (i, e; const S3()) {} // cannot infer
     ^
+fail_compilation/test24353.d(58):        `int(int delegate(int) dg)` is not callable using a `const` aggregate
+    int opApply(int delegate(int) dg);
+        ^
+fail_compilation/test24353.d(59):        `int(int delegate(int, int) dg)` is not callable using a `const` aggregate
+    int opApply(int delegate(int, int) dg);
+        ^
 ---
 */
 

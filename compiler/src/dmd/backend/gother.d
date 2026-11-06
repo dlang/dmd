@@ -17,19 +17,24 @@ import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.time;
 
+import dmd.backend.backconfig : debugc;
+import dmd.backend.blockopt : BlockOpt, bo;
 import dmd.backend.cc;
-import dmd.backend.blockopt : BlockOpt;
 import dmd.backend.cdef;
 import dmd.backend.oper;
-import dmd.backend.global;
-import dmd.backend.goh;
+import dmd.backend.global : size;
+import dmd.backend.blockopt : block_clearvisit, block_visit, blockopt;
+import dmd.backend.debugprint : WReqn;
+import dmd.backend.dout : out_regcand;
+import dmd.backend.evalu8 : iftrue;
+import dmd.backend.gloop : dom;
+import dmd.backend.go;
 import dmd.backend.el;
-import dmd.backend.symtab;
+import dmd.backend.symbol;
 import dmd.backend.ty;
 import dmd.backend.type;
 
 import dmd.backend.barray;
-import dmd.backend.dlist;
 import dmd.backend.dvec;
 
 nothrow:
@@ -129,10 +134,11 @@ private __gshared
  */
 
 @trusted
-void constprop(ref GlobalOptimizer go, ref BlockOpt bo)
+public
+void constprop(ref Barray!DefNode defnod, ref BlockOpt bo, ref uint changes)
 {
-    rd_compute(go, bo, eqrelinc);
-    intranges(go, eqrelinc.rellist, eqrelinc.inclist);        // compute integer ranges
+    rd_compute(defnod, bo, eqrelinc, changes);
+    intranges(eqrelinc.rellist, eqrelinc.inclist, changes);        // compute integer ranges
     eqeqranges(eqrelinc.eqeqlist);       // see if we can eliminate some relationals
 
     eqrelinc.reset();           // reset for next time
@@ -144,22 +150,22 @@ void constprop(ref GlobalOptimizer go, ref BlockOpt bo)
  */
 
 @trusted
-private void rd_compute(ref GlobalOptimizer go, ref BlockOpt bo, ref EqRelInc eqrelinc)
+private void rd_compute(ref Barray!DefNode defnod, ref BlockOpt bo, ref EqRelInc eqrelinc, ref uint changes)
 {
     if (debugc) printf("constprop()\n");
     assert(bo.dfo);
     flowrd(go, bo);           /* compute reaching definitions (rd)    */
-    if (go.defnod.length == 0)     /* if no reaching defs                  */
+    if (defnod.length == 0)   /* if no reaching defs                  */
         return;
     assert(eqrelinc.rellist.length == 0 && eqrelinc.inclist.length == 0 && eqrelinc.eqeqlist.length == 0);
-    block_clearvisit(bo);
+    block_clearvisit(bo.startblock);
     foreach (b; bo.dfo[])    // for each block
     {
         switch (b.bc)
         {
             case BC.jcatch:
-            case BC._finally:
-            case BC._lpad:
+            case BC.finally_:
+            case BC.lpad:
             case BC.asm_:
             case BC.catch_:
                 block_visit(b);
@@ -179,7 +185,7 @@ private void rd_compute(ref GlobalOptimizer go, ref BlockOpt bo, ref EqRelInc eq
             continue;                   // not reliable for this block
         if (b.Belem)
         {
-            constantPropagation(go, b, eqrelinc);
+            constantPropagation(defnod, b, eqrelinc, changes);
 
             debug
             if (!(vec_equal(b.Binrd,b.Boutrd)))
@@ -192,7 +198,7 @@ private void rd_compute(ref GlobalOptimizer go, ref BlockOpt bo, ref EqRelInc eq
                 printf("\n");
                 vec_xorass(b.Binrd,b.Boutrd);
                 j = cast(int)vec_index(0,b.Binrd);
-                WReqn(go.defnod[j].DNelem);
+                WReqn(defnod[j].DNelem);
                 printf("\n");
             }
 
@@ -216,9 +222,10 @@ private void rd_compute(ref GlobalOptimizer go, ref BlockOpt bo, ref EqRelInc eq
  * Params:
  *      thisblock = block being constant propagated
  *      eqrelinc  = fill with data collected
+ *      changes = incremented with changes
  */
 @trusted
-private void constantPropagation(ref GlobalOptimizer go, block* thisblock, ref EqRelInc eqrelinc)
+private void constantPropagation(ref Barray!DefNode defnod, block* thisblock, ref EqRelInc eqrelinc, ref uint changes)
 {
     void conpropwalk(elem* n,vec_t IN)
     {
@@ -284,10 +291,10 @@ private void constantPropagation(ref GlobalOptimizer go, block* thisblock, ref E
                     if (OTopeq(op) && sytab[t.Vsym.Sclass] & SCRD)
                     {
                         Barray!(elem*) rdl;
-                        listrds(go, IN,t,null,&rdl);
+                        listrds(defnod, IN,t,null,&rdl);
                         if (!(config.flags & CFGnowarning)) // if warnings are enabled
                             chkrd(t,rdl);
-                        if (auto e = chkprop(go, t, rdl))
+                        if (auto e = chkprop(changes, t, rdl))
                         {   // Replace (t op= exp) with (t = e op exp)
 
                             e = el_copytree(e);
@@ -334,7 +341,7 @@ private void constantPropagation(ref GlobalOptimizer go, block* thisblock, ref E
                         //printf("\trellist IN: "); vec_print(IN); printf("\n");
                         auto pdata = eqrelinc.rellist.push();
                         pdata.emplace(n, thisblock);
-                        listrds(go, IN, n.E1, null, &pdata.rdlist);
+                        listrds(defnod, IN, n.E1, null, &pdata.rdlist);
                     }
                     break;
 
@@ -349,7 +356,7 @@ private void constantPropagation(ref GlobalOptimizer go, block* thisblock, ref E
                         //printf("\tinclist IN: "); vec_print(IN); printf("\n");
                         auto pdata = eqrelinc.inclist.push();
                         pdata.emplace(n, thisblock);
-                        listrds(go, IN, n.E1, null, &pdata.rdlist);
+                        listrds(defnod, IN, n.E1, null, &pdata.rdlist);
                     }
                     break;
 
@@ -360,7 +367,7 @@ private void constantPropagation(ref GlobalOptimizer go, block* thisblock, ref E
                     {   //printf("appending to eqeqlist\n"); elem_print(n);
                         auto pdata = eqrelinc.eqeqlist.push();
                         pdata.emplace(n, thisblock);
-                        listrds(go, IN, n.E1, null, &pdata.rdlist);
+                        listrds(defnod, IN, n.E1, null, &pdata.rdlist);
                     }
                     break;
 
@@ -371,7 +378,7 @@ private void constantPropagation(ref GlobalOptimizer go, block* thisblock, ref E
 
 
         if (OTdef(op))                  /* if definition elem           */
-            updaterd(go, n, IN, null);        /* then update IN vector        */
+            updaterd(defnod, n, IN, null);        /* then update IN vector        */
 
         /* now we get to the part that checks to see if we can  */
         /* propagate a constant.                                */
@@ -379,15 +386,14 @@ private void constantPropagation(ref GlobalOptimizer go, block* thisblock, ref E
         {
             //printf("const prop: %s\n", n.Vsym.Sident.ptr);
             Barray!(elem*) rdl;
-            listrds(go, IN,n,null,&rdl);
+            listrds(defnod, IN,n,null,&rdl);
 
             if (!(config.flags & CFGnowarning))     // if warnings are enabled
                 chkrd(n,rdl);
-            elem* e = chkprop(go, n, rdl);
+            elem* e = chkprop(changes, n, rdl);
             if (e)
-            {   tym_t nty;
-
-                nty = n.Ety;
+            {
+                tym_t nty = n.Ety;
                 el_copy(n,e);
                 n.Ety = nty;                       // retain original type
             }
@@ -414,7 +420,7 @@ private void chkrd(elem* n, Barray!(elem*) rdlist)
         return;
     if (sv.ty() & (mTYvolatile | mTYshared))
         return;
-    unambig = sv.Sflags & SFLunambig;
+    unambig = sv.Sflags & SFLdistinct;
     foreach (d; rdlist)
     {
         elem_debug(d);
@@ -494,13 +500,17 @@ private void chkrd(elem* n, Barray!(elem*) rdlist)
  * statics and globals. This could be fixed by adding dummy defs for
  * them before startblock, but we just kludge it and don't propagate
  * stuff for them.
+ * Params:
+ *      changes = increment for each change to the tree
+ *      n = OPvar elem
+ *      rdlist = reaching definitions
  * Returns:
  *      null    do not propagate constant
  *      e       constant elem that we should replace n with
  */
 
 @trusted
-private elem* chkprop(ref GlobalOptimizer go, elem* n, Barray!(elem*) rdlist)
+private elem* chkprop(ref uint changes, elem* n, Barray!(elem*) rdlist)
 {
     elem* foundelem = null;
     int unambig;
@@ -519,7 +529,7 @@ private elem* chkprop(ref GlobalOptimizer go, elem* n, Barray!(elem*) rdlist)
         goto noprop;
     nsize = cast(uint)size(nty);
     noff = n.Voffset;
-    unambig = sv.Sflags & SFLunambig;
+    unambig = sv.Sflags & SFLdistinct;
     foreach (d; rdlist)
     {
         elem_debug(d);
@@ -533,7 +543,7 @@ private elem* chkprop(ref GlobalOptimizer go, elem* n, Barray!(elem*) rdlist)
 
         if (OTassign(d.Eoper))      // if assignment elem
         {
-            elem* t = d.E1;
+            const elem* t = d.E1;
 
             if (t.Eoper == OPvar)
             {
@@ -594,7 +604,7 @@ private elem* chkprop(ref GlobalOptimizer go, elem* n, Barray!(elem*) rdlist)
             WReqn(foundelem);
             printf("), %p to %p\n",foundelem,n);
         }
-        go.changes++;
+        ++changes;
         return foundelem;
     }
 noprop:
@@ -611,7 +621,8 @@ noprop:
  */
 
 @trusted
-void listrds(ref GlobalOptimizer go, vec_t IN, elem* e, vec_t f, Barray!(elem*)* rdlist)
+public
+void listrds(ref Barray!DefNode defnod, vec_t IN, elem* e, vec_t f, Barray!(elem*)* rdlist)
 {
     uint unambig;
     Symbol* s;
@@ -627,12 +638,12 @@ void listrds(ref GlobalOptimizer go, vec_t IN, elem* e, vec_t f, Barray!(elem*)*
     if (tyscalar(ty))
         nsize = cast(uint)size(ty);
     noff = e.Voffset;
-    unambig = s.Sflags & SFLunambig;
+    unambig = s.Sflags & SFLdistinct;
     if (f)
         vec_clear(f);
-    for (size_t i = 0; (i = vec_index(i, IN)) < go.defnod.length; ++i)
+    for (size_t i = 0; (i = vec_index(i, IN)) < defnod.length; ++i)
     {
-        elem* d = go.defnod[i].DNelem;
+        elem* d = defnod[i].DNelem;
         //printf("\tlooking at "); WReqn(d); printf("\n");
         const op = d.Eoper;
         if (op == OPasm)                // assume ASM elems define everything
@@ -736,10 +747,11 @@ private void eqeqranges(ref Elemdatas eqeqlist)
  * Params:
  *      rellist = array of relationals in function
  *      inclist = array of increment elems in function
+ *      changes = increment for any changes
  */
 
 @trusted
-private void intranges(ref GlobalOptimizer go, ref Elemdatas rellist, ref Elemdatas inclist)
+private void intranges(ref Elemdatas rellist, ref Elemdatas inclist, ref uint changes)
 {
     block* rb;
     block* ib;
@@ -832,7 +844,7 @@ private void intranges(ref GlobalOptimizer go, ref Elemdatas rellist, ref Elemda
             // ib:      block of increment
             // rb:      block of relational
             i = loopcheck(ib,ib,rb);
-            block_clearvisit(bo);
+            block_clearvisit(bo.startblock);
             if (i)
                 continue;
         }
@@ -880,35 +892,7 @@ private void intranges(ref GlobalOptimizer go, ref Elemdatas rellist, ref Elemda
                             printf(" made unsigned, initial = %lld, increment = %lld," ~
                                    " final_ = %lld\n",cast(long)initial,cast(long)increment,cast(long)final_);
                         }
-                        go.changes++;
-                    }
-
-                    static if (0)
-                    {
-                        // Eliminate loop if it is empty
-                        if (relatop == OPlt &&
-                            rb.bc == BC.iftrue &&
-                            list_block(rb.Bsucc) == rb &&
-                            rb.Belem.Eoper == OPcomma &&
-                            rb.Belem.E1 == rdinc &&
-                            rb.Belem.E2 == rel.pelem
-                           )
-                        {
-                            rel.pelem.Eoper = OPeq;
-                            rel.pelem.Ety = rel.pelem.E1.Ety;
-                            rb.bc = BC.goto_;
-                            list_subtract(&rb.Bsucc,rb);
-                            list_subtract(&rb.Bpred,rb);
-
-                            debug
-                                if (debugc)
-                                {
-                                    WReqn(rel.pelem);
-                                    printf(" eliminated loop\n");
-                                }
-
-                            go.changes++;
-                        }
+                        ++changes;
                     }
                 }
             }
@@ -922,17 +906,19 @@ private void intranges(ref GlobalOptimizer go, ref Elemdatas rellist, ref Elemda
  * Look for initialization and increment expressions in loop.
  * Very similar to intranges().
  * Params:
+ *   defnod = definition nodes
  *   rellist = list of relationals in function
  *   inclist = list of increment elems in function.
  *   erel = loop compare expression of the form (v < c)
  *   rdeq = set to loop initialization of v
  *   rdinc = set to loop increment of v
+ *   changes = increment changes
  * Returns:
  *   false if cannot find rdeq or rdinc
  */
 
 @trusted
-public bool findloopparameters(ref GlobalOptimizer go, elem* erel, ref elem* rdeq, ref elem* rdinc)
+public bool findloopparameters(ref Barray!DefNode defnod, elem* erel, ref elem* rdeq, ref elem* rdinc, ref uint changes)
 {
     if (debugc) printf("findloopparameters()\n");
     const bool log = false;
@@ -950,7 +936,7 @@ public bool findloopparameters(ref GlobalOptimizer go, elem* erel, ref elem* rde
     if (!(sytab[v.Sclass] & SCRD))
         return false;
 
-    rd_compute(go, bo, eqrelinc);     // compute rellist, inclist, eqeqlist
+    rd_compute(defnod, bo, eqrelinc, changes);     // compute rellist, inclist, eqeqlist
 
     /* Find `erel` in `rellist`
      */
@@ -1036,7 +1022,7 @@ public bool findloopparameters(ref GlobalOptimizer go, elem* erel, ref elem* rde
      * rel.pblock = block of relational
      */
     int i = loopcheck(iel.pblock,iel.pblock,rel.pblock);
-    block_clearvisit(bo);
+    block_clearvisit(bo.startblock);
     if (i)
     {
         if (log) printf("\tnot loopcheck()\n");
@@ -1056,9 +1042,9 @@ private int loopcheck(block* start,block* inc,block* rel)
 {
     if (!(start.Bflags & BFL.visited))
     {   start.Bflags |= BFL.visited;    /* guarantee eventual termination */
-        foreach (list; ListRange(start.Bsucc))
+
+        foreach (b; start.Bsucc[])
         {
-            block* b = cast(block*) list_ptr(list);
             if (b != rel && (b == inc || loopcheck(b,inc,rel)))
                 return true;
         }
@@ -1069,14 +1055,14 @@ private int loopcheck(block* start,block* inc,block* rel)
 /****************************
  * Do copy propagation.
  * Copy propagation elems are of the form OPvar=OPvar, and they are
- * in go.expnod[].
+ * in expnod[].
  */
 
 
 @trusted
-public void copyprop(ref GlobalOptimizer go, ref BlockOpt bo)
+public void copyprop(ref Barray!(elem*) expnod, ref BlockOpt bo, ref uint changes)
 {
-    out_regcand(&globsym);
+    out_regcand(globsym[]);
     if (debugc) printf("copyprop()\n");
     assert(bo.dfo);
 
@@ -1084,14 +1070,15 @@ Louter:
     while (1)
     {
         flowcp(go, bo);           /* compute available copy statements    */
-        if (go.exptop <= 1)
+        const expnodLength = expnod.length;
+        if (expnodLength <= 1)
             return;             // none available
         static if (0)
         {
-            foreach (i; 1 .. go.exptop)
+            foreach (i; 1 .. expnodLength)
             {
-                printf("go.expnod[%d] = (",i);
-                WReqn(go.expnod[i]);
+                printf("expnod[%d] = (",i);
+                WReqn(expnod[i]);
                 printf(");\n");
             }
         }
@@ -1113,7 +1100,7 @@ Louter:
                 }
                 else
                 {
-                    recalc = copyPropWalk(go, b.Belem, b.Bin);
+                    recalc = copyPropWalk(expnod, b.Belem, b.Bin, changes);
                 }
                 /*assert(vec_equal(b.Bin,b.Bout));              */
                 /* The previous assert() is correct except      */
@@ -1143,7 +1130,7 @@ Louter:
  */
 
 @trusted
-private bool copyPropWalk(ref GlobalOptimizer go, elem* n, vec_t IN)
+private bool copyPropWalk(ref Barray!(elem*) expnod, elem* n, vec_t IN, ref uint changes)
 {
     bool recalc = false;
     int nocp = 0;
@@ -1219,12 +1206,11 @@ private bool copyPropWalk(ref GlobalOptimizer go, elem* n, vec_t IN)
             cpwalk(n.E2,IN);
         }
 
+        const expnodLength = expnod.length;
         if (OTdef(op))                  // if definition elem
         {
-            int ambig;              /* true if ambiguous def        */
-
-            ambig = !OTassign(op) || t.Eoper == OPind;
-            for (size_t i = 0; (i = vec_index(i, IN)) < go.exptop; ++i) // for each active copy elem
+            const bool ambig = !OTassign(op) || t.Eoper == OPind;  // true if ambiguous def
+            for (size_t i = 0; (i = vec_index(i, IN)) < expnodLength; ++i) // for each active copy elem
             {
                 Symbol* v;
 
@@ -1233,7 +1219,7 @@ private bool copyPropWalk(ref GlobalOptimizer go, elem* n, vec_t IN)
 
                 /* If this elem could kill the lvalue or the rvalue, */
                 /*      Clear bit in IN.                        */
-                v = go.expnod[i].E1.Vsym;
+                v = expnod[i].E1.Vsym;
                 if (ambig)
                 {
                     if (Symbol_isAffected(*v))
@@ -1245,7 +1231,7 @@ private bool copyPropWalk(ref GlobalOptimizer go, elem* n, vec_t IN)
                         goto clr;
                 }
 
-                v = go.expnod[i].E2.Vsym;
+                v = expnod[i].E2.Vsym;
                 if (ambig)
                 {
                     if (Symbol_isAffected(*v))
@@ -1262,7 +1248,7 @@ private bool copyPropWalk(ref GlobalOptimizer go, elem* n, vec_t IN)
                 vec_clearbit(i,IN);     /* so remove it from the vector */
             } /* foreach */
 
-            /* If this is a copy elem in go.expnod[]   */
+            /* If this is a copy elem in expnod[]      */
             /*      Set bit in IN.                     */
             if ((op == OPeq || op == OPstreq) && n.E1.Eoper == OPvar &&
                 n.E2.Eoper == OPvar && n.Eexp)
@@ -1281,9 +1267,9 @@ private bool copyPropWalk(ref GlobalOptimizer go, elem* n, vec_t IN)
 
             elem* foundelem = null;
             Symbol* f;
-            for (size_t i = 0; (i = vec_index(i, IN)) < go.exptop; ++i) // for all active copy elems
+            for (size_t i = 0; (i = vec_index(i, IN)) < expnodLength; ++i) // for all active copy elems
             {
-                elem* c = go.expnod[i];
+                elem* c = expnod[i];
                 assert(c);
 
                 uint csz = tysize(c.E1.Ety);
@@ -1332,19 +1318,20 @@ private bool copyPropWalk(ref GlobalOptimizer go, elem* n, vec_t IN)
                  *  g = v   => g = f
                  *  f = x
                  *  d = g   => d = f !!error
-                 * Therefore, if n appears as an rvalue in go.expnod[], then recalc
+                 * Therefore, if n appears as an rvalue in expnod[], then recalc
                  */
-                foreach (j; 1 .. go.exptop)
+                assert(expnodLength == expnod.length);
+                foreach (j; 1 .. expnodLength)
                 {
-                    //printf("go.expnod[%d]: ", j); elem_print(go.expnod[j]);
-                    if (go.expnod[j].E2 == n)
+                    //printf("expnod[%d]: ", j); elem_print(expnod[j]);
+                    if (expnod[j].E2 == n)
                     {
                         recalc = true;
                         break;
                     }
                 }
 
-                go.changes++;
+                ++changes;
             }
             //else printf("not found\n");
         noprop:
@@ -1370,7 +1357,7 @@ private __gshared
 }
 
 @trusted
-public void rmdeadass(ref GlobalOptimizer go, ref BlockOpt bo)
+public void rmdeadass(ref GlobalOptimizer go, ref BlockOpt bo, ref uint changes)
 {
     if (debugc) printf("rmdeadass()\n");
     flowlv(bo);                     /* compute live variables       */
@@ -1440,7 +1427,7 @@ public void rmdeadass(ref GlobalOptimizer go, ref BlockOpt bo)
                     printf(") Boutlv\n");
             }
             elimass(n);
-            go.changes++;
+            ++changes;
         } /* foreach */
         vec_free(DEAD);
         vec_free(POSS);
@@ -1715,7 +1702,7 @@ private void accumda(elem* n,vec_t DEAD, vec_t POSS)
                             ti.Voffset == t.Voffset &&
                             tisz == tsz &&
                             !(t.Ety & (mTYvolatile | mTYshared)) &&
-                            //t.Vsym.Sflags & SFLunambig &&
+                            //t.Vsym.Sflags & SFLdistinct &&
                             vec_testbit(i,POSS))
                         {
                             vec_setbit(i,DEAD);
@@ -1732,7 +1719,7 @@ private void accumda(elem* n,vec_t DEAD, vec_t POSS)
                     // if variable could be referenced by a pointer
                     // or a function call, mark the assignment in
                     // ambigref
-                    if (!(t.Vsym.Sflags & SFLunambig))
+                    if (!(t.Vsym.Sflags & SFLdistinct))
                     {
                         vec_setbit(i,ambigref);
 
@@ -1783,7 +1770,7 @@ public void deadvar()
         /* Initialize vectors for live ranges.  */
         foreach (s; globsym[])
         {
-            if (s.Sflags & SFLunambig)
+            if (s.Sflags & SFLdistinct)
             {
                 s.Sflags |= SFLdead;
                 if (s.Sflags & GTregcand)
@@ -1865,13 +1852,14 @@ private void dvwalk(elem* n,uint i)
  */
 
 @trusted
-public void verybusyexp(ref GlobalOptimizer go, ref BlockOpt bo)
+public void verybusyexp(ref Barray!(elem*) expnod, ref Barray!(block*) expblk, ref BlockOpt bo, ref uint changes)
 {
     if (debugc) printf("verybusyexp()\n");
 
     flowvbe(go, bo);                  /* compute VBEs                 */
+    assert(go.exptop == expnod.length);
+    assert(go.exptop == expblk.length);
     if (go.exptop <= 1) return;        /* if no VBEs                   */
-    assert(go.expblk.length);
     if (blockinit(bo))
         return;                     // can't handle ASM blocks
     compdom(bo);                    /* compute dominators           */
@@ -1894,8 +1882,8 @@ public void verybusyexp(ref GlobalOptimizer go, ref BlockOpt bo)
         if (vec_testbit(j,bp.Bkill))
             return true;
         vec_setbit(bp.Bdfoidx,blockseen);      /* mark as visited              */
-        foreach (bl; ListRange(bp.Bpred))
-            if (killed(j,list_block(bl),b))
+        foreach (bl; bp.Bpred[])
+            if (killed(j,bl,b))
                 return true;
         return false;
     }
@@ -1904,12 +1892,12 @@ public void verybusyexp(ref GlobalOptimizer go, ref BlockOpt bo)
      * Params:
      *      b =    block where we want to put the VBE
      *      bp =   block somewhere between b and block containing j
-     *      j =     VBE expression elem candidate (index into go.expnod[])
+     *      j =     VBE expression elem candidate (index into expnod[])
      * Returns: true if there is a path from b to bp along which
      * elem j is not used.
      */
     @trusted
-    int ispath(ref GlobalOptimizer go, uint j, block* bp, block* b)
+    int ispath(uint j, block* bp, block* b)
     {
         /*chkvecdim(go.exptop,0);*/
         if (bp == b) return true;              /* the trivial case             */
@@ -1919,16 +1907,17 @@ public void verybusyexp(ref GlobalOptimizer go, ref BlockOpt bo)
 
         /* false if elem j is used in block bp (and reaches the end     */
         /* of bp, indicated by it being an AE in Bgen)                  */
-        for (size_t i = 0; (i = vec_index(i, bp.Bgen)) < go.exptop; ++i) // look thru used expressions
+        assert(go.exptop == expnod.length);
+        for (size_t i = 0; (i = vec_index(i, bp.Bgen)) < expnod.length; ++i) // look thru used expressions
         {
-            if (i != j && go.expnod[i] && el_match(go.expnod[i],go.expnod[j]))
+            if (i != j && expnod[i] && el_match(expnod[i],expnod[j]))
                 return false;
         }
 
         /* Not used in bp, see if there is a path through a predecessor */
         /* of bp                                                        */
-        foreach (bl; ListRange(bp.Bpred))
-            if (ispath(go, j, list_block(bl), b))
+        foreach (bl; bp.Bpred[])
+            if (ispath(j, bl, b))
                 return true;
 
         return false;           /* j is used along all paths            */
@@ -1973,7 +1962,7 @@ public void verybusyexp(ref GlobalOptimizer go, ref BlockOpt bo)
         }
 
         /* Eliminate all elems that have already been           */
-        /* hoisted (indicated by go.expnod[] == 0).                */
+        /* hoisted (indicated by expnod[] == 0).                */
         /* Constants are not useful as VBEs.                    */
         /* Eliminate all elems from Bout that are not in blocks */
         /* that are dominated by b.                             */
@@ -1983,11 +1972,12 @@ public void verybusyexp(ref GlobalOptimizer go, ref BlockOpt bo)
             vec_println(b.Bout);
         }
         done = true;
-        for (size_t j = 0; (j = vec_index(j, b.Bout)) < go.exptop; ++j)
+        assert(go.exptop == expnod.length);
+        for (size_t j = 0; (j = vec_index(j, b.Bout)) < expnod.length; ++j)
         {
-            if (go.expnod[j] == null ||
-                !!OTleaf(go.expnod[j].Eoper) ||
-                !dom(bo, b,go.expblk[j]))
+            if (expnod[j] == null ||
+                !!OTleaf(expnod[j].Eoper) ||
+                !dom(bo,b,expblk[j]))
                 vec_clearbit(j,b.Bout);
             else
                 done = false;
@@ -2001,12 +1991,13 @@ public void verybusyexp(ref GlobalOptimizer go, ref BlockOpt bo)
             printf("block %d Bout = ",i);
             vec_println(b.Bout);
         }
-        for (size_t j = 0; (j = vec_index(j, b.Bout)) < go.exptop; ++j)
+        assert(go.exptop == expnod.length);
+        for (size_t j = 0; (j = vec_index(j, b.Bout)) < expnod.length; ++j)
         {
             vec_clear(blockseen);
-            foreach (bl; ListRange(go.expblk[j].Bpred))
+            foreach (bl; expblk[j].Bpred[])
             {
-                if (killed(cast(uint)j,list_block(bl),b))
+                if (killed(cast(uint)j,bl,b))
                 {
                     vec_clearbit(j,b.Bout);
                     break;
@@ -2024,12 +2015,14 @@ public void verybusyexp(ref GlobalOptimizer go, ref BlockOpt bo)
             vec_println(b.Bout);
         }
 
-        for (size_t j = 0; (j = vec_index(j, b.Bout)) < go.exptop; ++j)
+        assert(go.exptop == expnod.length);
+        assert(go.exptop == expblk.length);
+        for (size_t j = 0; (j = vec_index(j, b.Bout)) < expnod.length; ++j)
         {
             vec_clear(blockseen);
-            foreach (bl; ListRange(go.expblk[j].Bpred))
+            foreach (bl; expblk[j].Bpred[])
             {
-                if (ispath(go, cast(uint) j, list_block(bl), b))
+                if (ispath(cast(uint) j, bl, b))
                     goto L2;
             }
             vec_clearbit(j,b.Bout);        /* thar ain't no path   */
@@ -2045,12 +2038,12 @@ public void verybusyexp(ref GlobalOptimizer go, ref BlockOpt bo)
             vec_println(b.Bout);
         }
 
-        for (size_t j = 0; (j = vec_index(j, b.Bout)) < go.exptop; ++j)
+        for (size_t j = 0; (j = vec_index(j, b.Bout)) < expnod.length; ++j)
         {
             size_t k;
-            for (k = j + 1; k < go.exptop; k++)
+            for (k = j + 1; k < expnod.length; k++)
             {   if (vec_testbit(k,b.Bout) &&
-                        el_match(go.expnod[j],go.expnod[k]))
+                        el_match(expnod[j],expnod[k]))
                             goto foundvbe;
             }
             continue;               /* no VBE here          */
@@ -2060,32 +2053,32 @@ public void verybusyexp(ref GlobalOptimizer go, ref BlockOpt bo)
             {
                 if (debugc)
                 {   printf("VBE %d,%d, block %d (", cast(int)j, cast(int)k, cast(int) i);
-                    WReqn(go.expnod[j]);
+                    WReqn(expnod[j]);
                     printf(");\n");
                 }
             }
             *pn = el_bin(OPcomma,(*pn).Ety,
-                         el_copytree(go.expnod[j]),*pn);
+                         el_copytree(expnod[j]),*pn);
 
             /* Mark all the vbe elems found but one (the    */
-            /* go.expnod[j] one) so that the expression will   */
+            /* expnod[j] one) so that the expression will   */
             /* only be hoisted again if other occurrences   */
             /* of the expression are found later. This      */
             /* will substitute for the fact that the        */
-            /* el_copytree() expression does not appear in go.expnod[]. */
+            /* el_copytree() expression does not appear in expnod[]. */
             const l = k;
             do
             {
                 if (k == l || (vec_testbit(k,b.Bout) &&
-                    el_match(go.expnod[j],go.expnod[k])))
+                    el_match(expnod[j],expnod[k])))
                 {
                     /* Fix so nobody else will      */
                     /* vbe this elem                */
-                    go.expnod[k] = null;
+                    expnod[k] = null;
                     vec_clearbit(k,b.Bout);
                 }
-            } while (++k < go.exptop);
-            go.changes++;
+            } while (++k < expnod.length);
+            changes++;
         } /* foreach */
     } /* for */
     vec_free(blockseen);

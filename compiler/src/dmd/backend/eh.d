@@ -18,14 +18,17 @@ import core.stdc.stdlib;
 import core.stdc.string;
 
 import dmd.backend.barray;
+import dmd.backend.blockopt : bo;
 import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.code;
 import dmd.backend.x86.code_x86;
 import dmd.backend.dt;
 import dmd.backend.el;
-import dmd.backend.global;
+import dmd.backend.global : error, symbol_keep;
+import dmd.backend.dout : outdata;
 import dmd.backend.obj;
+import dmd.backend.symbol;
 import dmd.backend.ty;
 import dmd.backend.type;
 
@@ -42,7 +45,7 @@ package(dmd) @property @nogc nothrow auto @trusted NPTRSIZE() { return _tysize[T
 Symbol* except_gentables()
 {
     //printf("except_gentables()\n");
-    if (config.ehmethod == EHmethod.EH_DM && !(funcsym_p.Sfunc.Fflags3 & Feh_none))
+    if (config.ehmethod == EHmethod.EH_DM && !(funcsym_p.Sfunc.Fflags & Feh_none))
     {
         // BUG: alloca() changes the stack size, which is not reflected
         // in the fixed eh tables.
@@ -141,7 +144,7 @@ void except_fillInEHTable(Symbol* s)
     int ndctors = 0;                                // number of PSOP.dctor's
     foreach (b; BlockRange(bo.startblock))
     {
-        if (b.bc == BC._try && b.Bscope_index >= guarddim)
+        if (b.bc == BC.try_ && b.Bscope_index >= guarddim)
             guarddim = b.Bscope_index + 1;
 //      printf("b.bc = %2d, Bscope_index = %2d, last_index = %2d, offset = x%x\n",
 //              b.bc, b.Bscope_index, b.Blast_index, b.Boffset);
@@ -167,7 +170,7 @@ void except_fillInEHTable(Symbol* s)
     foreach (b; BlockRange(bo.startblock))
     {
         //printf("b = %p, b.Btry = %p, b.offset = %x\n", b, b.Btry, b.Boffset);
-        if (b.bc == BC._try)
+        if (b.bc == BC.try_)
         {
             assert(b.Bscope_index >= i);
             if (i < b.Bscope_index)
@@ -177,7 +180,7 @@ void except_fillInEHTable(Symbol* s)
             }
             i = b.Bscope_index + 1;
 
-            int nsucc = b.numSucc();
+            int nsucc = cast(int)b.Bsucc.length;
 
             if (config.ehmethod == EHmethod.EH_DM)
             {
@@ -213,10 +216,10 @@ void except_fillInEHTable(Symbol* s)
             {
                 assert(nsucc == 2);
                 dtb.dword(0);           // no catch offset
-                block* bhandler = b.nthSucc(1);
-                assert(bhandler.bc == BC._finally);
-                // To successor of BC._finally block
-                bhandler = bhandler.nthSucc(0);
+                block* bhandler = b.Bsucc[1];
+                assert(bhandler.bc == BC.finally_);
+                // To successor of BC.finally_ block
+                bhandler = bhandler.Bsucc[0];
                 // finally handler address
                 if (config.ehmethod == EHmethod.EH_DM)
                 {
@@ -330,15 +333,15 @@ void except_fillInEHTable(Symbol* s)
     // Generate catch[]
     foreach (b; BlockRange(bo.startblock))
     {
-        if (b.bc == BC._try && b.jcatchvar)         // if try-catch
+        if (b.bc == BC.try_ && b.jcatchvar)         // if try-catch
         {
-            int nsucc = b.numSucc();
+            int nsucc = cast(int)b.Bsucc.length;
             dtb.size(nsucc - 1);           // # of catch blocks
             sz += NPTRSIZE;
 
             for (int j = 1; j < nsucc; ++j)
             {
-                block* bcatch = b.nthSucc(j);
+                block* bcatch = b.Bsucc[j];
 
                 dtb.xoff(bcatch.Bcatchtype,0,TYnptr);
 

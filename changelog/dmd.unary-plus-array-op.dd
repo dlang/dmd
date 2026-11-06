@@ -1,0 +1,10 @@
+Unary `+` is now allowed in array operations
+
+Arrays already supported the unary `-` and `~` vector operations. Unary `+` is
+now supported too, with the same rules:
+
+---
+int[4] a = [1, -2, 3, -4];
+int[4] b = +a[];    // previously: illegal operator `+` for `a[]` of type `int[]`
+b[] = +a[] * 2;
+---

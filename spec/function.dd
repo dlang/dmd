@@ -47,6 +47,8 @@ $(GNAME Parameter):
     $(GLINK ParameterDeclaration) $(D ...)
     $(GLINK ParameterDeclaration) $(D =) $(ASSIGNEXPRESSION)
     $(GLINK ParameterDeclaration) $(D =) $(ASSIGNEXPRESSION) $(D ...)
+    $(GLINK ParameterAttributes)$(OPT) $(GLINK ParameterTuplePattern)
+    $(GLINK ParameterAttributes)$(OPT) $(GLINK ParameterTuplePattern) = $(GLINK2 expression, AssignExpression)
 
 $(GNAME ParameterDeclaration):
     $(GLINK ParameterAttributes)$(OPT) $(GLINK2 type, BasicType) $(GLINK2 declaration, Declarator)
@@ -1501,8 +1503,8 @@ void test()
 
 $(H3 $(LNAME2 overload-sets, Overload Sets))
 
-        $(P Functions declared at the same scope overload against each
-        other, and are called an $(I Overload Set).
+        $(P An $(I Overload Set) is the set of functions with the same name
+        declared in the same scope that participate in overload resolution.
         An example of an overload set are functions defined
         at module level:
         )
@@ -1708,8 +1710,8 @@ $(H3 $(LNAME2 ref-params, Ref and Out Parameters))
         $(P A `ref` parameter can also be returned by reference, see
         $(RELATIVE_LINK2 return-ref-parameters, Return Ref Parameters.))
 
-        $(P An `out` parameter is similar to a `ref` parameter, except it is initialized
-        by $(DDSUBLINK spec/property, init-vs-construction, default construction) upon
+        $(P An `out` parameter is similar to a `ref` parameter, except it is
+        $(DDSUBLINK spec/property, init-vs-construction, default initialized) upon
         function invocation.)
 
         $(SPEC_RUNNABLE_EXAMPLE_RUN
@@ -2282,6 +2284,48 @@ $(H3 $(LNAME2 udas-parameters, User-Defined Attributes for Parameters))
 
 See also: $(GLINK2_ALTTEXT attribute, UserDefinedAttribute, User-Defined Attributes)
 
+$(H3 $(LNAME2 unpacking-parameters, Unpacking Parameters))
+
+$(GRAMMAR
+$(GNAME ParameterTuplePattern):
+    `(` $(GLINK ParameterTupleComponents) `)`
+
+$(GNAME ParameterTupleComponents):
+    $(GLINK ParameterTupleComponent) `,`
+    $(GLINK ParameterTupleComponent) `,` $(GLINK ParameterTupleComponent)
+    $(GLINK ParameterTupleComponent) `,` $(GLINK ParameterTupleComponents)
+
+$(GNAME ParameterTupleComponent):
+    $(GLINK ParameterAttributes)$(OPT) $(GLINK_LEX Identifier)
+    $(GLINK ParameterAttributes)$(OPT) $(GLINK2 type, BasicType) $(GLINK2 type, TypeSuffixes)$(OPT) $(GLINK_LEX Identifier)
+    $(GLINK ParameterAttributes)$(OPT) $(GLINK ParameterTuplePattern)
+)
+
+        $(P A $(DDSUBLINK spec/expression, function-literal-alias, function literal template)
+        with untyped *ParameterTupleComponents* is supported. The corresponding function
+        argument will be unpacked into component variables:)
+
+---
+import std.typecons : tuple;
+
+alias dg = ((x, y), z) => writeln(x, " ", y, " ", z);
+dg(tuple(1, 2), 3); // "1 2 3\n"
+---
+        $(NOTE A typed *ParameterTupleComponent* is parsed, but cannot be supported without
+        compiler-recognised tuple types.)
+
+        $(P `((x, y), z) { ... }` is lowered to `(__arg0, z) { auto (x, y) = __arg0; ... }`.
+        In general, lowering preserves and copies storage classes from
+        the parameter to an $(DDSUBLINK spec/declaration, unpacking-declarations,
+        unpacking declaration) in the function body.)
+
+        - The `ref` storage class is copied outwards, e.g., `((ref a, b), c) { ... }` gets lowered to
+          `(ref __arg0, c) { (ref a, auto b) = __arg0; ... }`.
+        - `out` can be applied to the whole parameter, but not to individual components.
+        - `auto ref` and `lazy` cannot be applied to an unpacking parameter.
+
+        $(NOTE `out` unpacking parameters are not supported by the current implementation, but may be added at a future date.)
+
 $(H3 $(LNAME2 variadic, Variadic Functions))
 
         $(P $(I Variadic Functions) take a variable number of arguments.
@@ -2386,17 +2430,10 @@ $(H4 $(LNAME2 d_style_variadic_functions, D-style Variadic Functions))
         ------
         )
 
-        $(P Two hidden arguments are passed to the function:)
-
-        $(UL
-        $(LI `_argptr`)
-        $(LI `TypeInfo[] _arguments`)
-        )
-
-        $(P $(D _argptr) is a pointer to the first of the variadic
-        arguments. To access the variadic arguments,
-        import $(LINK2 $(ROOT_DIR)phobos/core_vararg.html, $(D core.vararg)).
-        Use $(D _argptr) in conjunction with $(REF_SHORT va_arg, core,stdc,stdarg):)
+        $(P `va_list _argptr` is declared & initialized as a pointer to the
+        first of the variadic arguments. To access the variadic arguments,
+        import $(LINK2 $(ROOT_DIR)phobos/core_vararg.html, $(D core.vararg)) and
+        use $(D _argptr) in conjunction with $(REF_SHORT va_arg, core,stdc,stdarg):)
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ------
@@ -2416,8 +2453,11 @@ void main()
 }
 ------
 )
-        $(P $(D _arguments) gives the number of arguments and the `typeid`
-        of each, enabling type safety to be checked at run time.)
+        $(P A hidden function parameter `TypeInfo[] _arguments` gives
+        the number of arguments and the $(REF1 TypeInfo, object) of each argument's
+        type. This enables type safety to be manually checked at run time by
+        comparing each element against a $(DDSUBLINK spec/expression, typeid_expressions,
+        `typeid(`*Type*`)`) expression.)
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ------
@@ -2698,15 +2738,17 @@ $(H3 $(LNAME2 hidden-parameters, Hidden Parameters))
             the function is called.
         )
         $(LI $(RELATIVE_LINK2 d_style_variadic_functions, D-style variadic functions)
-            have hidden parameters.)
+            have a hidden `_arguments` parameter.)
         $(LI $(RELATIVE_LINK2 nested, Nested functions) have a hidden context
             pointer parameter.)
+        $(LI A function $(DDSUBLINK spec/glossary, nrvo, returning a struct type) may
+            have a hidden pointer parameter.)
         $(LI
             $(DDSUBLINK spec/class, objc-member-functions,
                 Member functions with `Objective-C` linkage) have a hidden parameter.
         )
         )
-
+        $(P See $(DDSUBLINK spec/abi, parameters, ABI) for details.)
 
 
 $(H2 $(LNAME2 refscopereturn, Ref Scope Return Cases))
@@ -3741,17 +3783,17 @@ $(H2 $(LNAME2 interpretation, Compile Time Function Execution (CTFE)))
     $(P These contexts are:)
 
     $(UL
-    $(LI initialization of a static variable or a
+    $(LI initialization of a global/static variable or a
         $(DDSUBLINK spec/enum, manifest_constants, manifest constant))
-    $(LI static initializers of struct/class members)
-    $(LI dimension of a $(DDSUBLINK spec/arrays, static-arrays, static array))
+    $(LI static initializers of struct/class fields)
+    $(LI dimension of a $(DDSUBLINK spec/arrays, static-arrays, static array) type)
     $(LI argument for a $(DDSUBLINK spec/template, template_value_parameter,
         template value parameter))
     $(LI $(DDSUBLINK spec/version, staticif, `static if`))
     $(LI $(DDSUBLINK spec/version, staticforeach, `static foreach`))
     $(LI $(DDSUBLINK spec/version, static-assert, `static assert`))
     $(LI $(DDSUBLINK spec/statement, mixin-statement,
-        `mixin` statement))
+        `mixin` statement)/expression/declaration)
     $(LI $(DDLINK spec/pragma, Pragmas, `pragma` argument))
     $(LI $(DDLINK spec/traits, Traits, `__traits` argument))
     )
@@ -3783,9 +3825,9 @@ void main()
     $(P CTFE is subject to the following restrictions:)
 
     $(OL
-    $(LI Expressions may not reference any mutable static variables.)
+    $(LI Expressions may not reference any mutable global/static variables.)
 
-    $(LI $(DDSUBLINK spec/iasm, asmstatements, AsmStatements) are not permitted)
+    $(LI $(DDSUBLINK spec/iasm, asmstatements, *AsmStatement*s) are not permitted.)
 
     $(LI Non-portable casts (e.g., from $(D int[]) to $(D float[])), including
         casts which depend on endianness, are not permitted.
@@ -3794,6 +3836,8 @@ void main()
     $(LI Reinterpretation of overlapped fields in a union is not permitted.)
 
     $(LI Undefined behavior must not occur.)
+
+    $(LI Non-recoverable errors (such as $(D_KEYWORD assert) failures) are not permitted.)
     )
 
     $(P Pointers are permitted in CTFE, provided they are used safely:)
@@ -3837,16 +3881,21 @@ void main()
         permitted between all pointers, without restriction.
         )
 
-        $(LI
-        Any pointer may be cast to $(D void*) and from $(D void*) back to
-        its original type. Casting between pointer and non-pointer types is
-        illegal.
-        )
+        $(LI The following pointer casts are permitted:)
+
+        - Casting a pointer to $(D void*) and from that $(D void*) back to
+          its original type.
+        - Casting from an integer pointer to another integer pointer
+          iff each integer type has the same size.
+
+        $(LI Casting between pointer and non-pointer types is illegal.)
     )
 
     $(P The above restrictions apply only to expressions which are
         actually evaluated. For example:
     )
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---
 static int y = 0;
 
@@ -3858,58 +3907,64 @@ int countTen(int x)
 }
 
 static assert(countTen(6) == 6);    // OK
-static assert(countTen(12) == 12);  // invalid, modifies y.
+//static assert(countTen(12) == 12);  // Error, `y` is modified
 ---
+)
     $(P The $(D __ctfe) boolean pseudo-variable evaluates to $(D_KEYWORD true)
         during CTFE but $(D_KEYWORD false) otherwise.
+        It cannot be read in a compile time context (such as a `static if` condition).
     )
-
-    $(NOTE `__ctfe` can be used to provide
+    $(RATIONALE `__ctfe` can be used to provide
         an alternative execution path to avoid operations which are forbidden
-        in CTFE. Every usage of $(D __ctfe) is statically evaluated
-        and has no run-time cost.
+        in CTFE.
     )
+    $(NOTE Every usage of $(D __ctfe) is statically evaluated and has no run time cost.)
 
-    $(P Non-recoverable errors (such as $(D_KEYWORD assert) failures) are illegal.
-    )
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---
+int i = 10;
+int f() => __ctfe ? 5 : i; // only read `i` at runtime
+static assert(f() == 5);
 
-    $(IMPLEMENTATION_DEFINED Executing functions via CTFE can take considerably
-    longer than executing it at run time.
-    If the function goes into an infinite loop, it may cause the compiler to hang.
-    )
+void main()
+{
+    assert(f() == 10);
+}
+---
+)
+
+    $(P See also: The $(DDSUBLINK spec/attribute, ctfeonly, `@__ctfe` attribute)
+    disables run time code generation of a function.)
 
     $(IMPLEMENTATION_DEFINED
-    Functions executed via CTFE can give different results
+  - Executing functions via CTFE can take considerably
+    longer than executing it at run time.
+    If the function goes into an infinite loop, it may cause the compiler to hang.
+  - Functions executed via CTFE can give different results
     from run time when implementation-defined behavior occurs.
     )
 
 
-$(H3 $(LNAME2 string-mixins, String Mixins and Compile Time Function Execution))
+$(H3 $(LNAME2 string-mixins, Run Time Values during CTFE))
 
-        $(P All functions that execute in CTFE must also
-        be executable at run time. The compile time evaluation of
-        a function does the equivalent of running the function at
-        run time. The semantics of a function cannot
-        depend on compile time values of the function. For example:)
+        $(P All functions that execute in CTFE must first pass semantic
+        checks for run time code generation. The compile time evaluation of
+        a function is similar to running the function at
+        run time. The compile time semantics of a function undergoing CTFE cannot
+        depend on values with a run time context. For example:)
 
 ---
 int foo(string s)
 {
-    return mixin(s);
+    enum e = s;      // Error: cannot read `s` at compile time
+    return mixin(s); // ditto
 }
 
 const int x = foo("1");
 ---
 
-        $(COMMENT Intentionally not a $(P ...) so that it doesn't get a
-        paragraph number, because this continues the paragraph above.)
-
-        is illegal, because the runtime code for `foo` cannot be
-        generated.
-
-        $(BEST_PRACTICE A function template, where `s` is a template argument,
-        would be the appropriate
-        method to implement this sort of thing.
+        $(BEST_PRACTICE A function template, where `s` is a template value argument,
+        would be the appropriate way to do this sort of thing.
         )
 
 

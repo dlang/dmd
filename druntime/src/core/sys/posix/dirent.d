@@ -158,6 +158,37 @@ else version (Solaris)
         char[1] d_name = 0;
     }
 }
+else version (Hurd)
+{
+    struct dirent
+    {
+        ino_t       d_ino;
+        ushort      d_reclen;
+        ubyte       d_type;
+        ubyte       d_namlen;
+        char[1]     d_name = 0;
+    }
+}
+else version (Emscripten)
+{
+    struct dirent
+    {
+        ino_t d_ino;
+        off_t d_off;
+        ushort d_reclen;
+        ubyte d_type;
+        char[256] d_name = 0;
+    }
+}
+else version (CRuntime_WASI)
+{
+    struct dirent
+    {
+        ino_t   d_ino;
+        ubyte   d_type;
+        char[0] d_name;
+    }
+}
 else
 {
     static assert(false, "Unsupported platform");
@@ -404,6 +435,28 @@ else version (CRuntime_Musl)
         alias readdir64 = readdir;
     }
 }
+else version (CRuntime_WASI)
+{
+    enum
+    {
+        DT_UNKNOWN  = 0,
+        DT_BLK      = 1,
+        DT_CHR      = 2,
+        DT_DIR      = 3,
+        DT_REG      = 4,
+        DT_FIFO     = 6,
+        DT_LNK      = 7,
+        DT_SOCK     = 20
+    }
+
+    struct DIR
+    {
+        // Managed by OS
+    }
+
+    dirent* readdir(DIR*);
+    alias readdir64 = readdir;
+}
 else version (CRuntime_UClibc)
 {
     // NOTE: The following constants are non-standard Linux definitions
@@ -575,6 +628,9 @@ else version (CRuntime_Musl)
 {
     int readdir_r(DIR*, dirent*, dirent**);
 }
+else version (CRuntime_WASI)
+{
+}
 else version (CRuntime_UClibc)
 {
   static if ( __USE_LARGEFILE64 )
@@ -665,6 +721,11 @@ else version (CRuntime_Bionic)
 {
 }
 else version (CRuntime_Musl)
+{
+    void   seekdir(DIR*, c_long);
+    c_long telldir(DIR*);
+}
+else version (CRuntime_WASI)
 {
     void   seekdir(DIR*, c_long);
     c_long telldir(DIR*);
