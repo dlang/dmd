@@ -10789,11 +10789,6 @@ private extern(C++) class FinalizeSizeVisitor : Visitor
                 // for unanalyzed initializers.
                 if (vd._scope)
                 {
-                    if (auto ei = vd._init.isExpInitializer())
-                    {
-                        if (_isZeroInit(ei.exp))
-                            continue;
-                    }
                     sd.zeroInit = false;
                     break;
                 }
