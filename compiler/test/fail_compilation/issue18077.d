@@ -1,7 +1,8 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/issue18077.d(31): Error: cannot use non-constant CTFE pointer in an initializer `new SumType!(Scope, Return)(Storage(Scope(null), ))`
+fail_compilation/issue18077.d(20): Error: union `issue18077.SumType!(Scope, Return).Storage` no size because of forward reference
+fail_compilation/issue18077.d(29): Error: template instance `issue18077.SumType!(Scope, Return)` error instantiating
 ---
 */
 

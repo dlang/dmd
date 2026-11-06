@@ -8937,10 +8937,7 @@ private extern(C++) class SetFieldOffsetVisitor : Visitor
         ad.fields.push(vd);
 
         if (t.ty == Terror)
-        {
-            hasErrors = true;
             return;
-        }
 
         /* If coming after a bit field in progress,
          * advance past the field
@@ -8984,10 +8981,7 @@ private extern(C++) class SetFieldOffsetVisitor : Visitor
             ad.fields.push(bfd);
 
         if (t.ty == Terror)
-        {
-            hasErrors = true;
             return;
-        }
 
         const sz = t.size(bfd.loc);
         assert(sz != SIZE_INVALID && sz < uint.max);
@@ -9979,7 +9973,7 @@ bool determineSize(AggregateDeclaration ad, Loc loc)
         ad.finalizeSize();
 
     // this aggregate type has:
-    if (ad.type.ty == Terror)
+    if (ad.type.ty == Terror || ad.errors)
         return false;   // marked as invalid during the finalizing.
     if (ad.sizeok == Sizeok.done)
         return true;    // succeeded to calculate instance size.
@@ -10636,16 +10630,27 @@ private extern(C++) class FinalizeSizeVisitor : Visitor
         fieldState.offset = outerCd.structsize;
         foreach (s; *(outerCd.members))
         {
-            if (!s.setFieldOffset(outerCd, &fieldState, false) || outerCd.type.ty == Terror)
+            const ok = s.setFieldOffset(outerCd, &fieldState, false);
+            if (outerCd.type.ty == Terror)
             {
-                if (!global.gag)
+                outerCd.errors = true;
+                return;
+            }
+            if (!ok)
+            {
+                if (global.gag)
+                {
+                    foreach (f; outerCd.fields)
+                        f.offset = 0;
+                    outerCd.fields.setDim(0);
+                    outerCd.structsize = 0;
+                    outerCd.alignsize = 0;
+                    outerCd.sizeok = Sizeok.none;
+                }
+                else
+                {
                     outerCd.errors = true;
-                foreach (f; outerCd.fields)
-                    f.offset = 0;
-                outerCd.fields.setDim(0);
-                outerCd.structsize = 0;
-                outerCd.alignsize = 0;
-                outerCd.sizeok = Sizeok.none;
+                }
                 return;
             }
         }
@@ -10679,18 +10684,27 @@ private extern(C++) class FinalizeSizeVisitor : Visitor
         {
             Dsymbol s = (*sd.members)[i];
             const ok = s.setFieldOffset(sd, &fieldState, isunion);
-            if (!ok || sd.type.ty == Terror)
+            if (sd.type.ty == Terror)
             {
-                if (sd.type.ty == Terror)
-                    eSink.errorSupplemental(s.loc, "error on member `%s`", s.toPrettyChars);
-                if (!global.gag)
+                eSink.errorSupplemental(s.loc, "error on member `%s`", s.toPrettyChars);
+                sd.errors = true;
+                return;
+            }
+            if (!ok)
+            {
+                if (global.gag)
+                {
+                    foreach (f; sd.fields)
+                        f.offset = 0;
+                    sd.fields.setDim(0);
+                    sd.structsize = 0;
+                    sd.alignsize = 0;
+                    sd.sizeok = Sizeok.none;
+                }
+                else
+                {
                     sd.errors = true;
-                foreach (f; sd.fields)
-                    f.offset = 0;
-                sd.fields.setDim(0);
-                sd.structsize = 0;
-                sd.alignsize = 0;
-                sd.sizeok = Sizeok.none;
+                }
                 return;
             }
         }
@@ -10785,14 +10799,6 @@ private extern(C++) class FinalizeSizeVisitor : Visitor
                     continue;
 
                 // Examine init to see if it is all 0s.
-                // Do not trigger premature CTFE during finalizeSize (semantic1)
-                // for unanalyzed initializers.
-                if (vd._scope)
-                {
-                    sd.zeroInit = false;
-                    break;
-                }
-
                 auto exp = vd.getConstInitializer();
                 if (!exp || !_isZeroInit(exp))
                 {
