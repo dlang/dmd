@@ -2218,6 +2218,17 @@ static if (0)
         case FL.extern_:
             if (config.exe & EX_posix && (e.Vsym.ty() & mTYthread))
             {
+                if (config.exe & EX_OSX64 && cg.AArch64)
+                {
+                    if (log) printf("OSX AArch64 threaded\n");
+                    uint ins = INSTR.adr(1,0,reg);          // ADRP reg,0x0 RELOC_TLVP_LOAD_PAGE21
+                    cdb.gencs1(ins,0,fl,e.Vsym);
+                    ins = INSTR.ldr_imm_gen(1,reg,reg,0);   // LDR  reg,[reg] RELOC_TLVP_LOAD_PAGEOFF12
+                    cdb.gencs1(ins,0,fl,e.Vsym);
+                    cdb.last.Iflags |= CF.add;
+                    return;
+                }
+
                 if (log) printf("posix extern threaded\n");
                 regm_t scratch = INSTR.ALLREGS & ~mask(reg);
                 reg_t r = allocreg(cdb, scratch, TYoffset);
