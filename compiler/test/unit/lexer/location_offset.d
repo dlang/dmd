@@ -554,6 +554,8 @@ enum ignoreTokens
     __alignof,
     __const__,
     __const,
+    __typeof__,
+    __typeof,
 
     max_,
 };
