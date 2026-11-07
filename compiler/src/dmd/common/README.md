@@ -11,3 +11,4 @@
 | [outbuffer.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/common/outbuffer.d) | An expandable buffer in which you can write text or binary data |
 | [sha.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/common/sha.d)             | Compute SHA-1 and SHA-2 hashes                                  |
 | [smallbuffer.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/common/smallbuffer.d) | Temporary buffers and Windows string and path helpers       |
+| [string.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/common/string.d)       | Allocation-free string helpers                                  |

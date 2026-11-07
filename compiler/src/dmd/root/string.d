@@ -149,48 +149,8 @@ char[] toCString(scope const(char)[] s) nothrow
  */
 string stripLeadingLineTerminator(string str) pure nothrow @nogc @safe
 {
-    enum nextLine = "\xC2\x85";
-    enum lineSeparator = "\xE2\x80\xA8";
-    enum paragraphSeparator = "\xE2\x80\xA9";
-
-    static assert(lineSeparator.length == paragraphSeparator.length);
-
-    if (str.length == 0)
-        return str;
-
-    switch (str[0])
-    {
-        case '\r':
-        {
-            if (str.length >= 2 && str[1] == '\n')
-                return str[2 .. $];
-            goto case;
-        }
-        case '\v', '\f', '\n': return str[1 .. $];
-
-        case nextLine[0]:
-        {
-            if (str.length >= 2 && str[0 .. 2] == nextLine)
-                return str[2 .. $];
-
-            return str;
-        }
-
-        case lineSeparator[0]:
-        {
-            if (str.length >= lineSeparator.length)
-            {
-                const prefix = str[0 .. lineSeparator.length];
-
-                if (prefix == lineSeparator || prefix == paragraphSeparator)
-                    return str[lineSeparator.length .. $];
-            }
-
-            return str;
-        }
-
-        default: return str;
-    }
+    import commonString = dmd.common.string;
+    return commonString.stripLeadingLineTerminator(str);
 }
 
 unittest
@@ -321,9 +281,8 @@ do
 nothrow @nogc pure @safe
 bool startsWith(scope const(char)[] str, scope const(char)[] prefix)
 {
-    if (str.length < prefix.length)
-        return false;
-    return str[0 .. prefix.length] == prefix;
+    import commonString = dmd.common.string;
+    return commonString.startsWith(str, prefix);
 }
 
 ///
