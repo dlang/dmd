@@ -534,7 +534,9 @@ benchmark-compile-only: $(ROOT)/benchmark$(DOTEXE) $(DMD)
 	DMD=$(DMD) $< --repeat=0 --dflags="$(PHOBOS_DFLAGS) -de"
 
 #################### test for undesired white spaces ##########################
-MANIFEST = $(shell git ls-tree --name-only -r HEAD)
+MANIFEST = $(shell \
+		git ls-tree --name-only -r HEAD || \
+		find -type f -printf '%P\n' | grep -vE "$(sed -e 's/^/\^/' -e 's/$/\$$/' -e 's/*/.*/' .gitignore)")
 
 CWS_MAKEFILES = $(filter mak/% %.mak %/Makefile,$(MANIFEST))
 NOT_MAKEFILES = $(filter-out $(CWS_MAKEFILES) test/%.exp,$(MANIFEST))
