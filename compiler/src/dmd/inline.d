@@ -505,6 +505,32 @@ public:
         if (!exp) // https://issues.dlang.org/show_bug.cgi?id=14560
                   // 'return' must not leave in the expand result
             return;
+
+        if (ids.eret)
+        {
+            /* Perform RVO emplacement into eret.
+             * Iterate over branches, recognize S().__ctor() and
+             * generate (eret) = S(), (eret).__ctor().
+             * Otherwise, generate (eret) = (exp).
+             */
+            exp.foreachBranch((ref Expression leaf)
+            {
+                if (auto ce = leaf.isCallExp())
+                    if (auto dve = ce.e1.isDotVarExp())
+                        if (dve.var.isCtorDeclaration() && dve.e1.isStructLiteralExp())
+                        {
+                            leaf = new ConstructExp(s.loc, ids.eret.copy(), dve.e1);
+                            leaf.type = ids.eret.type;
+                            dve.e1 = ids.eret.copy();
+                            leaf = Expression.combine(leaf, ce);
+                            return;
+                        }
+
+                leaf = new ConstructExp(s.loc, ids.eret.copy(), leaf);
+                leaf.type = ids.eret.type;
+            });
+        }
+
         static if (asStatements)
         {
             /* Any return statement should be the last statement in the function being
@@ -518,28 +544,18 @@ public:
         }
         else
         {
-            if (!ids.fd || ids.fd.isNRVO)
-            {
-                result = exp;
-                return;
-            }
-
-            if (ids.eret)
-            {
-                /* Perform RVO emplacement into eret.
-                 * Generate:
-                 *   ( eret ) = ( exp ), ( eret )
-                 */
-                auto ce = new ConstructExp(s.loc, ids.eret.copy(), exp);
-                ce.type = exp.type;
-                result = Expression.combine(ce, ids.eret.copy());
-                return;
-            }
-
             auto tf = ids.fd.type.isTypeFunction();
 
-            if (exp.type.ty == Tstruct && !tf.isRef &&
-                !ids.fd.isCtorDeclaration() && !canElideCopy(s.exp, tf.nextOf(), true))
+            /* If a struct or a static array is being returned, and
+             * it is not returned by RVO or by reference, and
+             * it cannot be elided or the elision could mutate
+             * an immutable variable, then copy the returned value.
+             */
+            if ((exp.type.ty == Tstruct || exp.type.ty == Tsarray) &&
+                !(ids.eret || ids.fd.isNRVO) &&
+                !(ids.fd.isCtorDeclaration() || tf.isRef) &&
+                (!canElideCopy(s.exp, tf.nextOf()) ||
+                 !exp.type.isMutable() && tf.nextOf().isMutable()))
             {
                 /* If the inlined function returns a copy of a struct,
                  * and then the return value is used subsequently as an
@@ -548,7 +564,7 @@ public:
                  * of the original, not the copy. Fix this by assigning the return value to
                  * a temporary, then returning the temporary. If the temporary is used as an
                  * lvalue, it will work.
-                 * This only happens with struct returns.
+                 * This only happens with struct/sarray returns.
                  * See https://issues.dlang.org/show_bug.cgi?id=2127 for an example.
                  *
                  * On constructor call making __inlineretval is merely redundant, because
@@ -1276,6 +1292,50 @@ public:
                 return s;
             }
 
+            /* Inline NRVO of the form `S s = f()` as statements.
+             */
+            if (isEligibleForRVO(exp))
+            {
+                auto ce  = exp.isConstructExp();
+                auto ce2 = ce && !ce.lowering ? ce.e2.isCallExp() : null;
+
+                if (ce2)
+                {
+                    inlineScan(ce.e1);
+                    visitCallExp(ce2, ce.e1, true, false);
+                    if (eresult)
+                        exp = eresult;
+                    auto s = sresult;
+                    sresult = null;
+                    eresult = null;
+                    return s;
+                }
+            }
+
+            /* Expression in initializers can be converted to statements,
+             * as long as no destructors are in play.
+             */
+            if (auto de = exp.isDeclarationExp())
+            {
+                auto vd = de.declaration.isVarDeclaration();
+                auto ei = vd && vd._init ? vd._init.isExpInitializer() : null;
+
+                if (ei && !vd.needsScopeDtor())
+                {
+                    auto si = inlineScanExpAsStatement(ei.exp);
+
+                    if (!si)
+                        return null;
+
+                    auto vi = new VoidInitializer(ei.loc);
+                    vi.type = vd.type;
+                    vd._init = vi;
+
+                    auto stmt = Statements(new ExpStatement(de.loc, de), si);
+                    return new CompoundStatement(exp.loc, stmt.move());
+                }
+            }
+
             /* If there's a CondExp or CommaExp at the top, then its
              * sub-expressions may be inlined as statements.
              */
@@ -1417,26 +1477,26 @@ public:
         if (!s.exp)
             return;
 
-        Expression e0;
-        Expression elast = Expression.extractLast(s.exp, e0);
-        inlineScan(e0);
-
-        if (auto ce = elast.isCallExp())
+        scope auto scanReturnValue = (ref Expression leaf)
         {
-            visitCallExp(ce, null, false, true);
+            if (auto ce = leaf.isCallExp())
+                visitCallExp(ce, null, false, true);
+            else
+                inlineScan(leaf);
 
             if (eresult)
             {
-                elast = eresult;
+                leaf = eresult;
                 eresult = null;
             }
-        }
-        else
-        {
-            inlineScan(elast);
-        }
+        };
 
-        s.exp = Expression.combine(e0, elast);
+        scope auto scanSideEffect = (ref Expression leaf)
+        {
+            inlineScan(leaf);
+        };
+
+        s.exp.foreachBranch(scanReturnValue, scanSideEffect);
     }
 
     override void visit(SynchronizedStatement s)
@@ -1607,51 +1667,58 @@ public:
 
     override void visit(AssignExp e)
     {
-        void inlineConstruction(AssignExp e)
-        {
-            Expression e0;
-            Expression elast = Expression.extractLast(e.e2, e0);
-            inlineScan(e0);   // Side effects
-
-            auto ce = elast.isCallExp();
-            if (ce && ce.f)
-            {
-                visitCallExp(ce, e.e1, false, false);
-
-                if (eresult)
-                {
-                    eresult = Expression.combine(e0, eresult);
-                    //printf("call with nrvo: %s ==> %s\n", e.toChars(), eresult.toChars());
-                    return;
-                }
-            }
-
-            inlineScan(elast);
-            e.e2 = Expression.combine(e0, elast);
-        }
-
         inlineScan(e.e1); // LHS
+
+        static bool hasCallExp(Expression e)
+        {
+            bool found;
+            e.foreachBranch((ref Expression e)
+            {
+                found = found || e.isCallExp();
+            });
+            return found;
+        }
 
         // Look for NRVO and emplace the return value into LHS directly
         // when expanding the function call on RHS.
-        if (e.op == EXP.construct &&
-            (e.e2.type.ty == Tstruct || e.e2.type.ty == Tsarray))
+        if (isEligibleForRVO(e) && hasCallExp(e.e2))
         {
-            bool refInit = false;
-
-            /* Inlining:
-             *   S s = ...;    // initializing by rvalue
-             * No NRVO on:
-             *   ref S s = ...;
+            /* Transform
+             *   S s = b ? s1 : f1();
+             * to
+             *   b ? (s = s1) : (s = f2());
+             *
+             * Do inlining on (s = f2()).
              */
-            if (auto ve = e.e1.isVarExp())
-                refInit = (ve.var.storage_class & (STC.out_ | STC.ref_)) != 0;
-
-            if (!refInit)
+            scope auto scanInitializer = (ref Expression leaf)
             {
-                inlineConstruction(e);
-                return;
-            }
+                if (auto ce = leaf.isCallExp())
+                    visitCallExp(ce, e.e1, false, false);
+                else
+                    inlineScan(leaf);
+
+                if (eresult)
+                {
+                    // printf("call with nrvo: %s ==> %s\n", e.toChars(), eresult.toChars());
+                    leaf = eresult;
+                    eresult = null;
+                }
+                else
+                {
+                    auto ae = cast(AssignExp)e.copy();
+                    ae.e2 = leaf;
+                    leaf = ae;
+                }
+            };
+
+            scope auto scanSideEffect = (ref Expression leaf)
+            {
+                inlineScan(leaf);
+            };
+
+            e.e2.foreachBranch(scanInitializer, scanSideEffect);
+            eresult = e.e2;
+            return;
         }
 
         inlineScan(e.e2); // RHS if not construction
@@ -2726,4 +2793,45 @@ private extern (C++) final class ImportCInlineUsageVisitor : SemanticTimeTransit
         if (fd.isImportCInlineCandidate)
             *worklist ~= fd;
     }
+}
+
+private alias RefExprDg = void delegate(ref Expression);
+
+private void foreachBranch(ref Expression e, scope RefExprDg valueDg, scope RefExprDg sideDg = null)
+{
+    if (auto ce = e.isCommaExp())
+    {
+        if (sideDg)
+            sideDg(ce.e1);
+        foreachBranch(ce.e2, valueDg, sideDg);
+        return;
+    }
+
+    if (auto ce = e.isCondExp())
+    {
+        foreachBranch(ce.e1, valueDg, sideDg);
+        foreachBranch(ce.e2, valueDg, sideDg);
+        return;
+    }
+
+    valueDg(e);
+}
+
+private bool isEligibleForRVO(Expression e)
+{
+    auto ce = e.isConstructExp();
+
+    if (!ce)
+        return false;
+
+    if (ce.e2.type.ty != Tstruct && ce.e2.type.ty != Tsarray)
+        return false;
+
+    // RVO is not possible on reference init:
+    //   ref S s = f();
+    if (auto ve = ce.e1.isVarExp())
+        if (ve.var.storage_class & (STC.out_ | STC.ref_))
+            return false;
+
+    return true;
 }
