@@ -1599,8 +1599,8 @@ Expression ctfeCast(UnionExp* pue, Loc loc, Type type, Type to, Expression e, bo
         // the original class can implicitly convert to the target class.
         // Also do not check 'alias this' for explicit cast expressions.
         auto tclass = e.isClassReferenceExp().originalClass().type.isTypeClass();
-        auto match = explicitCast ? tclass.implicitConvToWithoutAliasThis(to.mutableOf())
-                                  : tclass.implicitConvTo(to.mutableOf());
+        auto match = explicitCast ? tclass.implicitConvToWithoutAliasThis(to.castMod(0))
+                                  : tclass.implicitConvTo(to.castMod(0));
         if (match)
             return paint();
 
