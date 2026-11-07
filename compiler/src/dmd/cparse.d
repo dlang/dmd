@@ -595,6 +595,7 @@ final class CParser(AST) : Parser!AST
 
                     auto ctch = new AST.Catch(loc, throwable, seh, handler);
                     ctch.internalCatch = true;
+                    ctch.fromSEH = true;
                     s = new AST.TryCatchStatement(loc, tryBody, new AST.Catches(ctch));
                 }
                 else
