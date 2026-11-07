@@ -748,6 +748,12 @@ void templateDeclarationSemantic(Scope* sc, TemplateDeclaration tempdecl)
     if (!sc)
         return;
 
+    /* A template nested in a function may be instantiated after the function's
+     * own analysis, see inferContextIsThis().
+     */
+    if (sc.func && sc.func.isNested())
+        sc.func.noContextIsThis = true;
+
     import dmd.timetrace;
     timeTraceBeginEvent(TimeTraceEventType.sema1TemplateDecl);
     scope (exit) timeTraceEndEvent(TimeTraceEventType.sema1TemplateDecl, tempdecl);

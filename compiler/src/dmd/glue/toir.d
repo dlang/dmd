@@ -209,6 +209,15 @@ extern (D) elem* incUsageElem(ref IRState irs, Loc loc)
 package(dmd.glue)
 elem* getEthis(Loc loc, ref IRState irs, Dsymbol fd, Dsymbol fdp = null, Dsymbol origSc = null)
 {
+    if (auto fdn = fd.isFuncDeclaration())
+    {
+        if (fdn.contextIsThis)
+        {
+            // fd's context pointer is its enclosing member function's `this`
+            return getEthis(loc, irs, fdn.toParent2(), null, origSc);
+        }
+    }
+
     elem* ethis;
     FuncDeclaration thisfd = irs.getFunc();
     Dsymbol ctxt0 = fdp ? fdp : fd;                     // follow either of these two
@@ -399,10 +408,11 @@ elem* getEthis(Loc loc, ref IRState irs, Dsymbol fd, Dsymbol fdp = null, Dsymbol
 
             /* Remember that frames for functions that have no
              * nested references are skipped in the linked list
-             * of frames.
+             * of frames, and that a contextIsThis function's context already
+             * is what the parent's frame would link to.
              */
             FuncDeclaration fdp2 = s.toParentP(ctxt0, ctxt1).isFuncDeclaration();
-            if (fdp2 && fdp2.hasNestedFrameRefs())
+            if (fdp2 && fdp2.hasNestedFrameRefs() && !(thisfd && thisfd.contextIsThis))
                 ethis = el_una(OPind, TYnptr, ethis);
 
             s = s.toParentP(ctxt0, ctxt1);
