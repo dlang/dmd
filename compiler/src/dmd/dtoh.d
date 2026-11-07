@@ -1278,6 +1278,15 @@ public:
     {
         debug (Debug_DtoH) mixin(traceVisit!ad);
 
+        // The anonymous struct/union has no visibility of its own, and C++ can't
+        // give its members different ones, so use the most accessible member's.
+        // This has to be written before entering it, since writeProtection is a
+        // no-op inside. Otherwise it lands in whatever section came before, e.g.
+        // `private` at the start of a class.
+        const vis = maxMemberVisibility(ad);
+        if (vis != AST.Visibility.Kind.undefined)
+            writeProtection(vis);
+
         const anonStash = inAnonymousDecl;
         inAnonymousDecl = true;
         scope (exit) inAnonymousDecl = anonStash;
@@ -1291,6 +1300,30 @@ public:
         }
         buf.level--;
         buf.writestringln("};");
+    }
+
+    /// Returns: the most accessible visibility of the declarations inside `ad`,
+    ///          looking through nested attributes and anonymous structs/unions,
+    ///          or `undefined` if there are none
+    private static AST.Visibility.Kind maxMemberVisibility(AST.AttribDeclaration ad)
+    {
+        auto result = AST.Visibility.Kind.undefined;
+        auto decl = ad.include(null);
+        if (!decl)
+            return result;
+
+        foreach (s; *decl)
+        {
+            auto kind = AST.Visibility.Kind.undefined;
+            if (auto nested = s.isAttribDeclaration())
+                kind = maxMemberVisibility(nested);
+            else if (auto d = s.isDeclaration())
+                kind = d.visibility.kind;
+
+            if (kind > result)
+                result = kind;
+        }
+        return result;
     }
 
     private bool memberField(AST.VarDeclaration vd) @safe
