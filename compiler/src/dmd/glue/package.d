@@ -1333,7 +1333,10 @@ private void genObjFile(Module m, bool multiobj, bool doppelganger)
 
     glue.lastmname = m.srcfile.toChars();
 
-    objmod.initfile(glue.lastmname, null, m.toPrettyChars());
+    // A doppelganger's name has a sequence number appended, but debug info
+    // must refer to the module it was split from
+    Module mname = doppelganger ? m.aimports[0] : m;
+    objmod.initfile(glue.lastmname, null, mname.toPrettyChars());
 
     glue.eictor = null;
     glue.ictorlocalgot = null;
