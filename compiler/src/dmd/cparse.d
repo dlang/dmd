@@ -1075,6 +1075,8 @@ final class CParser(AST) : Parser!AST
             break;
 
         case TOK._Alignof:
+        case TOK.__alignof__:
+        case TOK.__alignof:
         case TOK.sizeof_:
             e = cparseSizeofOrAlignofExp();
             break;
