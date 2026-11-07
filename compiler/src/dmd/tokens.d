@@ -286,6 +286,8 @@ enum TOK : ubyte
     __attribute__,
     __alignof__,
     __alignof,
+    __const__,
+    __const,
 }
 
 /// Expression nodes
@@ -594,6 +596,8 @@ private immutable TOK[] keywords =
     TOK.__attribute__,
     TOK.__alignof__,
     TOK.__alignof,
+    TOK.__const__,
+    TOK.__const,
 ];
 
 // Initialize the identifier pool
@@ -623,7 +627,7 @@ static immutable TOK[TOK.max + 1] Ckeywords =
                        _Alignas, _Alignof, _Atomic, _Bool, _Complex, _Generic, _Imaginary, _Noreturn,
                        _Static_assert, _Thread_local,
                        _import, _module, __cdecl, __declspec, __stdcall, __thread, __pragma, __int128, __attribute__,
-                       __alignof__, __alignof,
+                       __alignof__, __alignof, __const__, __const,
                        _assert ];
 
         foreach (kw; Ckwds)
@@ -914,6 +918,8 @@ extern (C++) struct Token
         TOK.__attribute__  : "__attribute__",
         TOK.__alignof__    : "__alignof__",
         TOK.__alignof      : "__alignof",
+        TOK.__const__      : "__const__",
+        TOK.__const        : "__const",
     ];
 
     static assert(() {

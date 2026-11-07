@@ -552,6 +552,8 @@ enum ignoreTokens
     __attribute__,
     __alignof__,
     __alignof,
+    __const__,
+    __const,
 
     max_,
 };

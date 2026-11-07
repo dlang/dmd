@@ -361,6 +361,8 @@ final class CParser(AST) : Parser!AST
 
         // type-qualifiers
         case TOK.const_:
+        case TOK.__const__:
+        case TOK.__const:
         case TOK.volatile:
         case TOK.restrict:
         case TOK.__stdcall:
@@ -677,6 +679,8 @@ final class CParser(AST) : Parser!AST
             switch (peekNext())
             {
                 case TOK.const_:
+                case TOK.__const__:
+                case TOK.__const:
                 case TOK.goto_:
                 case TOK.inline:
                 case TOK.restrict:
@@ -2462,6 +2466,8 @@ final class CParser(AST) : Parser!AST
 
                 // Type qualifiers
                 case TOK.const_:     modx = MOD.xconst;     break;
+                case TOK.__const__:  modx = MOD.xconst;     break;
+                case TOK.__const:    modx = MOD.xconst;     break;
                 case TOK.volatile:   modx = MOD.xvolatile;  break;
                 case TOK.restrict:   modx = MOD.xrestrict;  break;
                 case TOK.__stdcall:  modx = MOD.x__stdcall; break;
@@ -3157,6 +3163,8 @@ final class CParser(AST) : Parser!AST
             switch (token.value)
             {
                 case TOK.const_:     mod |= MOD.xconst;     break;
+                case TOK.__const__:  mod |= MOD.xconst;     break;
+                case TOK.__const:    mod |= MOD.xconst;     break;
                 case TOK.volatile:   mod |= MOD.xvolatile;  break;
                 case TOK.restrict:   mod |= MOD.xrestrict;  break;
                 case TOK._Atomic:    mod |= MOD.x_Atomic;   break;
@@ -3567,6 +3575,8 @@ final class CParser(AST) : Parser!AST
                     continue;
 
                 case TOK.const_:
+                case TOK.__const__:
+                case TOK.__const:
                 case TOK.restrict:
                     error(token.loc, "`%s` is not a valid `asm` qualifier", token.toChars());
                     nextToken();
@@ -3827,6 +3837,8 @@ final class CParser(AST) : Parser!AST
             case TOK.unsigned:
             case TOK.int64:
             case TOK.const_:
+            case TOK.__const__:
+            case TOK.__const:
             case TOK.extern_:
             case TOK.register:
             case TOK.typedef_:
@@ -4413,6 +4425,8 @@ final class CParser(AST) : Parser!AST
 
                 // type-qualifiers
                 case TOK.const_:
+                case TOK.__const__:
+                case TOK.__const:
                 case TOK.volatile:
                 case TOK.restrict:
                 case TOK.__stdcall:
@@ -4560,6 +4574,8 @@ final class CParser(AST) : Parser!AST
             switch (t.value)
             {
                 case TOK.const_:
+                case TOK.__const__:
+                case TOK.__const:
                 case TOK.restrict:
                 case TOK.volatile:
                 case TOK._Atomic:
@@ -4593,6 +4609,8 @@ final class CParser(AST) : Parser!AST
 
             // Type Qualifiers
             case TOK.const_:
+            case TOK.__const__:
+            case TOK.__const:
             case TOK.restrict:
             case TOK.volatile:
             case TOK.__stdcall:
