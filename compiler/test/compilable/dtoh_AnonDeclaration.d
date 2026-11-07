@@ -25,10 +25,12 @@ struct S final
         double z;
         void bar();
     };
+private:
     struct
     {
         int32_t outerPrivate;
     };
+public:
     struct
     {
         int32_t innerPrivate;
@@ -51,6 +53,17 @@ struct S final
         {}
 };
 
+class C21599
+{
+public:
+    union
+    {
+        int32_t a;
+        float b;
+    };
+    int32_t c;
+};
+
 extern void foo();
 ---
 */
@@ -71,17 +84,31 @@ extern (C++) struct S
         extern(C++) void bar() {}
     }
 
-    // Private not emitted because AnonDeclaration has no protection
+    // Takes the visibility of its members
     private struct
     {
         int outerPrivate;
     }
 
     public struct {
-        // Private cannot be exported to C++
+        // Private cannot be exported to C++, so the most
+        // accessible member's visibility is used instead
         private int innerPrivate;
         int innerBar;
     }
+}
+
+// https://github.com/dlang/dmd/issues/21599
+// C++ classes default to private, so a leading anonymous union
+// needs its own `public:`
+extern (C++) class C21599
+{
+    union
+    {
+        int a;
+        float b;
+    }
+    int c;
 }
 
 extern (D)
