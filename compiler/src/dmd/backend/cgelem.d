@@ -5878,6 +5878,7 @@ beg:
                     if (!el_sideeffect(e2.E1))
                     {
                         e.Eoper = OPoror;
+                        e2.Ety = e2.E2.Ety;
                         e.E2 = el_selecte2(e2);
                         e.Ety = TYint;
                         goto beg;
@@ -5885,6 +5886,7 @@ beg:
                     else if (!el_sideeffect(e2.E2))
                     {
                         e.Eoper = OPandand;
+                        e2.Ety = e2.E1.Ety;
                         e.E2 = el_selecte1(e2);
                         e.Ety = TYint;
                         goto beg;
@@ -5896,11 +5898,13 @@ beg:
                     {
                         if (!e22)
                         {
+                            e.Ety = e.E1.Ety;
                             e = el_selecte1(e);
                             goto beg;
                         }
                         // Rewrite (e1 ? null : e22) as (e1 || e22)
                         e.Eoper = OPoror;
+                        e2.Ety = e2.E2.Ety;
                         e.E2 = el_selecte2(e2);
                         goto beg;
                     }
@@ -5908,6 +5912,7 @@ beg:
                     {
                         // Rewrite (e1 ? e21 : null) as (e1 && e21)
                         e.Eoper = OPandand;
+                        e2.Ety = e2.E1.Ety;
                         e.E2 = el_selecte1(e2);
                         goto beg;
                     }

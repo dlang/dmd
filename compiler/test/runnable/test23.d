@@ -1166,6 +1166,10 @@ struct Array62 {
         interface Model {
                 List62 list();
         }
+        List62 emptyList() {
+                List62 list = model ? model.list() : List62.init;
+                return List62.init;
+        }
         List62 list() {
                 return model ? model.list() : List62.init;
         }
