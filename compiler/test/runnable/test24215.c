@@ -1,8 +1,9 @@
 // https://github.com/dlang/dmd/issues/24215
-int foo(int x) { return x * 2; }
+extern int foo(int x);
 extern typeof(foo) bar;
 extern __typeof(foo) baz;
 extern __typeof__(foo) qux;
+int foo(int x) { return x * 2; }
 int bar(int x) { return foo(x) + 1; }
 int baz(int x) { return foo(x) + 2; }
 int qux(int x) { return foo(x) + 3; }
