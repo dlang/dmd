@@ -345,6 +345,8 @@ final class CParser(AST) : Parser!AST
         case TOK.union_:
         case TOK.enum_:
         case TOK.typeof_:
+        case TOK.__typeof__:
+        case TOK.__typeof:
 
         // storage-class-specifiers
         case TOK.typedef_:
@@ -2555,6 +2557,8 @@ final class CParser(AST) : Parser!AST
                 }
 
                 case TOK.typeof_:
+                case TOK.__typeof__:
+                case TOK.__typeof:
                 {
                     /* GNU extension (added in C23)
                      */
@@ -2790,6 +2794,13 @@ final class CParser(AST) : Parser!AST
             e = new AST.TypeExp(loc, cparseTypeName());
         else
             e = cparseExpression();
+
+        if (auto ie = e.isIdentifierExp())
+            if (auto fd = findFuncDeclaration(ie.ident))
+            {
+                check(TOK.rightParenthesis);
+                return fd.type;
+            }
 
         if (token.value != TOK.rightParenthesis)
         {
@@ -4438,6 +4449,8 @@ final class CParser(AST) : Parser!AST
                 // atomic-type-specifier
                 case TOK._Atomic:
                 case TOK.typeof_:
+                case TOK.__typeof__:
+                case TOK.__typeof:
                     return true;
 
                 default:
@@ -4640,6 +4653,8 @@ final class CParser(AST) : Parser!AST
             // atomic-type-specifier
             case TOK._Atomic:
             case TOK.typeof_:
+            case TOK.__typeof__:
+            case TOK.__typeof:
             case TOK.__attribute__:
                 return true;
 
@@ -5078,6 +5093,23 @@ final class CParser(AST) : Parser!AST
     /******************************************************************************/
     /************************** typedefTab symbol table ***************************/
     //{
+
+    /********************************
+     * Find a function declared in the current scope by name.
+     * Params:
+     *  ident = name to look for
+     * Returns:
+     *  the function's declaration, or null if not found
+     */
+    private AST.FuncDeclaration findFuncDeclaration(Identifier ident)
+    {
+        if (!symbols)
+            return null;
+        foreach (s; *symbols)
+            if (s.ident == ident)
+                return s.isFuncDeclaration();
+        return null;
+    }
 
     /********************************
      * Determines if type t is a function type.
