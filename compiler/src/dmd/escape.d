@@ -847,7 +847,7 @@ bool checkAssignEscape(ref Scope sc, Expression e, bool gag, bool byRef)
                 doNotInferScope(v, e);
 
             if (!(v.isReference() || v.isScope()) || p != fd)
-                return;
+                continue;
 
             if (va && !va.isDataseg() && (va.isScope() || va.maybeScope))
             {
