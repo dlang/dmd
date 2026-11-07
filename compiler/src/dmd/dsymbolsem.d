@@ -8829,10 +8829,11 @@ extern (D) bool load(Import imp, Scope* sc)
     return global.errors != errors;
 }
 
-void setFieldOffset(Dsymbol d, AggregateDeclaration ad, FieldState* fieldState, bool isunion)
+bool setFieldOffset(Dsymbol d, AggregateDeclaration ad, FieldState* fieldState, bool isunion)
 {
     scope v = new SetFieldOffsetVisitor(ad, fieldState, isunion);
     d.accept(v);
+    return !v.hasErrors;
 }
 
 private extern(C++) class SetFieldOffsetVisitor : Visitor
@@ -8844,6 +8845,7 @@ private extern(C++) class SetFieldOffsetVisitor : Visitor
     AggregateDeclaration ad;
     FieldState* fieldState;
     bool isunion;
+    bool hasErrors;
 
     this(AggregateDeclaration ad, FieldState* fieldState, bool isunion) @safe
     {
@@ -8859,7 +8861,10 @@ private extern(C++) class SetFieldOffsetVisitor : Visitor
         //printf("Nspace::setFieldOffset() %s\n", toChars());
         if (ns._scope) // if fwd reference
             dsymbolSemantic(ns, null); // try to resolve it
-        ns.members.foreachDsymbol( s => s.setFieldOffset(ad, fieldState, isunion) );
+        ns.members.foreachDsymbol( (s) {
+            if (!s.setFieldOffset(ad, fieldState, isunion))
+                hasErrors = true;
+        });
     }
 
     override void visit(VarDeclaration vd)
@@ -8869,7 +8874,10 @@ private extern(C++) class SetFieldOffsetVisitor : Visitor
         if (vd.aliasTuple)
         {
             // If this variable was really a tuple, set the offsets for the tuple fields
-            vd.aliasTuple.foreachVar((s) { s.setFieldOffset(ad, fieldState, isunion); });
+            vd.aliasTuple.foreachVar((s) {
+                if (!s.setFieldOffset(ad, fieldState, isunion))
+                    hasErrors = true;
+            });
             return;
         }
 
@@ -8912,8 +8920,14 @@ private extern(C++) class SetFieldOffsetVisitor : Visitor
             assert(ts.sym != ad);   // already checked in ad.determineFields()
             if (!ts.sym.determineSize(vd.loc))
             {
-                vd.type = Type.terror;
-                vd.errors = true;
+                // Don't cache errors from speculative semantic, might be resolvable later.
+                // https://issues.dlang.org/show_bug.cgi?id=16574
+                if (!global.gag)
+                {
+                    vd.type = Type.terror;
+                    vd.errors = true;
+                }
+                hasErrors = true;
                 return;
             }
         }
@@ -9124,12 +9138,18 @@ private extern(C++) class SetFieldOffsetVisitor : Visitor
         if (tm._scope) // if fwd reference
             dsymbolSemantic(tm, null); // try to resolve it
 
-        tm.members.foreachDsymbol( (s) { s.setFieldOffset(ad, fieldState, isunion); } );
+        tm.members.foreachDsymbol( (s) {
+            if (!s.setFieldOffset(ad, fieldState, isunion))
+                hasErrors = true;
+        } );
     }
 
     override void visit(AttribDeclaration atd)
     {
-        atd.include(null).foreachDsymbol( s => s.setFieldOffset(ad, fieldState, isunion) );
+        atd.include(null).foreachDsymbol( (s) {
+            if (!s.setFieldOffset(ad, fieldState, isunion))
+                hasErrors = true;
+        } );
     }
 
     override void visit(AnonDeclaration anond)
@@ -9154,10 +9174,18 @@ private extern(C++) class SetFieldOffsetVisitor : Visitor
             FieldState fs;
             anond.decl.foreachDsymbol( (s)
             {
-                s.setFieldOffset(ad, &fs, anond.isunion);
+                if (!s.setFieldOffset(ad, &fs, anond.isunion))
+                    hasErrors = true;
                 if (anond.isunion)
                     fs.offset = 0;
             });
+
+            if (hasErrors)
+            {
+                ad.structsize = savestructsize;
+                ad.alignsize = savealignsize;
+                return;
+            }
 
             /* https://issues.dlang.org/show_bug.cgi?id=13613
              * If the fields in this.members had been already
@@ -9945,7 +9973,7 @@ bool determineSize(AggregateDeclaration ad, Loc loc)
         ad.finalizeSize();
 
     // this aggregate type has:
-    if (ad.type.ty == Terror)
+    if (ad.type.ty == Terror || ad.errors)
         return false;   // marked as invalid during the finalizing.
     if (ad.sizeok == Sizeok.done)
         return true;    // succeeded to calculate instance size.
@@ -10602,7 +10630,29 @@ private extern(C++) class FinalizeSizeVisitor : Visitor
         fieldState.offset = outerCd.structsize;
         foreach (s; *(outerCd.members))
         {
-            s.setFieldOffset(outerCd, &fieldState, false);
+            const ok = s.setFieldOffset(outerCd, &fieldState, false);
+            if (outerCd.type.ty == Terror)
+            {
+                outerCd.errors = true;
+                return;
+            }
+            if (ok)
+                continue;
+
+            if (global.gag)
+            {
+                foreach (f; outerCd.fields)
+                    f.offset = 0;
+                outerCd.fields.setDim(0);
+                outerCd.structsize = 0;
+                outerCd.alignsize = 0;
+                outerCd.sizeok = Sizeok.none;
+            }
+            else
+            {
+                outerCd.errors = true;
+            }
+            return;
         }
 
         outerCd.sizeok = Sizeok.done;
@@ -10633,13 +10683,30 @@ private extern(C++) class FinalizeSizeVisitor : Visitor
         for (size_t i = 0; i < sd.members.length; i++)
         {
             Dsymbol s = (*sd.members)[i];
-            s.setFieldOffset(sd, &fieldState, isunion);
+            const ok = s.setFieldOffset(sd, &fieldState, isunion);
             if (sd.type.ty == Terror)
             {
                 eSink.errorSupplemental(s.loc, "error on member `%s`", s.toPrettyChars);
                 sd.errors = true;
                 return;
             }
+            if (ok)
+                continue;
+
+            if (global.gag)
+            {
+                foreach (f; sd.fields)
+                    f.offset = 0;
+                sd.fields.setDim(0);
+                sd.structsize = 0;
+                sd.alignsize = 0;
+                sd.sizeok = Sizeok.none;
+            }
+            else
+            {
+                sd.errors = true;
+            }
+            return;
         }
 
         if (sd.structsize == 0)
