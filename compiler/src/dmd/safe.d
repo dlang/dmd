@@ -141,9 +141,10 @@ bool checkUnsafeAccess(Scope* sc, Expression e, bool readonly, bool printmsg)
         if ((!ad.type.alignment.isDefault() && ad.type.alignment.get() < target.ptrsize) ||
              (v.offset & (target.ptrsize - 1)))
         {
-            if (sc.setUnsafe(!printmsg, e.loc,
-                "modifying misaligned pointers through field `%s.%s`", ad, v))
-                return true;
+            if (v.type.size() > 0)
+                if (sc.setUnsafe(!printmsg, e.loc,
+                    "modifying misaligned pointers through field `%s.%s`", ad, v))
+                    return true;
         }
     }
 

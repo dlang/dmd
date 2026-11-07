@@ -582,6 +582,32 @@ void test23964()
     assert(aa["a"].data == [11, 2, 3]);
 }
 
+// https://github.com/dlang/dmd/issues/24223
+void test24223() @safe
+{
+    alias Unit = void[0];
+
+    static struct KV
+    {
+        int key;
+        Unit val;
+    }
+
+    void foo()
+    {
+        KV kv;
+        kv.val = Unit.init;
+    }
+    foo();
+
+    void testAA(int key)
+    {
+        Unit[int] _data;
+        _data[key] = Unit.init;
+    }
+    testAA(0);
+}
+
 /***************************************************/
 
 void main()
