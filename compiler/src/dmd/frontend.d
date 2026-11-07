@@ -178,6 +178,14 @@ void deinitializeDMD()
     import dmd.objc : Objc;
     import dmd.target : target;
     import dmd.dfa.fast.structure : DFAAllocator;
+    import dmd.root.rmem : mem;
+
+    foreach (info; global.path[])
+        mem.xfree(cast(void*) info.path);
+    foreach (s; global.filePath[])
+        mem.xfree(cast(void*) s);
+    global.path.setDim(0);
+    global.filePath.setDim(0);
 
     diagnosticHandler = null;
     fatalErrorHandler = null;
@@ -201,12 +209,12 @@ Add import path to the `global.path`.
 Params:
     path = import to add
 */
-void addImport(const(char)[] path)
+void addImport(const(char)[] path) nothrow
 {
     import dmd.globals : global, ImportPathInfo;
-    import std.string : toStringz;
+    import dmd.root.rmem : xarraydup;
 
-    global.path.push(ImportPathInfo(path.toStringz));
+    global.path.push(ImportPathInfo(xarraydup(path).ptr));
 }
 
 /**
@@ -214,14 +222,12 @@ Add string import path to `global.filePath`.
 Params:
     path = string import to add
 */
-void addStringImport(const(char)[] path)
+void addStringImport(const(char)[] path) nothrow
 {
-    import std.string : toStringz;
-
     import dmd.globals : global;
-    import dmd.arraytypes : Strings;
+    import dmd.root.rmem : xarraydup;
 
-    global.filePath.push(path.toStringz);
+    global.filePath.push(xarraydup(path).ptr);
 }
 
 /**
