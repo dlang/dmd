@@ -678,7 +678,7 @@ void fillTupleExpExps(TupleExp _this, TupleDeclaration tup)
  */
 bool isNoreturnExpression(Expression e)
 {
-    if (e.type && e.type.isTypeNoreturn() !is null)
+    if (e.type && e.type.isTypeNoreturn())
         return true;
     if (auto comma = e.isCommaExp())
         return isNoreturnExpression(comma.e1) || isNoreturnExpression(comma.e2);
