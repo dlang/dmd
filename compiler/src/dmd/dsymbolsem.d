@@ -10636,23 +10636,23 @@ private extern(C++) class FinalizeSizeVisitor : Visitor
                 outerCd.errors = true;
                 return;
             }
-            if (!ok)
+            if (ok)
+                continue;
+
+            if (global.gag)
             {
-                if (global.gag)
-                {
-                    foreach (f; outerCd.fields)
-                        f.offset = 0;
-                    outerCd.fields.setDim(0);
-                    outerCd.structsize = 0;
-                    outerCd.alignsize = 0;
-                    outerCd.sizeok = Sizeok.none;
-                }
-                else
-                {
-                    outerCd.errors = true;
-                }
-                return;
+                foreach (f; outerCd.fields)
+                    f.offset = 0;
+                outerCd.fields.setDim(0);
+                outerCd.structsize = 0;
+                outerCd.alignsize = 0;
+                outerCd.sizeok = Sizeok.none;
             }
+            else
+            {
+                outerCd.errors = true;
+            }
+            return;
         }
 
         outerCd.sizeok = Sizeok.done;
@@ -10690,23 +10690,23 @@ private extern(C++) class FinalizeSizeVisitor : Visitor
                 sd.errors = true;
                 return;
             }
-            if (!ok)
+            if (ok)
+                continue;
+
+            if (global.gag)
             {
-                if (global.gag)
-                {
-                    foreach (f; sd.fields)
-                        f.offset = 0;
-                    sd.fields.setDim(0);
-                    sd.structsize = 0;
-                    sd.alignsize = 0;
-                    sd.sizeok = Sizeok.none;
-                }
-                else
-                {
-                    sd.errors = true;
-                }
-                return;
+                foreach (f; sd.fields)
+                    f.offset = 0;
+                sd.fields.setDim(0);
+                sd.structsize = 0;
+                sd.alignsize = 0;
+                sd.sizeok = Sizeok.none;
             }
+            else
+            {
+                sd.errors = true;
+            }
+            return;
         }
 
         if (sd.structsize == 0)
