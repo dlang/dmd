@@ -20,6 +20,7 @@ import dmd.errorsink;
 import dmd.globals;
 import dmd.location;
 import dmd.common.outbuffer;
+import dmd.common.string : startsWith;
 import dmd.root.rmem;
 import dmd.root.string;
 import dmd.console;

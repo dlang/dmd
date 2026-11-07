@@ -252,7 +252,7 @@ bool discardValue(Expression e)
     {
         if (ce.f && ce.f.ident == Id.opEquals && ce.fromOpOverload)
         {
-            import dmd.root.string : startsWith;
+            import dmd.common.string : startsWith;
             // avoid breaking `lhs.should == rhs`
             // https://github.com/atilaneves/unit-threaded#custom-assertions
             // lowered: `should(lhs).opEquals(rhs)`

@@ -44,6 +44,7 @@ import dmd.parse;
 import dmd.root.complex;
 import dmd.root.ctfloat;
 import dmd.common.outbuffer;
+import dmd.common.string : startsWith;
 import dmd.rootobject;
 import dmd.root.string;
 import dmd.statement;

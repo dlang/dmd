@@ -44,7 +44,7 @@ string[] defaultImportPaths()
 string stripDelimited(string str)
 {
     import std.string : chomp, outdent;
-    import dmd.root.string : stripLeadingLineTerminator;
+    import dmd.common.string : stripLeadingLineTerminator;
 
     return str
         .stripLeadingLineTerminator

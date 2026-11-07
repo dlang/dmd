@@ -131,46 +131,6 @@ char[] toCString(scope const(char)[] s) nothrow
 }
 
 /**
- * Strips one leading line terminator of the given string.
- *
- * The following are what the Unicode standard considers as line terminators:
- *
- * | Name                | D Escape Sequence | Unicode Code Point |
- * |---------------------|-------------------|--------------------|
- * | Line feed           | `\n`              | `U+000A`           |
- * | Line tabulation     | `\v`              | `U+000B`           |
- * | Form feed           | `\f`              | `U+000C`           |
- * | Carriage return     | `\r`              | `U+000D`           |
- * | Next line           |                   | `U+0085`           |
- * | Line separator      |                   | `U+2028`           |
- * | Paragraph separator |                   | `U+2029`           |
- *
- * This function will also strip `\r\n`.
- */
-string stripLeadingLineTerminator(string str) pure nothrow @nogc @safe
-{
-    import commonString = dmd.common.string;
-    return commonString.stripLeadingLineTerminator(str);
-}
-
-unittest
-{
-    assert("".stripLeadingLineTerminator == "");
-    assert("foo".stripLeadingLineTerminator == "foo");
-    assert("\xC2foo".stripLeadingLineTerminator == "\xC2foo");
-    assert("\xE2foo".stripLeadingLineTerminator == "\xE2foo");
-    assert("\nfoo".stripLeadingLineTerminator == "foo");
-    assert("\vfoo".stripLeadingLineTerminator == "foo");
-    assert("\ffoo".stripLeadingLineTerminator == "foo");
-    assert("\rfoo".stripLeadingLineTerminator == "foo");
-    assert("\u0085foo".stripLeadingLineTerminator == "foo");
-    assert("\u2028foo".stripLeadingLineTerminator == "foo");
-    assert("\u2029foo".stripLeadingLineTerminator == "foo");
-    assert("\n\rfoo".stripLeadingLineTerminator == "\rfoo");
-    assert("\r\nfoo".stripLeadingLineTerminator == "foo");
-}
-
-/**
  * A string comparison functions that returns the same result as strcmp
  *
  * Note: Strings are compared based on their ASCII values, no UTF-8 decoding.
@@ -275,14 +235,6 @@ do
         ++p;
     }
     return true;
-}
-
-///ditto
-nothrow @nogc pure @safe
-bool startsWith(scope const(char)[] str, scope const(char)[] prefix)
-{
-    import commonString = dmd.common.string;
-    return commonString.startsWith(str, prefix);
 }
 
 ///

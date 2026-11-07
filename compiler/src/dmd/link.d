@@ -1503,6 +1503,7 @@ void parseLinkerOutput(const(char)[] linkerOutput, ErrorSink eSink, bool betterC
     void missingSymbol(const(char)[] name, const(char)[] referencedFrom)
     {
         import core.demangle: demangle;
+        import dmd.common.string : startsWith;
         if (name.startsWith("__D"))
             name = name[1 .. $]; // MS LINK prepends underscore to the existing one
 
