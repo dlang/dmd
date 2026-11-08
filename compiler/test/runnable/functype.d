@@ -239,6 +239,7 @@ void test8579()
     auto fn1 = &func1;
     auto fn2 = &func2;
     static assert(is(typeof(fn1) == typeof(fn2)));
+    static assert(typeid(typeof(fn1)) is typeid(typeof(fn2)));
            assert(   typeid(fn1) is typeid(fn2) );
     static assert(typeof(fn1).stringof == "void function(int i, double j = " ~ (1.0).stringof ~ ") pure nothrow @nogc @safe");
     static assert(typeof(fn2).stringof == "void function(int x, double y) pure nothrow @nogc @safe");
@@ -248,6 +249,7 @@ void test8579()
     auto fn3 = &func3;
     auto fn4 = &func4;
     static assert(is(typeof(fn3) == typeof(fn4)));
+    static assert(typeid(typeof(fn3)) is typeid(typeof(fn4)));
            assert(   typeid(fn3) is typeid(fn4) );
     static assert(typeof(fn3).stringof == "int function(int x, double y) pure nothrow @nogc @safe");
     static assert(typeof(fn4).stringof == "int function(int i, double j = " ~ (1.0).stringof ~ ") pure nothrow @nogc @safe");
