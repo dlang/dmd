@@ -169,28 +169,13 @@ extern (D) elem* incUsageElem(ref IRState irs, Loc loc)
     uint linnum = loc.linnum;
 
     Module m = cast(Module)irs.blx._module;
-    //printf("m.cov %p linnum %d filename %s srcfile %s numlines %d\n", m.cov, linnum, loc.filename, m.srcfile.toChars(), m.numlines);
-    if (!m.cov || !linnum ||
-        strcmp(loc.filename, m.srcfile.toChars()))
+    if (!linnum || strcmp(loc.filename, m.srcfile.toChars()))
         return null;
-
-    //printf("cov = %p, covb = %p, linnum = %u\n", m.cov, m.covb.ptr, p, linnum);
-
-    linnum--;           // from 1-based to 0-based
-
-    /* Set bit in covb[] indicating this is a valid code line number
-     */
-    if (m.covb.length)    // covb can be null if it has already been written out to its .obj file
-    {
-        assert(linnum < m.numlines);
-        size_t i = linnum / (m.covb[0].sizeof * 8);
-        m.covb[i] |= 1 << (linnum & (m.covb[0].sizeof * 8 - 1));
-    }
-
-    /* Generate: *(m.cov + linnum * 4) += 1
-     */
+    linnum--;
+    auto mcov = counterForLine(m, linnum);
+    if (!mcov)
+        return null;
     elem* e;
-    Symbol* mcov = cast(Symbol*) m.cov;
     e = el_ptr(mcov);
     e = el_bin(OPadd, TYnptr, e, el_long(TYuint, linnum * 4));
     e = el_una(OPind, TYuint, e);

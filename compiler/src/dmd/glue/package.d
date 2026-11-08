@@ -1317,6 +1317,45 @@ private void obj_end(ref OutBuffer objbuf, Library library, const(char)[] objfil
     }
 }
 
+// Each emitting module owns counters for foreign source lines it generates.
+private struct CoverageFragment
+{
+    Module source;
+    Symbol* counters;
+    uint[] valid;
+}
+
+private Module coverageRoot;
+private CoverageFragment[Module] fragments;
+
+package(dmd.glue) Symbol* counterForLine(Module source, uint index)
+{
+    if (index >= source.numlines)
+        return null;
+    if (source == coverageRoot)
+    {
+        if (!source.cov || !source.covb.length)
+            return null;
+        source.covb[index / 32] |= 1u << (index % 32);
+        return cast(Symbol*)source.cov;
+    }
+    auto fragment = source in fragments;
+    if (!fragment)
+    {
+        auto sym = symbol_generate(SC.static_, type_fake(TYint));
+        sym.Stype.Tmangle = Mangle.d;
+        sym.Sfl = FL.data;
+        auto dtb = DtBuilder(0);
+        dtb.nzeros(4 * source.numlines);
+        sym.Sdt = dtb.finish();
+        outdata(sym);
+        fragments[source] = CoverageFragment(source, sym, new uint[2 * ((source.numlines + 63) / 64)]);
+        fragment = source in fragments;
+    }
+    fragment.valid[index / 32] |= 1u << (index % 32);
+    return fragment.counters;
+}
+
 /**************************************
  * Generate .obj file for Module.
  */
@@ -1331,6 +1370,8 @@ private void genObjFile(Module m, bool multiobj, bool doppelganger)
     timeTraceBeginEvent(TimeTraceEventType.codegenModule);
     scope(exit) timeTraceEndEvent(TimeTraceEventType.codegenModule, m);
 
+    coverageRoot = m;
+    fragments = null;
     glue.lastmname = m.srcfile.toChars();
 
     objmod.initfile(glue.lastmname, null, m.toPrettyChars());
@@ -1377,7 +1418,7 @@ private void genObjFile(Module m, bool multiobj, bool doppelganger)
     }
 
     Symbol* mcov;
-    if (global.params.cov)
+    if (global.params.cov && !doppelganger)
     {
         /* Create coverage identifier:
          *  uint[numlines] __coverage;
@@ -1440,24 +1481,6 @@ private void genObjFile(Module m, bool multiobj, bool doppelganger)
     Symbol* msictor;
     if (global.params.cov)
     {
-        /* Generate
-         *  private bit[numlines] __bcoverage;
-         */
-        Symbol* bcov = symbol_calloc("__bcoverage");
-        bcov.Stype = type_fake(TYuint);
-        bcov.Stype.Tcount++;
-        bcov.Sclass = SC.static_;
-        bcov.Sfl = FL.data;
-
-        auto dtb = DtBuilder(0);
-        dtb.nbytes(cast(const(ubyte)[]) m.covb);
-        bcov.Sdt = dtb.finish();
-
-        outdata(bcov);
-
-        free(m.covb.ptr);
-        m.covb = null;
-
         /* Generate:
          *  _d_cover_register(uint[] __coverage, BitArray __bcoverage, string filename);
          * and prepend it to the static constructor.
@@ -1474,27 +1497,65 @@ private void genObjFile(Module m, bool multiobj, bool doppelganger)
         cstate.CSpsymtab = &msictor.Sfunc.Flocsym;
         localgot = glue.ictorlocalgot;
 
-        elem* ecov  = el_pair(TYdarray, el_long(TYsize_t, m.numlines), el_ptr(mcov));
-        elem* ebcov = el_pair(TYdarray, el_long(TYsize_t, m.numlines), el_ptr(bcov));
-
-        if (target.os == Target.OS.Windows && target.isX86_64)
+        void registerLines(Module source, Symbol* counters, Symbol* valid, ubyte minPercent)
         {
-            ecov  = addressElem(ecov,  Type.tvoid.arrayOf(), false);
-            ebcov = addressElem(ebcov, Type.tvoid.arrayOf(), false);
+            elem* ecov  = el_pair(TYdarray, el_long(TYsize_t, source.numlines), el_ptr(counters));
+            elem* ebcov = el_pair(TYdarray, el_long(TYsize_t, source.numlines), el_ptr(valid));
+
+            if (target.os == Target.OS.Windows && target.isX86_64)
+            {
+                ecov  = addressElem(ecov,  Type.tvoid.arrayOf(), false);
+                ebcov = addressElem(ebcov, Type.tvoid.arrayOf(), false);
+            }
+
+            auto path = source.srcfile.toChars();
+            auto length = strlen(path);
+            elem* efilename = el_pair(TYdarray, el_long(TYsize_t, length), el_ptr(toStringSymbol(path, length, 1)));
+            if (target.os == Target.OS.Windows && target.isX86_64)
+                efilename = addressElem(efilename, Type.tstring, true);
+
+            elem* e = el_params(
+                          el_long(TYuchar, minPercent),
+                          ecov,
+                          ebcov,
+                          efilename,
+                          null);
+            e = el_bin(OPcall, TYvoid, el_var(getRtlsym(RTLSYM.DCOVER2)), e);
+            glue.eictor = el_combine(e, glue.eictor);
         }
+        // A deferred archive member has no source of its own. Its real
+        // source lines are registered below through their fragments.
+        if (mcov)
+        {
+            Symbol* bcov = symbol_calloc("__bcoverage");
+            bcov.Stype = type_fake(TYuint);
+            bcov.Stype.Tcount++;
+            bcov.Sclass = SC.static_;
+            bcov.Sfl = FL.data;
 
-        elem* efilename = toEfilename(m);
-        if (target.os == Target.OS.Windows && target.isX86_64)
-            efilename = addressElem(efilename, Type.tstring, true);
+            auto dtb = DtBuilder(0);
+            dtb.nbytes(cast(const(ubyte)[]) m.covb);
+            bcov.Sdt = dtb.finish();
+            outdata(bcov);
 
-        elem* e = el_params(
-                      el_long(TYuchar, global.params.covPercent),
-                      ecov,
-                      ebcov,
-                      efilename,
-                      null);
-        e = el_bin(OPcall, TYvoid, el_var(getRtlsym(RTLSYM.DCOVER2)), e);
-        glue.eictor = el_combine(e, glue.eictor);
+            free(m.covb.ptr);
+            m.covb = null;
+            registerLines(m, mcov, bcov, global.params.covPercent);
+        }
+        foreach (ref fragment; fragments)
+        {
+            auto valid = symbol_calloc("__importValid");
+            valid.Stype = type_fake(TYuint);
+            valid.Stype.Tcount++;
+            valid.Sclass = SC.static_;
+            valid.Sfl = FL.data;
+            auto bits = DtBuilder(0);
+            bits.nbytes(cast(const(ubyte)[])fragment.valid);
+            valid.Sdt = bits.finish();
+            outdata(valid);
+            // The defining module registers its own coverage threshold.
+            registerLines(fragment.source, fragment.counters, valid, 0);
+        }
         glue.ictorlocalgot = localgot;
     }
 
