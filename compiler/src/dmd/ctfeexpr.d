@@ -1222,7 +1222,7 @@ private int ctfeRawCmp(Loc loc, Expression e1, Expression e2, bool identity = fa
         Type t2 = isType(e2.isTypeidExp().obj);
         assert(t1);
         assert(t2);
-        return t1 != t2;
+        return !t1.equals(t2);
     }
     // null == null, regardless of type
     if (e1.op == EXP.null_ && e2.op == EXP.null_)
