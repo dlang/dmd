@@ -2138,6 +2138,11 @@ public:
                     v._init = v._init.initializerSemantic(v._scope, v.type, INITinterpret, global.errorSink); // might not be run on aggregate members
                     v.inuse--;
                 }
+                if (v._init.isVoidInitializer())
+                {
+                    eSink.error(loc, "cannot read uninitialized variable `%s` in CTFE", v.toErrMsg());
+                    return CTFEExp.cantexp;
+                }
                 e = interpretInitializerExpression(v);
                 if (!e)
                     return CTFEExp.cantexp;
