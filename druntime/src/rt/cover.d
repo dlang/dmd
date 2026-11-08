@@ -62,6 +62,7 @@ private
     {
         string      filename;
         BitArray    valid;      // bit array of which source lines are executable code lines
+        bool        booleanHits; // this registration records presence only
         uint[]      data;       // array of line execution counts
         ubyte       minPercent; // minimum percentage coverage required
     }
@@ -91,6 +92,9 @@ private
         {
             string s = "Code coverage options are specified as whitespace separated assignments:
     merge:0|1      - 0 overwrites existing reports, 1 merges current run with existing coverage reports (default: %d)
+                     With merge:1, a missing report is created. If a line switches between
+                     Boolean hits and execution counts, start a fresh report with merge:0
+                     or use a separate output directory.
     disable:0|1    - 1 disables writing coverage report even if binary is compiled with coverage
     dstpath:<PATH> - writes code coverage reports to <PATH> (default: current
             working directory)
@@ -133,8 +137,7 @@ extern (C) void dmd_coverDestPath( string pathname )
  * Set merge mode.
  *
  * Params:
- *      flag = true means new data is summed with existing data in the listing
- *         file; false means a new listing file is always created.
+ *      flag = true merges this run with the existing listing; false overwrites it.
  */
 extern (C) void dmd_coverSetMerge( bool flag )
 {
@@ -153,10 +156,22 @@ extern (C) void dmd_coverSetMerge( bool flag )
  */
 extern (C) void _d_cover_register2(string filename, size_t[] valid, uint[] data, ubyte minPercent)
 {
+    registerCoverage(filename, valid, data, minPercent, false);
+}
+
+/// Register line-hit flags. The argument layout is identical to _d_cover_register2.
+extern (C) void _d_cover_register_boolean(string filename, size_t[] valid, uint[] data, ubyte minPercent)
+{
+    registerCoverage(filename, valid, data, minPercent, true);
+}
+
+private void registerCoverage(string filename, size_t[] valid, uint[] data, ubyte minPercent, bool booleanHits)
+{
     assert(minPercent <= 100);
 
     Cover c;
 
+    c.booleanHits = booleanHits;
     c.filename  = filename;
     c.valid.ptr = valid.ptr;
     c.valid.len = valid.length;
@@ -281,6 +296,7 @@ shared static ~this()
         Cover coverage;
         alias coverage this;
         bool incompatibleLengths;
+        bool[] hitOnly; // line may have an unknown number of hits
     }
     Report[SourceKey] reports;
     foreach (fragment; gdata)
@@ -301,9 +317,16 @@ shared static ~this()
             report.incompatibleLengths = true;
         if (report.incompatibleLengths)
             continue;
+        if (fragment.booleanHits && report.hitOnly is null)
+            report.hitOnly = new bool[report.data.length];
         foreach (i, count; fragment.data)
         {
-            report.data[i] += count;
+            if (fragment.booleanHits && (fragment.valid[i] || count != 0))
+                report.hitOnly[i] = true;
+            if (report.hitOnly.length && report.hitOnly[i])
+                report.data[i] = report.data[i] != 0 || count != 0;
+            else
+                report.data[i] += count;
             if (fragment.valid[i])
                 report.valid.ptr[i / (size_t.sizeof * 8)] |= size_t(1) << (i % (size_t.sizeof * 8));
         }
@@ -344,7 +367,13 @@ shared static ~this()
             // check if source is the same before merge
             if (lstEquals(lines, lstLines))
                 foreach (i, line; lstLines[0 .. min($, c.data.length)])
-                    c.data[i] += parseNum(line);
+                {
+                    const previous = parseNum(line);
+                    if (c.hitOnly.length && c.hitOnly[i])
+                        c.data[i] = c.data[i] != 0 || previous != 0;
+                    else
+                        c.data[i] += previous;
+                }
         }
 
         // Calculate the maximum number of digits in the line with the greatest
