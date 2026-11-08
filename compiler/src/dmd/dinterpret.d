@@ -4020,7 +4020,10 @@ public:
         else
         {
             // e1 has its own payload, so we have to create a new literal.
-            if (wantCopy)
+            // Static arrays are value types: assigning one must deep-copy the
+            // payload, otherwise both variables alias the same literal and
+            // mutating one is visible through the other.
+            if (wantCopy || t1b.ty == Tsarray)
                 newval = copyLiteral(newval).copy();
 
             if (t1b.ty == Tsarray && e.op == EXP.construct && e.e2.isLvalue())
