@@ -1895,14 +1895,15 @@ public:
             result = e;
             return;
         }
-        if (e.type.ty != Tpointer)
+        auto pointerType = e.type.toBasetype();
+        if (pointerType.ty != Tpointer)
         {
             // Probably impossible
             eSink.error(e.loc, "cannot interpret `%s` at compile time", e.toErrMsg());
             result = CTFEExp.cantexp;
             return;
         }
-        Type pointee = (cast(TypePointer)e.type).next;
+        Type pointee = pointerType.nextOf();
         if (e.var.isThreadlocal())
         {
             eSink.error(e.loc, "cannot take address of thread-local variable %s at compile time", e.var.toErrMsg());
@@ -2338,6 +2339,21 @@ public:
         {
             result.accept(this);
             return;
+        }
+
+        // An enum cast can be folded into a VarExp with a different qualifier.
+        // Check it as a pointer cast before repainting the value.
+        if (e.var.type !is e.type && e.var.type.ty == Tenum && e.type.ty == Tenum &&
+            e.var.type.isTypeEnum().sym == e.type.isTypeEnum().sym)
+        {
+            Type from = e.var.type.toBasetype();
+            Type to = e.type.toBasetype();
+            if (from.ty == Tpointer && to.ty == Tpointer && !isSafePointerCast(from.nextOf(), to.nextOf()))
+            {
+                eSink.error(e.loc, "reinterpreting cast from `%s` to `%s` is not supported in CTFE", from.toErrMsg(), to.toErrMsg());
+                result = CTFEExp.cantexp;
+                return;
+            }
         }
 
         if ((e.var.storage_class & (STC.ref_ | STC.out_)) == 0 && e.type.baseElemOf().ty != Tstruct)
@@ -3131,7 +3147,10 @@ public:
         {
             printf("%s BinExp::interpretCommon() %s\n", e.loc.toChars(), e.toChars());
         }
-        if (e.e1.type.ty == Tpointer && e.e2.type.ty == Tpointer && e.op == EXP.min)
+        // Enums with pointer base types use the same pointer operations.
+        auto t1 = e.e1.type.toBasetype();
+        auto t2 = e.e2.type.toBasetype();
+        if (t1.ty == Tpointer && t2.ty == Tpointer && e.op == EXP.min)
         {
             UnionExp ue1 = void;
             Expression e1 = interpret(&ue1, e.e1, istate);
@@ -3144,7 +3163,7 @@ public:
             result = pointerDifference(pue, e.loc, e.type, e1, e2);
             return;
         }
-        if (e.e1.type.ty == Tpointer && e.e2.type.isIntegral())
+        if (t1.ty == Tpointer && e.e2.type.isIntegral())
         {
             UnionExp ue1 = void;
             Expression e1 = interpret(&ue1, e.e1, istate);
@@ -3157,7 +3176,7 @@ public:
             result = pointerArithmetic(pue, e.loc, e.op, e.type, e1, e2);
             return;
         }
-        if (e.e2.type.ty == Tpointer && e.e1.type.isIntegral() && e.op == EXP.add)
+        if (t2.ty == Tpointer && e.e1.type.isIntegral() && e.op == EXP.add)
         {
             UnionExp ue1 = void;
             Expression e1 = interpret(&ue1, e.e1, istate);
@@ -3170,7 +3189,7 @@ public:
             result = pointerArithmetic(pue, e.loc, e.op, e.type, e2, e1);
             return;
         }
-        if (e.e1.type.ty == Tpointer || e.e2.type.ty == Tpointer)
+        if (t1.ty == Tpointer || t2.ty == Tpointer)
         {
             eSink.error(e.loc, "pointer expression `%s` cannot be interpreted at compile time", e.toErrMsg());
             result = CTFEExp.cantexp;
@@ -3280,7 +3299,7 @@ public:
         }
         UnionExp ue1 = void;
         UnionExp ue2 = void;
-        if (e.e1.type.ty == Tpointer && e.e2.type.ty == Tpointer)
+        if (e.e1.type.toBasetype().ty == Tpointer && e.e2.type.toBasetype().ty == Tpointer)
         {
             Expression e1 = interpret(&ue1, e.e1, istate);
             if (exceptionOrCant(e1))
@@ -3629,7 +3648,7 @@ public:
                     return;
             }
 
-            if (e.e1.type.ty != Tpointer)
+            if (e.e1.type.toBasetype().ty != Tpointer)
             {
                 // ~= can create new values (see bug 6052)
                 if (e.op == EXP.concatenateAssign || e.op == EXP.concatenateElemAssign || e.op == EXP.concatenateDcharAssign)
@@ -5769,9 +5788,10 @@ public:
             result = CTFEExp.voidexp;
             return;
         }
-        if (e.to.ty == Tpointer && e1.op != EXP.null_)
+        auto tobt = e.to.toBasetype();
+        if (tobt.ty == Tpointer && e1.op != EXP.null_)
         {
-            Type pointee = (cast(TypePointer)e.type).next;
+            Type pointee = e.type.toBasetype().nextOf();
             // Implement special cases of normally-unsafe casts
             if (e1.op == EXP.int64)
             {
@@ -5782,12 +5802,16 @@ public:
 
             bool castToSarrayPointer = false;
             bool castBackFromVoid = false;
-            if (e1.type.isStaticOrDynamicArray() || e1.type.ty == Tpointer)
+            auto sourceType = e1.type.toBasetype();
+            if (e1.type.isStaticOrDynamicArray() || sourceType.ty == Tpointer)
             {
                 // Check for unsupported type painting operations
                 // For slices, we need the type being sliced,
                 // since it may have already been type painted
-                Type elemtype = e1.type.nextOf();
+                Type elemtype = sourceType.nextOf();
+                // Preserve qualifiers from the enum expression's declared type.
+                if (e.e1.type.ty == Tenum)
+                    elemtype = e.e1.type.toBasetype().nextOf();
                 if (auto se = e1.isSliceExp())
                     elemtype = se.e1.type.nextOf();
 
@@ -5993,8 +6017,7 @@ public:
         if (e.to.ty == Tsarray)
             e1 = resolveSlice(e1);
 
-        auto tobt = e.to.toBasetype();
-        if (tobt.ty == Tbool && (e1.type.ty == Tpointer || e1.type.ty == Tclass || e1.type.ty == Tdelegate ||
+        if (tobt.ty == Tbool && (e1.type.toBasetype().ty == Tpointer || e1.type.ty == Tclass || e1.type.ty == Tdelegate ||
                                  e1.type.ty == Tarray || e1.type.ty == Taarray))
         {
             emplaceExp!(IntegerExp)(pue, e.loc, isTrueBool(e1), e.to);
