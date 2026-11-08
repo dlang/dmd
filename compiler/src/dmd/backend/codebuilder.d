@@ -41,12 +41,10 @@ struct CodeBuilder
     @trusted
     debug static void chkIop(uint op)
     {
-        static if (0) if (op == 0x1280_0060)
+        static if (1) if (op == 0x1240_1C25)
         {
             printf("%s\n", funcsym_p.Sident.ptr);
-            static int x;
-            if (++x == 8)
-                assert(op != 0x1280_0060);
+	    assert(0);
         }
     }
 
