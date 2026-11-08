@@ -465,7 +465,29 @@ string chomp( string str, string delim = null )
 FILE* openOrCreateFile(string name)
 {
     version (Windows)
-        immutable fd = _wopen(toUTF16z(name), _O_RDWR | _O_CREAT | _O_BINARY, _S_IREAD | _S_IWRITE);
+    {
+        enum flags = _O_RDWR | _O_CREAT | _O_BINARY;
+        enum permissions = _S_IREAD | _S_IWRITE;
+        auto path = toUTF16z(name);
+        int fd = _wopen(path, flags, permissions);
+        if (fd < 0)
+        {
+            const required = GetFullPathNameW(path, 0, null, null);
+            if (!required)
+                return null;
+            auto absolute = new wchar[required];
+            const n = GetFullPathNameW(path, required, absolute.ptr, null);
+            if (!n || n >= required)
+                return null;
+            auto resolved = absolute[0 .. n];
+            if (resolved.length >= 4 && (resolved[0 .. 4] == `\\?\`w || resolved[0 .. 4] == `\\.\`w))
+                return null;
+            auto extended = resolved.length >= 2 && resolved[0 .. 2] == `\\`w
+                ? `\\?\UNC\`w ~ resolved[2 .. $]
+                : `\\?\`w ~ resolved;
+            fd = _wopen((extended ~ '\0').ptr, flags, permissions);
+        }
+    }
     else version (Posix)
         immutable fd = open((name ~ '\0').ptr, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP |
                 S_IROTH | S_IWOTH);
@@ -473,6 +495,7 @@ FILE* openOrCreateFile(string name)
         alias fdopen = _fdopen;
     else version (Posix)
         import core.sys.posix.stdio : fdopen;
+    if (fd < 0) return null;
     return fdopen(fd, "r+b");
 }
 
