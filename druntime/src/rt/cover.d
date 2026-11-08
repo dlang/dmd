@@ -229,6 +229,42 @@ shared static this()
     config.initialize();
 }
 
+// Identify the source the reporter will actually open, allowing different input spellings.
+private struct SourceKey
+{
+    ulong device;
+    ulong index;
+    string unresolved;
+}
+
+private SourceKey sourceKey(string filename)
+{
+    version (Windows)
+    {
+        import core.sys.windows.winnt : FILE_SHARE_READ, FILE_SHARE_WRITE, FILE_SHARE_DELETE, FILE_ATTRIBUTE_NORMAL;
+        auto handle = CreateFileW(toUTF16z(filename), 0,
+            FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+            null, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, null);
+        if (handle != INVALID_HANDLE_VALUE)
+        {
+            scope(exit) CloseHandle(handle);
+            BY_HANDLE_FILE_INFORMATION info;
+            if (GetFileInformationByHandle(handle, &info) &&
+                (info.nFileIndexHigh || info.nFileIndexLow))
+                return SourceKey(info.dwVolumeSerialNumber,
+                    (ulong(info.nFileIndexHigh) << 32) | info.nFileIndexLow);
+        }
+    }
+    else version (Posix)
+    {
+        import core.sys.posix.sys.stat : stat, stat_t;
+        stat_t info;
+        if (!stat((filename ~ '\0').ptr, &info))
+            return SourceKey(info.st_dev, info.st_ino);
+    }
+    return SourceKey(0, 0, filename);
+}
+
 shared static ~this()
 {
     if (!gdata.length || config.disable) return;
@@ -240,8 +276,49 @@ shared static ~this()
     auto lines = new char[][NUMLINES];
     auto lstLines = new char[][NUMLINES];
 
-    foreach (c; gdata)
+    struct Report
     {
+        Cover coverage;
+        alias coverage this;
+        bool incompatibleLengths;
+    }
+    Report[SourceKey] reports;
+    foreach (fragment; gdata)
+    {
+        auto key = sourceKey(appendFN(config.srcpath, fragment.filename));
+        auto report = key in reports;
+        if (!report)
+        {
+            reports[key] = Report(fragment);
+            report = key in reports;
+            report.data = new uint[fragment.data.length];
+            report.valid.ptr = (new size_t[(report.data.length + size_t.sizeof * 8 - 1) / (size_t.sizeof * 8)]).ptr;
+        }
+        if (fragment.filename.length < report.filename.length ||
+            (fragment.filename.length == report.filename.length && fragment.filename < report.filename))
+            report.filename = fragment.filename;
+        if (report.data.length != fragment.data.length)
+            report.incompatibleLengths = true;
+        if (report.incompatibleLengths)
+            continue;
+        foreach (i, count; fragment.data)
+        {
+            report.data[i] += count;
+            if (fragment.valid[i])
+                report.valid.ptr[i / (size_t.sizeof * 8)] |= size_t(1) << (i % (size_t.sizeof * 8));
+        }
+        report.minPercent = max(report.minPercent, fragment.minPercent);
+    }
+    bool inconsistent;
+    foreach (c; reports)
+    {
+        if (c.incompatibleLengths)
+        {
+            fprintf(stderr, "Error: coverage registrations for %.*s have different source lengths; rebuild the affected objects.\n",
+                    cast(int)c.filename.length, c.filename.ptr);
+            inconsistent = true;
+            continue;
+        }
         auto fname = appendFN(config.dstpath, addExt(baseName(c.filename), "lst"));
         auto flst = openOrCreateFile(fname);
         if (flst is null)
@@ -331,6 +408,8 @@ shared static ~this()
         else version (Posix)
             ftruncate(fileno(flst), ftell(flst));
     }
+    if (inconsistent)
+        exit(EXIT_FAILURE);
 }
 
 uint digits(uint number)
