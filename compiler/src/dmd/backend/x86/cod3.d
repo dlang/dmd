@@ -6813,14 +6813,20 @@ private void pinholeopt_unittest()
 @trusted
 void simplify_code(code* c)
 {
-    reg_t reg;
     if (config.flags4 & CFG4optimized &&
         (c.Iop == 0x81 || c.Iop == 0x80) &&
         c.IFL2 == FL.const_ &&
-        reghasvalue((c.Iop == 0x80) ? BYTEREGS : ALLREGS,I64 ? c.IEV2.Vsize_t : c.IEV2.Vlong,reg) &&
         !(I16 && c.Iflags & CF.opsize)
        )
     {
+        // A 64-bit operation sign-extends its imm32 before using it.
+        const value = I64 && c.Iop == 0x81 && (c.Irex & REX_W)
+            ? cast(targ_size_t)c.IEV2.Vint
+            : I64 ? c.IEV2.Vsize_t : c.IEV2.Vlong;
+        reg_t reg;
+        if (!reghasvalue((c.Iop == 0x80) ? BYTEREGS : ALLREGS, value, reg))
+            return;
+
         // See if we can replace immediate instruction with register instruction
         static immutable ubyte[8] regop =
                 [ 0x00,0x08,0x10,0x18,0x20,0x28,0x30,0x38 ];
@@ -6831,6 +6837,53 @@ void simplify_code(code* c)
         if (I64 && !(c.Iop & 1) && (reg & 4))
             c.Irex |= REX;
     }
+}
+
+@trusted
+unittest
+{
+    const savedFlags = config.flags4;
+    const savedPointerSize = _tysize[TYnptr];
+    const savedImmed = cgstate.regcon.immed;
+    scope (exit)
+    {
+        config.flags4 = savedFlags;
+        _tysize[TYnptr] = savedPointerSize;
+        cgstate.regcon.immed = savedImmed;
+    }
+
+    config.flags4 |= CFG4speed;
+    _tysize[TYnptr] = 8;
+
+    static bool replacesImmediate(targ_size_t immediate, targ_size_t regValue, ubyte rex = REX_W, opcode_t op = 0x81)
+    {
+        cgstate.regcon.immed.mval = 0;
+        cgstate.regimmed_set(BX, regValue);
+        code c;
+        c.Iop = op;
+        c.Irm = modregrm(3, 0, AX);
+        c.Irex = rex;
+        c.IFL2 = FL.const_;
+        c.IEV2.Vsize_t = immediate;
+        simplify_code(&c);
+        if (c.Iop != op)
+        {
+            assert(c.Iop == (op & 1)); // ADD reg, BX
+            assert(c.Irm == modregrm(3, BX, AX));
+            return true;
+        }
+        return false;
+    }
+
+    // The encoded imm32 is sign-extended for REX.W, but not for a 32-bit operation.
+    assert(!replacesImmediate(0xFFFF_FFFF, 0xFFFF_FFFF));
+    assert(replacesImmediate(0xFFFF_FFFF, ulong.max));
+    assert(!replacesImmediate(0x8000_0000, 0x8000_0000));
+    assert(replacesImmediate(0x8000_0000, 0xFFFF_FFFF_8000_0000));
+    assert(replacesImmediate(0xFFFF_FFFF_8000_0000, 0xFFFF_FFFF_8000_0000));
+    assert(replacesImmediate(0x7FFF_FFFF, 0x7FFF_FFFF));
+    assert(replacesImmediate(0xFFFF_FFFF, 0xFFFF_FFFF, 0));
+    assert(replacesImmediate(0xFFFF_FFFF, 0xFFFF_FFFF, REX_W, 0x80));
 }
 
 /**************************
