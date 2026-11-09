@@ -1400,6 +1400,7 @@ private elem* elbitwise(elem* e, Goal goal)
                 {
                     elem* e11 = e1.E1;
                     e11.Ety = touns(e11.Ety) | (e11.Ety & ~mTYbasic);
+                    e1.Eoper = OPshr;
                     goto L1;
                 }
 
@@ -1440,6 +1441,7 @@ private elem* elbitwise(elem* e, Goal goal)
                 {
                     elem* e11 = e1.E1;
                     e11.Ety = touns(e11.Ety) | (e11.Ety & ~mTYbasic);
+                    e1.Eoper = OPshr;
                     goto L1;
                 }
 
