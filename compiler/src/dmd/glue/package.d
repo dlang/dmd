@@ -1328,7 +1328,7 @@ private struct CoverageFragment
 private Module coverageRoot;
 private CoverageFragment[Module] fragments;
 
-package(dmd.glue) Symbol* counterForLine(Module source, uint index)
+package(dmd) Symbol* counterForLine(Module source, uint index)
 {
     if (index >= source.numlines)
         return null;
