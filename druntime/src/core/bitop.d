@@ -1053,3 +1053,32 @@ unittest
     assert(c == uint(1));
     assert(d == uint(1));
 }
+
+/*********************************
+ * Is n a right-justified run of 1s?
+ * Params:
+ *    n = where the 1s are
+ * Returns:
+ *    true if the 1s are all right-justified
+ */
+bool isRightJustifiedOnes(uint  n) { return ((n + 1) & n) == 0; }
+
+bool isRightJustifiedOnes(ulong n) { return ((n + 1) & n) == 0; }
+
+///
+unittest
+{
+    assert( isRightJustifiedOnes(0));
+    assert( isRightJustifiedOnes(1));
+    assert( isRightJustifiedOnes(-1));
+    assert(!isRightJustifiedOnes(0x1010_1111));
+    assert(!isRightJustifiedOnes(0x1010_1110));
+    assert( isRightJustifiedOnes(0x00FF_FFFF));
+
+    assert( isRightJustifiedOnes(0L));
+    assert( isRightJustifiedOnes(1L));
+    assert( isRightJustifiedOnes(-1L));
+    assert(!isRightJustifiedOnes(0x1010_0000_0000_1111L));
+    assert(!isRightJustifiedOnes(0x1010_0000_0000_1110L));
+    assert( isRightJustifiedOnes(0x00FF_FFFF_FFFF_FFFFL));
+}

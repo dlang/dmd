@@ -1,0 +1,1 @@
+Adds core.bitop.isRightJustifiedOnes, which is a common need but a tricky implementation.
