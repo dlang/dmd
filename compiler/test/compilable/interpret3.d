@@ -3,7 +3,7 @@
 /*
 TEST_OUTPUT:
 ---
-compilable/interpret3.d(6422): Deprecation: identity comparison of static arrays implicitly coerces them to slices, which are compared by reference
+compilable/interpret3.d(6435): Deprecation: identity comparison of static arrays implicitly coerces them to slices, which are compared by reference
 ---
 */
 
@@ -3285,6 +3285,19 @@ int ctfeSort6250()
 }
 
 static assert(ctfeSort6250() == 57);
+
+/**************************************************/
+// append through a pointer to a local array
+
+int[] ptrAppend()
+{
+    int[] a = [0];
+    int[]* p = &a;
+    *p ~= 1;
+    *p ~= [2];
+    return *p ~ 3;
+}
+static assert(ptrAppend() == [0, 1, 2, 3]);
 
 /**************************************************/
 
