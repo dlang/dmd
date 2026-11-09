@@ -1955,7 +1955,7 @@ public:
                 {
                     // Create a CTFE pointer &var
                     auto ve = ctfeEmplaceExp!VarExp(e.loc, e.var);
-                    ve.type = elemtype;
+                    ve.type = e.var.type;
                     emplaceExp!(AddrExp)(pue, e.loc, ve, e.type);
                     result = pue.exp();
                     return;
