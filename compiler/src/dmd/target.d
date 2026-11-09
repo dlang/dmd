@@ -1228,52 +1228,7 @@ extern (C++) struct Target
      */
     extern (C++) bool preferPassByRef(Type t)
     {
-        const size = t.size();
-        if (isX86_64 || isAArch64)
-        {
-            if (os == Target.OS.Windows)
-            {
-                // Win64 special case: by-value for slices and delegates due to
-                // high number of usages in druntime/Phobos (compiled without
-                // -preview=in but supposed to link against -preview=in code)
-                const ty = t.toBasetype().ty;
-                if (ty == TY.Tarray || ty == TY.Tdelegate)
-                    return false;
-
-                // If size is larger than 8 or not a power-of-2, the Win64 ABI
-                // would require a hidden reference anyway.
-                return size > 8
-                    || (size > 0 && (size & (size - 1)) != 0);
-            }
-            else // SysV x86_64 ABI
-            {
-                // Prefer a ref if the POD cannot be passed in registers, i.e.,
-                // would be passed on the stack, *and* the size is > 16.
-                if (size <= 16)
-                    return false;
-
-                TypeTuple getArgTypes()
-                {
-                    import dmd.astenums : Sizeok;
-                    if (auto ts = t.toBasetype().isTypeStruct())
-                    {
-                        auto sd = ts.sym;
-                        assert(sd.sizeok == Sizeok.done);
-                        return sd.argTypes;
-                    }
-                    return toArgTypes(t);
-                }
-
-                TypeTuple argTypes = getArgTypes();
-                assert(argTypes !is null, "size == 0 should already be handled");
-                return argTypes.arguments.length == 0; // cannot be passed in registers
-            }
-        }
-        else // 32-bit x86 ABI
-        {
-            // Prefer a ref if the size is > 2 machine words.
-            return size > 8;
-        }
+        return t.toBasetype().ty != TY.Tpointer;
     }
 
     // this guarantees `getTargetInfo` and `allTargetInfos` remain in sync
