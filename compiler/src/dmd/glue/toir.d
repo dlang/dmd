@@ -161,20 +161,23 @@ private struct CoverageFragment
 }
 
 private Module coverageRoot;
-private CoverageFragment[Module] fragments;
+// Key by module identity, including on bootstrap compilers that compare
+// extern(C++) class keys differently from pointers.
+private CoverageFragment[void*] fragments;
 
 private Symbol* counterForLine(Module source, uint index)
 {
     if (index >= source.numlines)
         return null;
-    if (source == coverageRoot)
+    if (source is coverageRoot)
     {
         if (!source.cov || !source.covb.length)
             return null;
         source.covb[index / 32] |= 1u << (index % 32);
         return cast(Symbol*)source.cov;
     }
-    auto fragment = source in fragments;
+    auto key = cast(void*) source;
+    auto fragment = key in fragments;
     if (!fragment)
     {
         auto sym = symbol_generate(SC.static_, type_fake(TYint));
@@ -184,8 +187,8 @@ private Symbol* counterForLine(Module source, uint index)
         dtb.nzeros(4 * source.numlines);
         sym.Sdt = dtb.finish();
         outdata(sym);
-        fragments[source] = CoverageFragment(source, sym, new uint[2 * ((source.numlines + 63) / 64)]);
-        fragment = source in fragments;
+        fragments[key] = CoverageFragment(source, sym, new uint[2 * ((source.numlines + 63) / 64)]);
+        fragment = key in fragments;
     }
     fragment.valid[index / 32] |= 1u << (index % 32);
     return fragment.counters;
