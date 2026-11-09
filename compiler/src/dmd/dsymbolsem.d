@@ -317,7 +317,10 @@ void makeNested(AggregateDeclaration _this)
     if (auto fd = s.isFuncDeclaration())
     {
         _this.enclosing = fd;
-
+        /* Its member functions may be analyzed, and their frame references
+         * registered, after fd's own analysis, see inferContextIsThis().
+         */
+        fd.noContextIsThis = true;
         /* https://issues.dlang.org/show_bug.cgi?id=14422
          * If a nested class parent is a function, its
          * context pointer (== `outer`) should be void* always.

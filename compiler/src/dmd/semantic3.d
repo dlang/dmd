@@ -1335,6 +1335,8 @@ private extern(C++) final class Semantic3Visitor : Visitor
             sc2.pop();
         }
 
+        inferContextIsThis(funcdecl);
+
         if (funcdecl.checkClosure())
         {
             // We should be setting errors here instead of relying on the global error count.
@@ -1961,6 +1963,8 @@ private void findClosureVars(FuncDeclaration fd, scope void delegate(FuncDeclara
         foreach (f; v.nestedrefs)
         {
             assert(f !is fd);
+            if (v == fd.vthis && contextIsThisChild(f, fd))
+                continue;   // f has `this` as its context pointer, not fd's frame
 
         LcheckAncestorsOfANestedRef:
             for (Dsymbol s = f; s && s !is fd; s = s.toParentP(fd))
