@@ -15,6 +15,7 @@
 module dmd.backend.arm.instr;
 
 import core.stdc.stdio;
+import core.bitop;
 
 nothrow:
 @safe:
@@ -1667,18 +1668,7 @@ bool encodeNImmrImms(ulong value, out uint N, out uint immr, out uint imms)
     /* `value` is now the pattern that is `size` bits in length
      */
 
-    static uint popcount(ulong x)
-    {
-        uint n = 0;
-        while (x)
-        {
-            n += cast(uint)x & 1;
-            x >>= 1;
-        }
-        return n;
-    }
-
-    uint numOnes = popcount(value);
+    uint numOnes = popcnt(value);
 
     /* Is n a right-justified run of 1's?
      */
