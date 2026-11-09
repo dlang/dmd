@@ -1,7 +1,7 @@
-import core.stdc.stdio : fprintf, stderr;
+import core.stdc.stdio : FILE, fprintf, stderr;
 import core.internal.dassert : _d_assert_fail;
 
-void test(string comp = "==", A, B)(A a, B b, string msg, size_t line = __LINE__)
+void test(string comp = "==", A, B)(auto ref A a, auto ref B b, string msg, size_t line = __LINE__)
 {
     test(_d_assert_fail!(A)(comp, a, b), msg, line);
 }
@@ -411,7 +411,10 @@ void testShared()
 
     auto s1 = shared Small(1);
     const s2 = shared Small(2);
-    test(s1, s2, "Small(1) != Small(2)");
+    // miniFormat's fallback for shared values needs a pointer cast from
+    // shared, which the CTFE interpreter rejects, so only test at runtime
+    if (!__ctfe)
+        test(s1, s2, "Small(1) != Small(2)");
 
     static struct Big
     {
@@ -420,7 +423,8 @@ void testShared()
 
     auto b1 = shared Big([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
     const b2 = shared Big();
-    test(b1, b2, "Big([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]) != Big([0, 0, 0, 0, 0, 0, 0, 0, 0, 0])");
+    if (!__ctfe)
+        test(b1, b2, "Big([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]) != Big([0, 0, 0, 0, 0, 0, 0, 0, 0, 0])");
 
     // Sanity check: Big shouldn't be supported by atomicLoad
     import core.atomic : atomicLoad;
@@ -577,7 +581,7 @@ int main()
         testDestruction();
 
     if (!__ctfe)
-        fprintf(stderr, "success.\n");
+        fprintf(cast(FILE*) stderr, "success.\n");
     return 0;
 }
 
