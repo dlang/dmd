@@ -1317,45 +1317,6 @@ private void obj_end(ref OutBuffer objbuf, Library library, const(char)[] objfil
     }
 }
 
-// Each emitting module owns counters for foreign source lines it generates.
-private struct CoverageFragment
-{
-    Module source;
-    Symbol* counters;
-    uint[] valid;
-}
-
-private Module coverageRoot;
-private CoverageFragment[Module] fragments;
-
-package(dmd) Symbol* counterForLine(Module source, uint index)
-{
-    if (index >= source.numlines)
-        return null;
-    if (source == coverageRoot)
-    {
-        if (!source.cov || !source.covb.length)
-            return null;
-        source.covb[index / 32] |= 1u << (index % 32);
-        return cast(Symbol*)source.cov;
-    }
-    auto fragment = source in fragments;
-    if (!fragment)
-    {
-        auto sym = symbol_generate(SC.static_, type_fake(TYint));
-        sym.Stype.Tmangle = Mangle.d;
-        sym.Sfl = FL.data;
-        auto dtb = DtBuilder(0);
-        dtb.nzeros(4 * source.numlines);
-        sym.Sdt = dtb.finish();
-        outdata(sym);
-        fragments[source] = CoverageFragment(source, sym, new uint[2 * ((source.numlines + 63) / 64)]);
-        fragment = source in fragments;
-    }
-    fragment.valid[index / 32] |= 1u << (index % 32);
-    return fragment.counters;
-}
-
 /**************************************
  * Generate .obj file for Module.
  */
@@ -1370,8 +1331,7 @@ private void genObjFile(Module m, bool multiobj, bool doppelganger)
     timeTraceBeginEvent(TimeTraceEventType.codegenModule);
     scope(exit) timeTraceEndEvent(TimeTraceEventType.codegenModule, m);
 
-    coverageRoot = m;
-    fragments = null;
+    beginCoverage(m);
     glue.lastmname = m.srcfile.toChars();
 
     objmod.initfile(glue.lastmname, null, m.toPrettyChars());
@@ -1542,20 +1502,7 @@ private void genObjFile(Module m, bool multiobj, bool doppelganger)
             m.covb = null;
             registerLines(m, mcov, bcov, global.params.covPercent);
         }
-        foreach (ref fragment; fragments)
-        {
-            auto valid = symbol_calloc("__importValid");
-            valid.Stype = type_fake(TYuint);
-            valid.Stype.Tcount++;
-            valid.Sclass = SC.static_;
-            valid.Sfl = FL.data;
-            auto bits = DtBuilder(0);
-            bits.nbytes(cast(const(ubyte)[])fragment.valid);
-            valid.Sdt = bits.finish();
-            outdata(valid);
-            // The defining module registers its own coverage threshold.
-            registerLines(fragment.source, fragment.counters, valid, 0);
-        }
+        registerCoverageFragments(&registerLines);
         glue.ictorlocalgot = localgot;
     }
 

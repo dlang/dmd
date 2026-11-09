@@ -29,6 +29,7 @@ import dmd.glue.toctype;
 import dmd.backend.cdef;
 import dmd.backend.cc;
 import dmd.backend.dt;
+import dmd.backend.dout : outdata;
 import dmd.backend.el;
 import dmd.backend.blockopt : block_appendexp;
 import dmd.backend.symbol;
@@ -148,6 +149,69 @@ struct IRState
     bool isNothrow() @safe
     {
         return !mayThrow;
+    }
+}
+
+// Each emitting module owns counters for foreign source lines it generates.
+private struct CoverageFragment
+{
+    Module source;
+    Symbol* counters;
+    uint[] valid;
+}
+
+private Module coverageRoot;
+private CoverageFragment[Module] fragments;
+
+private Symbol* counterForLine(Module source, uint index)
+{
+    if (index >= source.numlines)
+        return null;
+    if (source == coverageRoot)
+    {
+        if (!source.cov || !source.covb.length)
+            return null;
+        source.covb[index / 32] |= 1u << (index % 32);
+        return cast(Symbol*)source.cov;
+    }
+    auto fragment = source in fragments;
+    if (!fragment)
+    {
+        auto sym = symbol_generate(SC.static_, type_fake(TYint));
+        sym.Stype.Tmangle = Mangle.d;
+        sym.Sfl = FL.data;
+        auto dtb = DtBuilder(0);
+        dtb.nzeros(4 * source.numlines);
+        sym.Sdt = dtb.finish();
+        outdata(sym);
+        fragments[source] = CoverageFragment(source, sym, new uint[2 * ((source.numlines + 63) / 64)]);
+        fragment = source in fragments;
+    }
+    fragment.valid[index / 32] |= 1u << (index % 32);
+    return fragment.counters;
+}
+
+package(dmd.glue) void beginCoverage(Module root)
+{
+    coverageRoot = root;
+    fragments = null;
+}
+
+package(dmd.glue) void registerCoverageFragments(scope void delegate(Module, Symbol*, Symbol*, ubyte) registerLines)
+{
+    foreach (ref fragment; fragments)
+    {
+        auto valid = symbol_calloc("__importValid");
+        valid.Stype = type_fake(TYuint);
+        valid.Stype.Tcount++;
+        valid.Sclass = SC.static_;
+        valid.Sfl = FL.data;
+        auto bits = DtBuilder(0);
+        bits.nbytes(cast(const(ubyte)[])fragment.valid);
+        valid.Sdt = bits.finish();
+        outdata(valid);
+        // The defining module registers its own coverage threshold.
+        registerLines(fragment.source, fragment.counters, valid, 0);
     }
 }
 
