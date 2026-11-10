@@ -1839,7 +1839,7 @@ public:
             eSink.message(Loc.init, "inlined   %s =>\n          %s", fd.toPrettyChars(), parent.toPrettyChars());
         }
 
-        if (eresult && e.type.ty != Tvoid)
+        if (eresult && eresult.type.ty != Tnoreturn && e.type.ty != Tvoid)
         {
             Expression ex = eresult;
             while (ex.op == EXP.comma)
@@ -2419,16 +2419,20 @@ private void expandInline(CallExp ecall, FuncDeclaration fd, FuncDeclaration par
         auto e = doInlineAs!Expression(fd.fbody, ids);
         fd.inlineNest--;
 
-        import dmd.expressionsem : toLvalue;
-        // https://issues.dlang.org/show_bug.cgi?id=11322
-        if (tf.isRef)
-            e = e.toLvalue(null, "`ref` return");
-
-        // https://issues.dlang.org/show_bug.cgi?id=15210
-        if (tf.next.ty == Tvoid && e && e.type.ty != Tvoid && e.type.ty != Tnoreturn)
+        if (e && e.type.ty != Tvoid && e.type.ty != Tnoreturn)
         {
-            e = new CastExp(callLoc, e, Type.tvoid);
-            e.type = Type.tvoid;
+            if (tf.next.ty == Tvoid)
+            {
+                // https://issues.dlang.org/show_bug.cgi?id=15210
+                e = new CastExp(callLoc, e, Type.tvoid);
+                e.type = Type.tvoid;
+            }
+            else if (tf.isRef)
+            {
+                // https://issues.dlang.org/show_bug.cgi?id=11322
+                import dmd.expressionsem : toLvalue;
+                e = e.toLvalue(null, "`ref` return");
+            }
         }
 
         eresult = combineInlineSequence(eresult, ids.esetup);

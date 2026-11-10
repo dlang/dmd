@@ -1,5 +1,6 @@
 /*
 REQUIRED_ARGS: -w
+PERMUTE_ARGS: -O -inline
 TEST_OUTPUT:
 ---
 noreturn
@@ -160,4 +161,66 @@ int foo(int g = assert(0)) {
 int front(int param)
 {
     return param ? 1 : assert(0);
+}
+
+// https://github.com/dlang/dmd/issues/24263
+pragma(inline, true)
+ref int f24263()
+{
+    return assert(0);
+}
+
+pragma(inline, true)
+ref int[] g24263()
+{
+    return assert(0);
+}
+
+void test24263()
+{
+    f24263() = 1;
+    f24263() += 1;
+    f24263() -= 1;
+    f24263() *= 1;
+    f24263() /= 1;
+    f24263() %= 1;
+    f24263() &= 1;
+    f24263() |= 1;
+    f24263() ^= 1;
+    f24263() <<= 1;
+    f24263() >>= 1;
+    f24263() >>>= 1;
+    f24263() ^^= 1;
+    f24263()++;
+    f24263()--;
+    ++f24263();
+    --f24263();
+    g24263() ~= 1;
+    g24263()[0] = 1;
+    g24263()[0]++;
+    g24263()[0]--;
+    ++g24263()[0];
+    --g24263()[0];
+}
+
+// https://github.com/dlang/dmd/issues/24265
+__gshared bool b24265;
+__gshared int i24265;
+__gshared int[] a24265;
+
+ref int f24265()
+{
+    return b24265 ? i24265 : assert(0);
+}
+
+ref int[] g24265()
+{
+    return b24265 ? a24265 : assert(0);
+}
+
+void test24265()
+{
+    f24265() = 1;
+    g24265() ~= 1;
+    g24265()[0] = 1;
 }
