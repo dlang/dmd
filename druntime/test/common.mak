@@ -136,7 +136,7 @@ DFLAGS += -w
 
 extra_cflags += $(PIC)
 extra_cxxflags += $(PIC)
-extra_dflags += $(PIC) -I../../src -I../../import -I$(SRC) -preview=dip1000
+extra_dflags += $(PIC) -I../../src -I../../import -I$(SRC) -preview=dip1000 -preview=nosharedaccess
 
 # A lot of the tests perform assert checks. Preserve them even with -release
 extra_dflags += -check=assert
