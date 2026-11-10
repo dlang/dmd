@@ -426,7 +426,7 @@ private:
         assert(MSCoffLibHeader.sizeof == 60);
 
         // Limited by COFF's Second Linker Member being a 16-bit index starting at 1
-        enum maxModules = 65535;
+        enum maxModules = 65_535;
 
         if (objmodules.length > maxModules)
         {
