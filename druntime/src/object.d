@@ -3971,6 +3971,8 @@ Note: The _capacity of a slice may be impacted by operations on other slices.
 */
 @property size_t capacity(T)(T[] arr) pure nothrow @trusted
 {
+    if (T.sizeof == 0)
+        return size_t.max;
     const isshared = is(T == shared);
     return _d_arraygetcapacity(T.sizeof, cast(void[]*)&arr, isshared);
 }
@@ -4020,7 +4022,9 @@ the requested capacity).
 */
 size_t reserve(T)(ref T[] arr, size_t newcapacity) pure nothrow @trusted
 {
-    if (__ctfe)
+    static if (T.sizeof == 0)
+        return size_t.max;
+    else if (__ctfe)
         return newcapacity;
     else
     {
@@ -4093,7 +4097,8 @@ auto ref inout(T[]) assumeSafeAppend(T)(auto ref inout(T[]) arr) nothrow @system
 
     alias Unqual_Tarr = Unqual!T[];
     enum isshared = is(T == shared);
-    _d_arrayshrinkfit(cast(Unqual_Tarr)arr, isshared);
+    static if (T.sizeof != 0)
+        _d_arrayshrinkfit(cast(Unqual_Tarr)arr, isshared);
 
     return arr;
 }

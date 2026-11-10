@@ -290,6 +290,12 @@ private size_t _d_arraysetlengthT_(Tarr : T[], T)(return ref scope Tarr arr, siz
 
     debug(PRINTF) printf("newsize = %zx\n", newsize);
 
+    if (sizeelem == 0)
+    {
+        arr = arr.ptr[0 .. newlength];
+        return newlength;
+    }
+
     enum uint gcAttrs = BlkAttr.APPENDABLE | GC.convertAlignmentToBlkAttr(T.alignof)
         | (is(T == struct) && __traits(hasMember, T, "xdtor") ? BlkAttr.FINALIZE : 0);
 
