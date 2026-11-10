@@ -33,6 +33,8 @@ jobs:
         x86:
           MODEL: 32
           ARCH: x86
+          # 2.114.0 miscompiles 32-bit -O code (#24268); revert once 2.114.1 is released
+          HOST_DMD_VERSION: 2.113.1
     steps:
       - template: .azure-pipelines/windows.yml
       - template: .azure-pipelines/windows-artifact.yml
