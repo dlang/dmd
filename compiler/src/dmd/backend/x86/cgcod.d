@@ -1373,6 +1373,39 @@ void stackoffsets(ref CGstate cg, ref symtab_t symtab, bool estimate)
 }
 
 /****************************
+ * Determine existing immediate values in registers by ANDing
+ * together the values from all the predecessors of `bl`.
+ * Params:
+ *      cg = code generator state
+ *      bl = block about to be generated
+ */
+@trusted
+private void mergePredRegcon(ref CGstate cg, block* bl)
+{
+    cg.regcon.immed.mval = 0;      // assume no previous contents in registers
+//    cg.regcon.cse.mval = 0;
+    if (!bl.Bpred.length)
+        return;
+
+    block* bp0 = bl.Bpred[0];
+    cg.regcon.immed = bp0.Bregcon.immed;
+    cg.regcon.params = bp0.Bregcon.params;
+//  cg.regcon.cse = bp0.Bregcon.cse;
+
+    foreach (bp; bl.Bpred[1 .. $])
+    {
+        cg.regcon.params &= bp.Bregcon.params;
+        if ((cg.regcon.immed.mval &= bp.Bregcon.immed.mval) != 0)
+            // Actual values must match, too
+            foreach (r; 0 .. REGMAX)
+            {
+                if (cg.regcon.immed.value[r] != bp.Bregcon.immed.value[r])
+                    cg.regcon.immed.mval &= ~mask(r);
+            }
+    }
+}
+
+/****************************
  * Generate code for a block.
  * Params:
  *      cg = code generator state
@@ -1386,31 +1419,8 @@ private void blcodgen(ref CGstate cg, block* bl)
 
     //dbg_printf("blcodgen(%p)\n",bl);
 
-    /* Determine existing immediate values in registers by ANDing
-        together the values from all the predecessors of b.
-     */
     assert(bl.Bregcon.immed.mval == 0);
-    cg.regcon.immed.mval = 0;      // assume no previous contents in registers
-//    cg.regcon.cse.mval = 0;
-    foreach (bp; bl.Bpred[])
-    {
-        if (bp == bl.Bpred[0])
-        {   cg.regcon.immed = bp.Bregcon.immed;
-            cg.regcon.params = bp.Bregcon.params;
-//          cg.regcon.cse = bp.Bregcon.cse;
-        }
-        else
-        {
-            cg.regcon.params &= bp.Bregcon.params;
-            if ((cg.regcon.immed.mval &= bp.Bregcon.immed.mval) != 0)
-                // Actual values must match, too
-                foreach (r; 0 .. REGMAX)
-                {
-                    if (cg.regcon.immed.value[r] != bp.Bregcon.immed.value[r])
-                        cg.regcon.immed.mval &= ~mask(r);
-                }
-        }
-    }
+    mergePredRegcon(cg, bl);
     cg.regcon.cse.mops &= cg.regcon.cse.mval;
 
     // Set cg.regcon.mvar according to what variables are in registers for this block
