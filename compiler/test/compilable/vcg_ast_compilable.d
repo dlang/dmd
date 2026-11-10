@@ -20,26 +20,10 @@ void splitter()
 	vcg_ast_compilable.find!int(3);
 	vcg_ast_compilable.find!()("");
 }
-binaryFun!int
-{
-	auto pure nothrow @nogc @safe bool binaryFun(int b)
-	{
-		return 97 == b;
-	}
-
-}
 find!int
 {
 	pure nothrow @nogc @safe void find(int needle)
 	{
-	}
-
-}
-binaryFun!string
-{
-	auto _error_ binaryFun
-	{
-		__error__
 	}
 
 }

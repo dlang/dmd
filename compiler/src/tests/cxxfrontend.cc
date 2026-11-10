@@ -1268,7 +1268,7 @@ public:
             return;
         if (!dmd::needsCodegen(d))
             return;
-        if (dmd::isDiscardable(d))
+        if (dmd::needsLinkonceCodegen(d))
             return;
         for (size_t i = 0; i < d->members->length; i++)
             (*d->members)[i]->accept(this);

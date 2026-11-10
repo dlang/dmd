@@ -79,6 +79,7 @@ import dmd.statement;
 import dmd.target;
 import dmd.typesem;
 import dmd.funcsem : genCfunc;
+import dmd.templatesem : needsCodegen, needsLinkonceCodegen;
 import dmd.utils;
 
 /**
@@ -403,6 +404,35 @@ void obj_append(Dsymbol s)
     glue.obj_symbols_towrite.push(s);
 }
 
+/**************************************
+ * Called when the back-end symbol for `s` is created, which happens when
+ * it's first referenced or defined.
+ * If `s` needs linkonce codegen (see `needsLinkonceCodegen`), append it to the
+ * current object file, or with multiobj, give it its own object file
+ * so it doesn't drag the referencing symbol along when linking a library.
+ */
+void linkonceCodegen(Dsymbol s)
+{
+    auto fd = s.isFuncDeclaration();
+    if (s.isCsymbol() || (fd && !fd.fbody) || !needsLinkonceCodegen(s))
+        return;
+    if (global.params.multiobj)
+        obj_append(s);
+    else
+        glue.linkonceSymbolsToWrite.push(s);
+}
+
+/**************************************
+ * Write the symbols collected by `linkonceCodegen` to the current object file.
+ */
+private void writeLinkonceSymbols(bool multiobj)
+{
+    // Do not replace with foreach, array can grow inside body
+    for (size_t i = 0; i < glue.linkonceSymbolsToWrite.length; i++)
+        toObjFile(glue.linkonceSymbolsToWrite[i], multiobj);
+    glue.linkonceSymbolsToWrite.setDim(0);
+}
+
 extern (D) bool obj_includelib(scope const char[] name) nothrow
 {
     return objmod.includelib(name);
@@ -489,7 +519,8 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     assert(fd.semanticRun >= PASS.semantic3done && fd.semanticRun <= PASS.inlineAll);
     assert(fd.ident != Id.empty);
 
-    for (FuncDeclaration fd2 = fd; fd2; )
+    const linkonce = needsLinkonceCodegen(fd);
+    for (FuncDeclaration fd2 = fd; fd2 && !linkonce; )
     {
         if (fd2.inNonRoot())
             return;
@@ -573,6 +604,8 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
             break;
         }
     }
+    if (linkonce)
+        s.Sclass = SC.comdat; // other object files may emit it too
 
     if (fd.inlinedNestedCallees)
     {
@@ -1113,6 +1146,7 @@ struct Glue
 
     const(char)* lastmname;
     Dsymbols obj_symbols_towrite;
+    Dsymbols linkonceSymbolsToWrite; /// see `linkonceCodegen`
 }
 
 private __gshared Glue glue;
@@ -1164,6 +1198,7 @@ private void obj_write_deferred(ref OutBuffer objbuf, Library library, ref Dsymb
             //  so output it into its own object file without ModuleInfo
             objmod.initfile(idbuf.peekChars(), null, mname);
             toObjFile(s, false);
+            writeLinkonceSymbols(false);
             objmod.termfile();
         }
         else
@@ -1436,6 +1471,8 @@ private void genObjFile(Module m, bool multiobj, bool doppelganger)
         //printf("toObjFile %s %s\n", member.kind(), member.toChars());
         toObjFile(member, multiobj);
     }
+
+    writeLinkonceSymbols(multiobj);
 
     Symbol* msictor;
     if (global.params.cov)

@@ -107,9 +107,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
                 e.toChars());
         }
         auto sds = new ScopeDsymbol();
-        sc = sc.push(sds);
-        sc.tinst = null;
-        sc.minst = null;
+        sc = sc.push(sds).makeSpeculative();
 
         import dmd.staticcond;
         bool errors;
