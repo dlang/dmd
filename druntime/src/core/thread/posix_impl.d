@@ -112,10 +112,20 @@ version (GNU)
     import gcc.builtins;
 }
 
-private extern(C) void* _d_eh_swapContextDwarf(void* newContext) nothrow @nogc;
-package void* swapContextImpl(void* newContext) nothrow @nogc
+/**
+ * Hook for whatever EH implementation is used to save/restore some data
+ * per stack.
+ *
+ * Params:
+ *     newContext = The return value of the prior call to this function
+ *         where the stack was last swapped out, or null when a fiber stack
+ *         is switched in for the first time.
+ */
+private extern(C) void* _d_eh_swapContext(void* newContext) nothrow @nogc;
+
+package void* swapContextImpl()(void* newContext) nothrow @nogc
 {
-    return _d_eh_swapContextDwarf(newContext);
+    return _d_eh_swapContext(newContext);
 }
 
 version (WASI)

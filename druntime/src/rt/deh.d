@@ -4,7 +4,7 @@
  * There are three style of exception handling being supported by DMD:
  * DWARF, Win32, and Win64. The Win64 code also supports POSIX.
  * Support for those scheme is in `rt.dwarfeh`, `rt.deh_win32`, and
- * `rt.deh_win64_posix`, respectively, and publicly imported here.
+ * `rt.deh_win64`, respectively, and publicly imported here.
  *
  * When an exception is thrown by the user, the compiler translates
  * code like `throw e;` into either `_d_throwdwarf` (for DWARF exceptions)
@@ -55,8 +55,8 @@ version (GNU)
 else version (Win32)
     public import rt.deh_win32;
 else version (Win64)
-    public import rt.deh_win64_posix;
+    public import rt.deh_win64;
 else version (Posix)
-    public import rt.deh_win64_posix;
+    public import rt.dwarfeh;
 else
     static assert (0, "Unsupported architecture");
