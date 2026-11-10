@@ -637,7 +637,7 @@ void brcombine(ref BlockOpt bo, ref uint changes)
 
                     b2.Bpred.dtor();
                     b2.Bsucc.reset();
-                    b2.Bpred.dtor();
+                    b3.Bpred.dtor();
                     b3.Bsucc.reset();
                     b2.bc = BC.ret;
                     b3.bc = BC.ret;
