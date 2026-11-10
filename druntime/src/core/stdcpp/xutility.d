@@ -149,6 +149,8 @@ version (CppRuntime_Microsoft)
         static if (__CXXLIB__ == "libcmtd" || __CXXLIB__ == "msvcrtd")
             enum _ITERATOR_DEBUG_LEVEL = 2;
         else static if (__CXXLIB__ == "libcmt" || __CXXLIB__ == "msvcrt" ||
+                        // MinGW-based:
+                        __CXXLIB__ == "ucrtbase" || __CXXLIB__ == "vcruntime140" ||
                         __CXXLIB__ == "msvcrt100" || __CXXLIB__ == "msvcrt110" || __CXXLIB__ == "msvcrt120")
             enum _ITERATOR_DEBUG_LEVEL = 0;
         else
