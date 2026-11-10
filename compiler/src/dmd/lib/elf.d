@@ -372,7 +372,7 @@ private:
      *      dictionary
      *      object modules...
      */
-    protected override void writeLibToBuffer(ref OutBuffer libbuf)
+    protected override bool writeLibToBuffer(ref OutBuffer libbuf)
     {
         static if (LOG)
         {
@@ -500,6 +500,7 @@ private:
             printf("moffset = x%x, libbuf.length = x%x\n", moffset, libbuf.length);
         }
         assert(libbuf.length == moffset);
+        return true;
     }
 }
 

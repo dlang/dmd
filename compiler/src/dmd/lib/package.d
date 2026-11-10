@@ -46,7 +46,8 @@ class Library
 
     abstract void addObject(const(char)[] module_name, const ubyte[] buf);
 
-    abstract void writeLibToBuffer(ref OutBuffer libbuf);
+    /// Returns: true on success
+    abstract bool writeLibToBuffer(ref OutBuffer libbuf);
 
 
     /***********************************

@@ -417,13 +417,25 @@ private:
      *      Longnames Member
      *      object modules...
      */
-    protected override void writeLibToBuffer(ref OutBuffer libbuf)
+    protected override bool writeLibToBuffer(ref OutBuffer libbuf)
     {
         static if (LOG)
         {
             printf("LibElf::WriteLibToBuffer()\n");
         }
         assert(MSCoffLibHeader.sizeof == 60);
+
+        // Limited by COFF's Second Linker Member being a 16-bit index starting at 1
+        enum maxModules = 65535;
+
+        if (objmodules.length > maxModules)
+        {
+            eSink.error(Loc.initial, "library `%.*s` would have %llu object modules, but the MS-COFF archive format supports at most %u",
+                filename.fTuple.expand, cast(ulong) objmodules.length, maxModules);
+            eSink.errorSupplemental(Loc.initial, "`-lib` puts each function and TypeInfo in its own object module");
+            eSink.errorSupplemental(Loc.initial, "compile with `-c` first and pass the resulting object files to `-lib`, or split the library");
+            return false;
+        }
         /************* Scan Object Modules for Symbols ******************/
         for (size_t i = 0; i < objmodules.length; i++)
         {
@@ -612,6 +624,7 @@ private:
             printf("moffset = x%x, libbuf.length = x%x\n", cast(uint)moffset, cast(uint)libbuf.length);
         }
         assert(libbuf.length == moffset);
+        return true;
     }
 }
 
