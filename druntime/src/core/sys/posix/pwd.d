@@ -266,6 +266,8 @@ else version (Solaris)
 }
 else version (CRuntime_Bionic)
 {
+    int getpwnam_r(const scope char*, passwd*, char*, size_t, passwd**);
+    int getpwuid_r(uid_t, passwd*, char*, size_t, passwd**);
 }
 else version (CRuntime_Musl)
 {
@@ -329,13 +331,15 @@ else version (DragonFlyBSD)
 }
 else version (Solaris)
 {
-    void endpwent();
+    void    endpwent();
     passwd* getpwent();
-    void setpwent();
+    void    setpwent();
 }
 else version (CRuntime_Bionic)
 {
     void    endpwent();
+    passwd* getpwent();
+    void    setpwent();
 }
 else version (CRuntime_Musl)
 {
