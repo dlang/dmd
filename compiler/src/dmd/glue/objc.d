@@ -655,10 +655,13 @@ static:
         foreach (c; categories)
             dtb.xoff(getClassName(c), 0);
 
-        Symbol* symbol = symbol_name("L_OBJC_LABEL_CLASS_$", SC.static_, type_allocn(TYarray, tstypes[TYchar]));
-        symbol.Sdt = dtb.finish();
-        symbol.Sseg = Segments[Segments.Id.classlist];
-        outdata(symbol);
+        if (classes.length || categories.length)
+        {
+            Symbol* symbol = symbol_name("L_OBJC_LABEL_CLASS_$", SC.static_, type_allocn(TYarray, tstypes[TYchar]));
+            symbol.Sdt = dtb.finish();
+            symbol.Sseg = Segments[Segments.Id.classlist];
+            outdata(symbol);
+        }
 
         getImageInfo(); // make sure we also generate image info
 

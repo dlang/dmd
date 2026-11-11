@@ -3055,7 +3055,7 @@ void MachObj_addrel(int seg, targ_size_t offset, Symbol* targsym,
     rel.val = cast(short)val;
 
     seg_data* pseg = SegData[seg];
-    if (targsym && targsym.Sxtrnnum == 0)
+    if (machobj.AArch64 && targsym && targsym.Sxtrnnum == 0)
         MachObj_external(targsym);
 
     pseg.relocations.push(rel);

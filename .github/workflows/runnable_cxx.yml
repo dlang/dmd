@@ -76,7 +76,7 @@ jobs:
           # macOS, Apple clang from Xcode:
           # Disabled due to issues with x87: https://github.com/dlang/dmd/issues/21987
           #- { os: macos-15, xcode: '16.4',   model: 64 }
-          - { os: macos-14, xcode: '16.2',   model: 64 }
+          - { os: macos-15-intel, xcode: '16.4',   model: 64 }
           # Windows, cl.exe from Visual Studio:
           # NOTE: as of April 2025, image windows-2025 only has VS 2022, so no point in testing that image too
           - { os: windows-2022, model: 64 }
@@ -196,20 +196,14 @@ jobs:
     - name: Build compiler & standard library
       run: |
         set -eux
-        extraFlags=()
-        if [[ '${{ matrix.os }}' == macos-14 ]]; then
-          # DMD doesn't work on arm64 yet. Make LDC host compiler cross-compile
-          # DMD to x86_64, and then use implicit Rosetta emulation.
-          extraFlags=(HOST_DFLAGS="-mtriple=x86_64-apple-macos14")
-        fi
-        make -C dmd    -j$N "${extraFlags[@]}"
+        make -C dmd    -j$N
         make -C phobos -j$N
 
     ########################################
     #        Running the test suite        #
     ########################################
     - name: Run compiler C++ test suite
-      run: ./dmd/compiler/test/run.d --environment runnable_cxx dshell/dll_cxx.d ${{ matrix.os == 'macos-14' && 'HOST_DMD="$PWD/dmd/generated/osx/release/64/dmd"' || '' }}
+      run: ./dmd/compiler/test/run.d --environment runnable_cxx dshell/dll_cxx.d
 
     - name: Run druntime C++ tests
       run: make -C dmd/druntime -j$N test/stdcpp/.run
@@ -218,11 +212,7 @@ jobs:
       if: runner.os != 'Windows' # not supported by build.d yet
       run: |
         set -eux
-        extraFlags=()
-        if [[ '${{ matrix.os }}' == macos-14 ]]; then
-          extraFlags=(HOST_DMD=ldmd2 DFLAGS="-mtriple=x86_64-apple-macos14" CXXFLAGS="-arch x86_64")
-        fi
-        ./dmd/generated/build cxx-unittest "${extraFlags[@]}"
+        ./dmd/generated/build cxx-unittest
 
     - name: 'Posix: Run C++ header layout test'
       if: runner.os == 'Linux'
