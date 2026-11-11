@@ -36,6 +36,7 @@ void test_elneg()
 }
 
  /*************************************************/
+int shr16(int x) { return (x >> 16) & 0xFFFF; }
 
 void test_elbitwise()
 {
