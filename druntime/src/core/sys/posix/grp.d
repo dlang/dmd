@@ -203,6 +203,8 @@ else version (Solaris)
 }
 else version (CRuntime_Bionic)
 {
+    int getgrnam_r(const scope char*, group*, char*, size_t, group**);
+    int getgrgid_r(gid_t, group*, char*, size_t, group**);
 }
 else version (CRuntime_UClibc)
 {
@@ -272,6 +274,9 @@ else version (Solaris)
 }
 else version (CRuntime_Bionic)
 {
+    group* getgrent();
+    @trusted void endgrent();
+    @trusted void setgrent();
 }
 else version (CRuntime_UClibc)
 {
