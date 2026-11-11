@@ -590,9 +590,8 @@ final class CParser(AST) : Parser!AST
 
                     auto rethrow = new AST.ThrowStatement(loc, new AST.IdentifierExp(loc, seh));
                     rethrow.internalThrow = true;
-                    AST.Statement rethrowScope = new AST.ScopeStatement(loc, rethrow, token.loc);
                     auto executeHandler = new AST.EqualExp(EXP.equal, loc, filter, new AST.IntegerExp(loc, 1, AST.Type.tint32));
-                    auto handler = new AST.IfStatement(loc, null, executeHandler, exceptBody, rethrowScope, token.loc);
+                    auto handler = new AST.IfStatement(loc, null, executeHandler, exceptBody, rethrow, token.loc);
 
                     auto ctch = new AST.Catch(loc, throwable, seh, handler);
                     ctch.internalCatch = true;

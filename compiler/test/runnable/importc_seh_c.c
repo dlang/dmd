@@ -1,4 +1,6 @@
 // EXTRA_SOURCES: imports/importc_seh.d
+// DISABLED: win64 - dmd bootstrapped with LDC miscompiles the __except
+// filter stub, LDC's bug, not ImportC's.
 // Verifies __try/__except/__finally, lowered to try/catch/finally.
 
 __import importc_seh;
