@@ -604,6 +604,9 @@ public:
     // wasn't present in source code
     d_bool internalCatch;
 
+    // lowered from a C __try/__except statement
+    d_bool fromSEH;
+
     Catch *syntaxCopy();
 };
 
