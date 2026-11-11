@@ -39,7 +39,7 @@ jobs:
           - job_name: Ubuntu 22.04 x86, DMD (latest)
             os: ubuntu-22.04
             model: 32
-            host_dmd: dmd
+            host_dmd: dmd-2.113.1
           # Disabled because of failure https://issues.dlang.org/show_bug.cgi?id=24518
           # - job_name: Ubuntu 22.04 x86, DMD (coverage)
           #   os: ubuntu-22.04
@@ -79,7 +79,7 @@ jobs:
             host_dmd: ldc-latest
           - job_name: Windows x86, DMD (latest)
             os: windows-2022
-            host_dmd: dmd-latest
+            host_dmd: dmd-2.113.1
             model: 32
           # FreeBSD (VMs on Ubuntu)
           - job_name: FreeBSD 14.4 x64, DMD (latest)
