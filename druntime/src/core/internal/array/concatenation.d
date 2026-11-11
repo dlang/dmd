@@ -44,10 +44,15 @@ Tret _d_arraycatnTX(Tret: Tret_El[], Tret_El, Tarr...)(auto ref Tarr froms) @tru
         return res; // Return an empty array if no elements are present
 
     // Allocate memory for mutable arrays using __arrayAlloc
-    res = (cast(Tret_El*) &__arrayAlloc!(UnqT)(elemSize * totalLen)[0])[0 .. totalLen];
+    static if (elemSize == 0)
+        res = (cast(Tret_El*) null)[0 .. totalLen];
+    else
+    {
+        res = (cast(Tret_El*) &__arrayAlloc!(UnqT)(elemSize * totalLen)[0])[0 .. totalLen];
 
-    if (res.ptr is null)
-        onOutOfMemoryError(); // Abort if allocation fails
+        if (res.ptr is null)
+            onOutOfMemoryError(); // Abort if allocation fails
+    }
 
     static if (hasElaborateCopyConstructor!T && !hasPostblit)
     {

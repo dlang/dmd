@@ -620,14 +620,6 @@ void toObjFile(Dsymbol ds, bool multiobj)
             } while (parent);
             s.Sfl = FL.data;
 
-            // Size 0 should only be possible for T[0] and noreturn
-            if (!sz)
-            {
-                const ty = vd.type.toBasetype().ty;
-                if (ty != Tsarray && ty != Tnoreturn && !vd.isCsymbol())
-                    assert(0); // this shouldn't be possible
-            }
-
             auto dtb = DtBuilder(0);
             if (config.objfmt == OBJ_MACH &&
                 target.isX86_64 &&  // moved Mach AArch64 logic to backend/dout.d

@@ -68,6 +68,12 @@ private ref Tarr _d_arrayappendcTX_(Tarr : T[], T)(return ref scope Tarr px, siz
         auto newsize = newlength * sizeelem;
         auto size = length * sizeelem;
 
+        if (sizeelem == 0)
+        {
+            px = px.ptr[0 .. newlength];
+            return px;
+        }
+
         if (!gc_expandArrayUsed(px, newsize, isshared))
         {
             // could not set the size, we must reallocate.

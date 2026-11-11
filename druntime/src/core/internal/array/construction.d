@@ -378,8 +378,10 @@ T[] _d_newarrayU(T)(size_t length, bool isShared=false) @trusted
     size_t elemSize = T.sizeof;
 
     debug(PRINTF) printf("_d_newarrayU(length = x%zu, size = %zu)\n", length, elemSize);
-    if (length == 0 || elemSize == 0)
+    if (length == 0)
         return null;
+    if (elemSize == 0)
+        return (cast(T*) null)[0 .. length];
 
     bool overflow = false;
     const arraySize = mulu(elemSize, length, overflow);
