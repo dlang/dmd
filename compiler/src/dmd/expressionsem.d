@@ -11226,6 +11226,12 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 }
             }
 
+            if (t1b.ty == Tarray && tob.nextOf().size() == 0 && t1b.nextOf().size() != 0)
+            {
+                eSink.error(exp.loc, "cannot cast `%s` of type `%s` to `%s` with zero-size elements", exp.e1.toErrMsg(), exp.e1.type.toErrMsg(), exp.to.toErrMsg());
+                return setError();
+            }
+
             if(t1b.ty == Tarray && exp.e1.op != EXP.arrayLiteral && sc.needsCodegen())
             {
                 auto tFrom = t1b.nextOf();
@@ -11247,7 +11253,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
                         // A runtime check is needed in case arrays don't line up.  That check should
                         // be done in the implementation of `object.__ArrayCast`
-                        if (toSize == 0 || (fromSize % toSize) != 0)
+                        if ((fromSize % toSize) != 0)
                         {
                             // lower to `object.__ArrayCast!(TFrom, TTo)(from)`
 
