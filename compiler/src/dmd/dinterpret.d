@@ -114,6 +114,11 @@ public Expression ctfeInterpret(Expression e)
         tee.generateUncaughtError();
         result = CTFEExp.cantexp;
     }
+    else if (result.op == EXP.showCtfeContext)
+    {
+        global.errorSink.errorSupplemental(e.loc, "compile time context created here");
+        result = CTFEExp.cantexp;
+    }
     else
     {
         timeTraceBeginEvent(TimeTraceEventType.ctfeCopy);
