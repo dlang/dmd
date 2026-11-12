@@ -614,7 +614,6 @@ public:
 
     AttributeViolation* safetyViolation;
     AttributeViolation* nogcViolation;
-    d_bool nogcInferenceIncomplete;
     AttributeViolation* pureViolation;
     AttributeViolation* nothrowViolation;
 
@@ -623,6 +622,7 @@ public:
     // Formerly FUNCFLAGS
     uint32_t flags;
     d_bool requiresClosure;               // this function needs a closure
+    d_bool nogcInferenceIncomplete;
 
     bool purityInprocess() const;
     bool purityInprocess(bool v);
