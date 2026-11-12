@@ -169,6 +169,10 @@ else version (CRuntime_Bionic)
         char*   pw_passwd;
         uid_t   pw_uid;
         gid_t   pw_gid;
+        version (D_LP64)
+            char* pw_gecos;
+        else
+            alias pw_gecos = pw_passwd;
         char*   pw_dir;
         char*   pw_shell;
     }
