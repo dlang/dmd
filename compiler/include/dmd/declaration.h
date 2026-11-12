@@ -614,6 +614,7 @@ public:
 
     AttributeViolation* safetyViolation;
     AttributeViolation* nogcViolation;
+    d_bool nogcInferenceIncomplete;
     AttributeViolation* pureViolation;
     AttributeViolation* nothrowViolation;
 
