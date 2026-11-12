@@ -16,6 +16,8 @@
 
 module dmd.main;
 
+debug (TraceFunctionSemantic) import dmd.funcsem : FunctionSemanticTrace;
+
 version (NoMain) {} else
 {
 
@@ -674,6 +676,7 @@ private int tryMain(const(char)[][] argv, out Param params)
     {
         if (params.v.verbose)
             eSink.message(Loc.initial, "semantic3 %s", m.toChars());
+        debug (TraceFunctionSemantic) auto request = FunctionSemanticTrace("root-module-semantic3", m, null, Loc.initial, "unavailable", m);
         m.semantic3(null);
     }
     if (includeImports)

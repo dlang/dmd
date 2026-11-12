@@ -389,6 +389,11 @@ extern (C++) struct Global
 
     extern (C++) void _init()
     {
+        debug (TraceFunctionSemantic)
+        {
+            import dmd.funcsem : resetFunctionSemanticTrace;
+            resetFunctionSemanticTrace();
+        }
         errorSink = new ErrorSinkCompiler;
         errorSinkNull = new ErrorSinkNull;
 
@@ -444,6 +449,11 @@ extern (C++) struct Global
      */
     extern (D) void deinitialize()
     {
+        debug (TraceFunctionSemantic)
+        {
+            import dmd.funcsem : resetFunctionSemanticTrace;
+            resetFunctionSemanticTrace();
+        }
         this = this.init;
     }
 

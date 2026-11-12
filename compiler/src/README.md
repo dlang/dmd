@@ -25,6 +25,9 @@ translate the command line arguments.
 See the output of `./build.d --help` to get a list of all supported targets
 or see the list of major targets below.
 
+For investigating which operations request function body analysis, see
+[function semantic tracing](../docs/function-semantic-tracing.md).
+
 ### Prerequisites
 
 To bootstrap `dmd` on posix you need to have a `C++` compiler installed,

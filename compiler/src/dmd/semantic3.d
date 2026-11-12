@@ -92,6 +92,9 @@ enum LOG = false;
  */
 void semantic3(Dsymbol dsym, Scope* sc)
 {
+    debug (TraceFunctionSemantic) auto semanticTrace = FunctionSemanticTrace(
+        dsym.isFuncDeclaration() || dsym.isModule() || dsym.isAggregateDeclaration() || dsym.isTemplateInstance()
+            ? "semantic3-dispatch".ptr : null, dsym, sc);
     scope v = new Semantic3Visitor(sc);
     dsym.accept(v);
 }
@@ -255,6 +258,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
         }
         if (funcdecl.errors || isError(funcdecl.parent))
         {
+            debug (TraceFunctionSemantic) traceFunctionSemantic("skip", "function-or-parent-errors", funcdecl, sc);
             funcdecl.errors = true;
 
             // Mark that the return type could not be inferred
@@ -301,7 +305,14 @@ private extern(C++) final class Semantic3Visitor : Visitor
 
         //printf(" sc.incontract = %d\n", sc.contract);
         if (funcdecl.semanticRun >= PASS.semantic3)
+        {
+            debug (TraceFunctionSemantic) traceFunctionSemantic("skip",
+                funcdecl.semanticRun == PASS.semantic3 ? "visitor-already-active" : "visitor-already-complete", funcdecl, sc);
             return;
+        }
+        debug (TraceFunctionSemantic) traceFunctionSemantic("start", "function-semantic3", funcdecl, sc);
+        debug (TraceFunctionSemantic) scope (exit) traceFunctionSemantic("finish",
+            funcdecl.semanticRun == PASS.semantic3done ? "completed" : "early-exit", funcdecl);
         funcdecl.semanticRun = PASS.semantic3;
         funcdecl.hasSemantic3Errors = false;
         funcdecl.saferD = sc.previews.safer && !sc.inCfile;
@@ -1808,6 +1819,7 @@ void semanticTypeInfoMembers(StructDeclaration sd)
     {
         if (fd && fd._scope && fd.semanticRun < PASS.semantic3done)
         {
+            debug (TraceFunctionSemantic) auto request = FunctionSemanticTrace("typeinfo-special-member", fd, null, Loc.initial, "unavailable", sd);
             const errors = global.startGagging();
             fd.semantic3(fd._scope);
             if (global.endGagging(errors))
