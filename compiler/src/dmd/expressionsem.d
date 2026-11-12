@@ -3321,7 +3321,7 @@ void checkOverriddenDtor(FuncDeclaration f, Scope* sc, Loc loc,
 }
 
 /********************************************
- * Print the reason why `fd` was inferred `@system` as a supplemental error
+ * Print the reason why `fd` failed to infer an attribute as a supplemental error
  * Params:
  *   fd = function to check
  *   maxDepth = up to how many functions deep to report errors
@@ -3330,6 +3330,13 @@ void checkOverriddenDtor(FuncDeclaration f, Scope* sc, Loc loc,
  *   eSink = where the error messages go
  */
 public void errorSupplementalInferredAttr(FuncDeclaration fd, int maxDepth, bool deprecation, STC stc, ErrorSink eSink)
+{
+    FuncDeclarations visited;
+    errorSupplementalInferredAttr(fd, maxDepth, deprecation, stc, eSink, visited);
+}
+
+private void errorSupplementalInferredAttr(FuncDeclaration fd, int maxDepth, bool deprecation,
+    STC stc, ErrorSink eSink, ref FuncDeclarations visited)
 {
     auto errorFunc = deprecation ? &eSink.deprecationSupplemental : &eSink.errorSupplemental;
 
@@ -3373,8 +3380,19 @@ public void errorSupplementalInferredAttr(FuncDeclaration fd, int maxDepth, bool
     {
         if (maxDepth > 0)
         {
+            // Include the starting declaration so the closing link is reported
+            // only once. Names can coincide for distinct template instances.
+            visited.push(fd);
+            foreach (previous; visited[])
+            {
+                if (s.fd is previous)
+                {
+                    errorFunc(s.loc, "which calls `%s`, completing a cycle in the diagnostic chain", s.fd.toErrMsg());
+                    return;
+                }
+            }
             errorFunc(s.loc, "which calls `%s`", s.fd.toErrMsg());
-            errorSupplementalInferredAttr(s.fd, maxDepth - 1, deprecation, stc, eSink);
+            errorSupplementalInferredAttr(s.fd, maxDepth - 1, deprecation, stc, eSink, visited);
         }
     }
     else
