@@ -160,6 +160,7 @@ debug (TraceFunctionSemantic)
 
     // The guard links synchronous requests and restores the parent on all exits.
     // It stores no Scope*, declaration, or location for later inspection.
+    // Cast guards to void where needed: D-Scanner does not recognize destructor-only use.
     package(dmd) struct FunctionSemanticTrace
     {
         private ulong previous;
@@ -198,10 +199,12 @@ debug (TraceFunctionSemantic)
         const gaggedErrors = global.gaggedErrors;
         {
             auto outer = FunctionSemanticTrace("outer", null);
+            assert(outer.enabled);
             const parent = functionSemanticTraceParent;
             void nested()
             {
                 auto inner = FunctionSemanticTrace("inner", null);
+                assert(inner.enabled);
                 assert(functionSemanticTraceParent != parent);
                 return; // exercise restoration at an early exit
             }
@@ -1728,6 +1731,7 @@ public
 bool functionSemantic(FuncDeclaration fd)
 {
     debug (TraceFunctionSemantic) auto semanticTrace = FunctionSemanticTrace("functionSemantic", fd);
+    debug (TraceFunctionSemantic) cast(void)semanticTrace;
     //printf("functionSemantic() %p %s\n", this, toChars());
     if (!fd._scope)
     {
@@ -1775,6 +1779,7 @@ bool functionSemantic(FuncDeclaration fd)
     if (fd.inferRetType && fd.type && !fd.type.nextOf())
     {
         debug (TraceFunctionSemantic) auto request = FunctionSemanticTrace("inferred-return-type", fd);
+        debug (TraceFunctionSemantic) cast(void)request;
         return fd.functionSemantic3();
     }
 
@@ -1795,6 +1800,7 @@ bool functionSemantic(FuncDeclaration fd)
         else
         {
             debug (TraceFunctionSemantic) auto request = FunctionSemanticTrace("instantiated-function-attributes", fd);
+            debug (TraceFunctionSemantic) cast(void)request;
             return fd.functionSemantic3() || !fd.errors;
         }
     }
@@ -1802,6 +1808,7 @@ bool functionSemantic(FuncDeclaration fd)
     if (fd.storage_class & STC.inference)
     {
         debug (TraceFunctionSemantic) auto request = FunctionSemanticTrace("STC.inference", fd);
+        debug (TraceFunctionSemantic) cast(void)request;
         return fd.functionSemantic3() || !fd.errors;
     }
     debug (TraceFunctionSemantic) traceFunctionSemantic("skip", "no-eager-body-request", fd);
@@ -1817,6 +1824,7 @@ public
 bool functionSemantic3(FuncDeclaration fd)
 {
     debug (TraceFunctionSemantic) auto semanticTrace = FunctionSemanticTrace("functionSemantic3", fd);
+    debug (TraceFunctionSemantic) cast(void)semanticTrace;
     debug (TraceFunctionSemantic)
     {
         // The guard below owns the semantic decision; this only explains it.
@@ -1924,6 +1932,7 @@ extern (D) void declareThis(FuncDeclaration fd, Scope* sc)
 extern (D) bool checkForwardRef(FuncDeclaration fd, Loc loc)
 {
     debug (TraceFunctionSemantic) auto request = FunctionSemanticTrace("checkForwardRef", fd, null, loc, "request");
+    debug (TraceFunctionSemantic) cast(void)request;
     if (!functionSemantic(fd))
         return true;
 
@@ -2168,6 +2177,7 @@ FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s,
             if (!(flags & FuncResolveFlag.quiet))
             {
                 debug (TraceFunctionSemantic) auto request = FunctionSemanticTrace("resolveFuncCall-selected-function", m.lastf, sc, loc, "request");
+                debug (TraceFunctionSemantic) cast(void)request;
                 functionSemantic(m.lastf);
             }
             return m.lastf;

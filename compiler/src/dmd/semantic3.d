@@ -95,6 +95,7 @@ void semantic3(Dsymbol dsym, Scope* sc)
     debug (TraceFunctionSemantic) auto semanticTrace = FunctionSemanticTrace(
         dsym.isFuncDeclaration() || dsym.isModule() || dsym.isAggregateDeclaration() || dsym.isTemplateInstance()
             ? "semantic3-dispatch".ptr : null, dsym, sc);
+    debug (TraceFunctionSemantic) cast(void)semanticTrace;
     scope v = new Semantic3Visitor(sc);
     dsym.accept(v);
 }
@@ -1820,6 +1821,7 @@ void semanticTypeInfoMembers(StructDeclaration sd)
         if (fd && fd._scope && fd.semanticRun < PASS.semantic3done)
         {
             debug (TraceFunctionSemantic) auto request = FunctionSemanticTrace("typeinfo-special-member", fd, null, Loc.initial, "unavailable", sd);
+            debug (TraceFunctionSemantic) cast(void)request;
             const errors = global.startGagging();
             fd.semantic3(fd._scope);
             if (global.endGagging(errors))
