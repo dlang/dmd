@@ -1,0 +1,13 @@
+Add `core.bitop.isRightJustifiedOnes`
+
+`core.bitop.isRightJustifiedOnes` checks whether the set bits of an
+unsigned integer form a single, contiguous run of 1s starting at the
+least significant bit (e.g. `0`, `0b0111`, `0x00FF_FFFF`). This is a
+common need, but the efficient implementation is not obvious.
+
+---
+import core.bitop : isRightJustifiedOnes;
+
+assert( isRightJustifiedOnes(0x00FF_FFFFu));
+assert(!isRightJustifiedOnes(0x1010_1110u));
+---
