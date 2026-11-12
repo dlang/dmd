@@ -35,12 +35,23 @@ void test_elneg()
     assert(i == j);
 }
 
+ /*************************************************/
+int shr16(int x) { return (x >> 16) & 0xFFFF; }
+
+void test_elbitwise()
+{
+    //  (x >> 16) & 0xFFFF => (cast(uint)x >> 16)
+    assert(shr16(-1) == 0xFFFF);
+    assert(shr16(0x7FFF0000) == 0x7FFF);
+}
+
 /*************************************************/
 
 int main()
 {
     test_eladdr();
     test_elneg();
+    test_elbitwise();
 
     printf("Success\n");
     return 0;
