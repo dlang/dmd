@@ -94,8 +94,10 @@ import dmd.utils;
  *  oneobj = write one object file instead of multiple ones
  *  multiobj = break one object file into multiple ones
  *  verbose = print progress message when generatig code
+ *
+ * Returns: true on success
  */
-public void generateCodeAndWrite(Module[] modules, const(char)*[] libmodules,
+public bool generateCodeAndWrite(Module[] modules, const(char)*[] libmodules,
                           const(char)[] libname, const(char)[] objdir,
                           bool writeLibrary, bool obj, bool oneobj, bool multiobj,
                           bool verbose)
@@ -186,7 +188,13 @@ public void generateCodeAndWrite(Module[] modules, const(char)*[] libmodules,
         auto tmpname = library.filename ~ ".tmp\0";
 
         auto libbuf = OutBuffer(tmpname.ptr);
-        library.writeLibToBuffer(libbuf);
+        if (!library.writeLibToBuffer(libbuf))
+        {
+            libbuf.destroy();
+            File.remove(tmpname.ptr);
+            destroy(tmpname);
+            return false;
+        }
 
         if (!libbuf.moveToFile(library.filename))
         {
@@ -196,6 +204,7 @@ public void generateCodeAndWrite(Module[] modules, const(char)*[] libmodules,
         }
         destroy(tmpname);
     }
+    return true;
 }
 
 // FIXME: does not work on old bootstrap compilers
