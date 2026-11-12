@@ -401,6 +401,11 @@ extern (C++) class FuncDeclaration : Declaration
     /// better diagnostics
     AttributeViolation* safetyViolation;
     AttributeViolation* nogcViolation;
+    /// Records the specific event where an attribute query abandoned pending
+    /// @nogc inference while semantic3 was still analyzing this function.
+    /// Does not identify the querying caller or location, or summarize the
+    /// function's effects (including GC operations discovered later).
+    bool nogcInferenceIncomplete;
     AttributeViolation* pureViolation;
     AttributeViolation* nothrowViolation;
 

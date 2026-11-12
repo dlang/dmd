@@ -357,6 +357,12 @@ private FuncDeclaration stripHookTraceImpl(FuncDeclaration fd)
  */
 extern (D) bool setGC(Scope* sc, FuncDeclaration fd, Loc loc, const(char)* fmt, RootObject[] args...)
 {
+    return setGCImpl(sc, fd, loc, false, fmt, args);
+}
+
+private bool setGCImpl(Scope* sc, FuncDeclaration fd, Loc loc, bool attributeQuery,
+    const(char)* fmt, RootObject[] args)
+{
     //printf("setGC() %s\n", toChars());
     if (fd.nogcInprocess && fd.semanticRun < PASS.semantic3 && fd._scope)
     {
@@ -380,6 +386,12 @@ extern (D) bool setGC(Scope* sc, FuncDeclaration fd, Loc loc, const(char)* fmt, 
 
     if (fd.nogcInprocess)
     {
+        // Lazy semantic3 above may have resolved inference. Record only a query
+        // that actually abandons inference while body analysis is active.
+        // Analysis-request/attribute-consumer tracing should reuse this event
+        // detection rather than infer abandonment from a separate query hook.
+        if (attributeQuery && fd.semanticRun == PASS.semantic3)
+            fd.nogcInferenceIncomplete = true;
         fd.nogcInprocess = false;
         if (fmt)
             fd.nogcViolation = new AttributeViolation(loc, fmt, args); // action that requires GC
@@ -421,7 +433,7 @@ bool isNogc(FuncDeclaration fd)
 {
     //printf("isNogc() %s, inprocess: %d\n", toChars(), !!(flags & FUNCFLAG.nogcInprocess));
     if (fd.nogcInprocess)
-        setGC(null, fd, fd.loc, null);
+        setGCImpl(null, fd, fd.loc, true, null, null);
     return fd.type.toTypeFunction().isNogc;
 }
 

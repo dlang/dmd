@@ -3332,7 +3332,14 @@ public void errorSupplementalInferredAttr(FuncDeclaration fd, int maxDepth, bool
     }
 
     if (!s)
+    {
+        // Keep this fallback when changing diagnostic-chain traversal (e.g.
+        // cycle deduplication): abandonment need not have an AttributeViolation.
+        // Concrete violation records above take precedence over this event.
+        if ((stc & STC.nogc) && fd.nogcInferenceIncomplete)
+            errorFunc(fd.loc, "`@nogc` inference for `%s` could not complete because its attributes were queried while its body was still being analyzed", fd.toPrettyChars());
         return;
+    }
 
     if (s.action.length > 0)
     {
