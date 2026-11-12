@@ -1084,6 +1084,7 @@ private bool funcDeclEquals(const FuncDeclaration _this, const Dsymbol s)
 
     return faf1.toParent().equals(faf2.toParent()) &&
            faf1.ident.equals(faf2.ident) &&
+           faf1.localNum == faf2.localNum &&
            faf1.type.equals(faf2.type);
 }
 
