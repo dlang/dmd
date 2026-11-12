@@ -72,6 +72,14 @@ jobs:
           which ldc-profdata
           deactivate
 
+      # Before the compiler builds, so that a broken runner fails early.
+      - name: Test perfrunner
+        run: |
+          source ~/dlang/*/activate
+          cd tools/perfrunner
+          dub test
+          deactivate
+
       - name: Build dmd at base and head
         run: |
           set -uexo pipefail

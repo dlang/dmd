@@ -18,6 +18,8 @@ enum workload = buildPath(workloads, "hello.d");
 enum vibedDir = buildPath(workloads, "vibed");
 enum vibedRoot = buildPath(vibedDir, "source", "app.d");
 
+enum ctfeDir = buildPath(workloads, "ctfe");
+
 version (unittest) {} else
 int main(string[] args)
 {
@@ -76,7 +78,7 @@ int main(string[] args)
 
     if (!diff)
     {
-        auto m = measure(headDmd, workload, headPhobos, vibedRoot, vibedFlags, tmp, "head");
+        auto m = measure(headDmd, workload, headPhobos, vibedRoot, vibedFlags, ctfeDir, tmp, "head");
         auto t = collectTraces(headDmd, workload, headPhobos, tmp, "head");
         if (headSrc.length && hostDmdBin.length)
             m[selfBuild.id] = selfBuildMs(headSrc, hostDmdBin);
@@ -87,9 +89,9 @@ int main(string[] args)
     }
 
     // measure base in a second thread while this one does head
-    auto baseTask = task!measure(baseDmd, workload, basePhobos, vibedRoot, vibedFlags, tmp, "base");
+    auto baseTask = task!measure(baseDmd, workload, basePhobos, vibedRoot, vibedFlags, ctfeDir, tmp, "base");
     baseTask.executeInNewThread();
-    auto head = measure(headDmd, workload, headPhobos, vibedRoot, vibedFlags, tmp, "head");
+    auto head = measure(headDmd, workload, headPhobos, vibedRoot, vibedFlags, ctfeDir, tmp, "head");
     auto base = baseTask.yieldForce;
 
     auto baseTraces = collectTraces(baseDmd, workload, basePhobos, tmp, "base");
