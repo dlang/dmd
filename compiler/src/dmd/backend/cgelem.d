@@ -6073,6 +6073,19 @@ beg:
             return el_selecte1(e);
         }
 
+        if (OTassign(op) &&
+            (tybasic(e1.Ety) == TYnoreturn ||
+             tybasic(e2.Ety) == TYnoreturn))
+        {
+            if (OTrtol(op)) // check defensively
+            {
+                e.E1 = e2;
+                e.E2 = e1;
+            }
+            e.Eoper = OPcomma;
+            goto beg;
+        }
+
         if (op == OPparam && !goal)
             e.Eoper = OPcomma; // DMD bug 6733
 

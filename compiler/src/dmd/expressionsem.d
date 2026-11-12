@@ -17699,17 +17699,25 @@ Expression toLvalue(Expression _this, Scope* sc, const(char)* action, Expression
         }
         // convert (econd ? e1 : e2) to *(econd ? &e1 : &e2)
         CondExp ecopy = cast(CondExp)(_this.copy());
-        if (!isNoreturnExpression(_this.e1))
+        ecopy.type = _this.type.pointerTo();
+        if (isNoreturnExpression(_this.e1))
+        {
+            ecopy.e1 = specialNoreturnCast(ecopy.e1, ecopy.type);
+        }
+        else
         {
             ecopy.e1 = _this.e1.toLvalue(sc, action).addressOf();
             checkAddressable(ecopy.e1, sc, "take address of");
         }
-        if (!isNoreturnExpression(_this.e2))
+        if (isNoreturnExpression(_this.e2))
+        {
+            ecopy.e2 = specialNoreturnCast(ecopy.e2, ecopy.type);
+        }
+        else
         {
             ecopy.e2 = _this.e2.toLvalue(sc, action).addressOf();
             checkAddressable(ecopy.e2, sc, "take address of");
         }
-        ecopy.type = _this.type.pointerTo();
         return new PtrExp(_this.loc, ecopy, _this.type);
 
     }

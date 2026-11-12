@@ -3989,6 +3989,13 @@ elem* toElem(Expression e, ref IRState irs)
 
         //printf("IndexExp.toElem() %s\n", ie.toChars());
         Type t1 = ie.e1.type.toBasetype();
+
+        if (t1.isTypeNoreturn())
+        {
+            elem_setLoc(n1, ie.loc);
+            return n1;
+        }
+
         if (auto taa = t1.isTypeAArray())
         {
             assert(false, "no index lowering for associative array literal");
