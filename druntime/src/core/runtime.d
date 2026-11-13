@@ -475,12 +475,48 @@ extern (C) void dmd_coverSourcePath(string path);
 extern (C) void dmd_coverDestPath(string path);
 
 /**
- * Enable merging of coverage reports with existing data.
+ * Choose whether this program merges coverage results into a saved report.
+ * By default, the runtime overwrites any existing report. A test runner
+ * can call this function with $(D true) to accumulate results from several
+ * test programs in the same output directory.
+ *
+ * Each time a program executes, the runtime combines its coverage data
+ * for each source file. This setting controls what happens if a report
+ * for that file already exists on disk: $(D true) merges the program's
+ * results into the saved report and $(D false) replaces it.
+ *
+ * For example, several test programs can merge their execution counts into
+ * the same $(D a.lst) during one test suite. If another program records
+ * only whether each line ran (Boolean coverage), give it a separate output
+ * directory to keep both reports, or pass $(D false) to replace the counts
+ * with its Boolean results.
+ *
+ * For a command-line example, save this program as $(D sign.d):
+ * ---
+ * int sign(int x)
+ * {
+ *     if (x < 0)
+ *         return -1;
+ *     return 1;
+ * }
+ *
+ * void main(string[] args)
+ * {
+ *     if (args.length == 1)
+ *         assert(sign(5) == 1);
+ *     else
+ *         assert(sign(-5) == -1);
+ * }
+ * ---
+ * In a POSIX shell, compile with $(D dmd -cov sign.d). Run $(D ./sign)
+ * to write a fresh $(D sign.lst) covering the positive case. Then run
+ * $(D ./sign negative --DRT-covopt=merge:1) to add the negative case.
+ * The saved listing now shows one hit on each return line. With the
+ * default overwrite setting, only the negative case would have a hit
+ * after the second execution.
  *
  * Params:
- *  flag = enable/disable coverage merge mode
- * Note:
- *  This is a dmd specific setting.
+ *  flag = $(D true) to merge with the previous listing, $(D false) to overwrite it.
  */
 extern (C) void dmd_coverSetMerge(bool flag);
 

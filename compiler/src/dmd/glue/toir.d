@@ -29,6 +29,7 @@ import dmd.glue.toctype;
 import dmd.backend.cdef;
 import dmd.backend.cc;
 import dmd.backend.dt;
+import dmd.backend.dout : outdata;
 import dmd.backend.el;
 import dmd.backend.blockopt : block_appendexp;
 import dmd.backend.symbol;
@@ -151,6 +152,72 @@ struct IRState
     }
 }
 
+// Each emitting module owns counters for foreign source lines it generates.
+private struct CoverageFragment
+{
+    Module source;
+    Symbol* counters;
+    uint[] valid;
+}
+
+private Module coverageRoot;
+// Key by module identity, including on bootstrap compilers that compare
+// extern(C++) class keys differently from pointers.
+private CoverageFragment[void*] fragments;
+
+private Symbol* counterForLine(Module source, uint index)
+{
+    if (index >= source.numlines)
+        return null;
+    if (source is coverageRoot)
+    {
+        if (!source.cov || !source.covb.length)
+            return null;
+        source.covb[index / 32] |= 1u << (index % 32);
+        return cast(Symbol*)source.cov;
+    }
+    auto key = cast(void*) source;
+    auto fragment = key in fragments;
+    if (!fragment)
+    {
+        auto sym = symbol_generate(SC.static_, type_fake(TYint));
+        sym.Stype.Tmangle = Mangle.d;
+        sym.Sfl = FL.data;
+        auto dtb = DtBuilder(0);
+        dtb.nzeros(4 * source.numlines);
+        sym.Sdt = dtb.finish();
+        outdata(sym);
+        fragments[key] = CoverageFragment(source, sym, new uint[2 * ((source.numlines + 63) / 64)]);
+        fragment = key in fragments;
+    }
+    fragment.valid[index / 32] |= 1u << (index % 32);
+    return fragment.counters;
+}
+
+package(dmd.glue) void beginCoverage(Module root)
+{
+    coverageRoot = root;
+    fragments = null;
+}
+
+package(dmd.glue) void registerCoverageFragments(scope void delegate(Module, Symbol*, Symbol*, ubyte) registerLines)
+{
+    foreach (ref fragment; fragments)
+    {
+        auto valid = symbol_calloc("__importValid");
+        valid.Stype = type_fake(TYuint);
+        valid.Stype.Tcount++;
+        valid.Sclass = SC.static_;
+        valid.Sfl = FL.data;
+        auto bits = DtBuilder(0);
+        bits.nbytes(cast(const(ubyte)[])fragment.valid);
+        valid.Sdt = bits.finish();
+        outdata(valid);
+        // The defining module registers its own coverage threshold.
+        registerLines(fragment.source, fragment.counters, valid, 0);
+    }
+}
+
 /*********************************************
  * Produce elem which increments the usage count for a particular line.
  * Sets corresponding bit in bitmap `m.covb[linnum]`.
@@ -169,28 +236,13 @@ extern (D) elem* incUsageElem(ref IRState irs, Loc loc)
     uint linnum = loc.linnum;
 
     Module m = cast(Module)irs.blx._module;
-    //printf("m.cov %p linnum %d filename %s srcfile %s numlines %d\n", m.cov, linnum, loc.filename, m.srcfile.toChars(), m.numlines);
-    if (!m.cov || !linnum ||
-        strcmp(loc.filename, m.srcfile.toChars()))
+    if (!linnum || strcmp(loc.filename, m.srcfile.toChars()))
         return null;
-
-    //printf("cov = %p, covb = %p, linnum = %u\n", m.cov, m.covb.ptr, p, linnum);
-
-    linnum--;           // from 1-based to 0-based
-
-    /* Set bit in covb[] indicating this is a valid code line number
-     */
-    if (m.covb.length)    // covb can be null if it has already been written out to its .obj file
-    {
-        assert(linnum < m.numlines);
-        size_t i = linnum / (m.covb[0].sizeof * 8);
-        m.covb[i] |= 1 << (linnum & (m.covb[0].sizeof * 8 - 1));
-    }
-
-    /* Generate: *(m.cov + linnum * 4) += 1
-     */
+    linnum--;
+    auto mcov = counterForLine(m, linnum);
+    if (!mcov)
+        return null;
     elem* e;
-    Symbol* mcov = cast(Symbol*) m.cov;
     e = el_ptr(mcov);
     e = el_bin(OPadd, TYnptr, e, el_long(TYuint, linnum * 4));
     e = el_una(OPind, TYuint, e);

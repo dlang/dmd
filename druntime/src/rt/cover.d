@@ -62,6 +62,7 @@ private
     {
         string      filename;
         BitArray    valid;      // bit array of which source lines are executable code lines
+        bool        booleanHits; // this registration records presence only
         uint[]      data;       // array of line execution counts
         ubyte       minPercent; // minimum percentage coverage required
     }
@@ -91,6 +92,9 @@ private
         {
             string s = "Code coverage options are specified as whitespace separated assignments:
     merge:0|1      - 0 overwrites existing reports, 1 merges current run with existing coverage reports (default: %d)
+                     With merge:1, a missing report is created. If a line switches between
+                     Boolean hits and execution counts, start a fresh report with merge:0
+                     or use a separate output directory.
     disable:0|1    - 1 disables writing coverage report even if binary is compiled with coverage
     dstpath:<PATH> - writes code coverage reports to <PATH> (default: current
             working directory)
@@ -133,8 +137,7 @@ extern (C) void dmd_coverDestPath( string pathname )
  * Set merge mode.
  *
  * Params:
- *      flag = true means new data is summed with existing data in the listing
- *         file; false means a new listing file is always created.
+ *      flag = true merges this run with the existing listing; false overwrites it.
  */
 extern (C) void dmd_coverSetMerge( bool flag )
 {
@@ -153,10 +156,22 @@ extern (C) void dmd_coverSetMerge( bool flag )
  */
 extern (C) void _d_cover_register2(string filename, size_t[] valid, uint[] data, ubyte minPercent)
 {
+    registerCoverage(filename, valid, data, minPercent, false);
+}
+
+/// Register line-hit flags. The argument layout is identical to _d_cover_register2.
+extern (C) void _d_cover_register_boolean(string filename, size_t[] valid, uint[] data, ubyte minPercent)
+{
+    registerCoverage(filename, valid, data, minPercent, true);
+}
+
+private void registerCoverage(string filename, size_t[] valid, uint[] data, ubyte minPercent, bool booleanHits)
+{
     assert(minPercent <= 100);
 
     Cover c;
 
+    c.booleanHits = booleanHits;
     c.filename  = filename;
     c.valid.ptr = valid.ptr;
     c.valid.len = valid.length;
@@ -229,6 +244,42 @@ shared static this()
     config.initialize();
 }
 
+// Identify the source the reporter will actually open, allowing different input spellings.
+private struct SourceKey
+{
+    ulong device;
+    ulong index;
+    string unresolved;
+}
+
+private SourceKey sourceKey(string filename)
+{
+    version (Windows)
+    {
+        import core.sys.windows.winnt : FILE_SHARE_READ, FILE_SHARE_WRITE, FILE_SHARE_DELETE, FILE_ATTRIBUTE_NORMAL;
+        auto handle = CreateFileW(toUTF16z(filename), 0,
+            FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+            null, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, null);
+        if (handle != INVALID_HANDLE_VALUE)
+        {
+            scope(exit) CloseHandle(handle);
+            BY_HANDLE_FILE_INFORMATION info;
+            if (GetFileInformationByHandle(handle, &info) &&
+                (info.nFileIndexHigh || info.nFileIndexLow))
+                return SourceKey(info.dwVolumeSerialNumber,
+                    (ulong(info.nFileIndexHigh) << 32) | info.nFileIndexLow);
+        }
+    }
+    else version (Posix)
+    {
+        import core.sys.posix.sys.stat : stat, stat_t;
+        stat_t info;
+        if (!stat((filename ~ '\0').ptr, &info))
+            return SourceKey(info.st_dev, info.st_ino);
+    }
+    return SourceKey(0, 0, filename);
+}
+
 shared static ~this()
 {
     if (!gdata.length || config.disable) return;
@@ -240,8 +291,57 @@ shared static ~this()
     auto lines = new char[][NUMLINES];
     auto lstLines = new char[][NUMLINES];
 
-    foreach (c; gdata)
+    struct Report
     {
+        Cover coverage;
+        alias coverage this;
+        bool incompatibleLengths;
+        bool[] hitOnly; // line may have an unknown number of hits
+    }
+    Report[SourceKey] reports;
+    foreach (fragment; gdata)
+    {
+        auto key = sourceKey(appendFN(config.srcpath, fragment.filename));
+        auto report = key in reports;
+        if (!report)
+        {
+            reports[key] = Report(fragment);
+            report = key in reports;
+            report.data = new uint[fragment.data.length];
+            report.valid.ptr = (new size_t[(report.data.length + size_t.sizeof * 8 - 1) / (size_t.sizeof * 8)]).ptr;
+        }
+        if (fragment.filename.length < report.filename.length ||
+            (fragment.filename.length == report.filename.length && fragment.filename < report.filename))
+            report.filename = fragment.filename;
+        if (report.data.length != fragment.data.length)
+            report.incompatibleLengths = true;
+        if (report.incompatibleLengths)
+            continue;
+        if (fragment.booleanHits && report.hitOnly is null)
+            report.hitOnly = new bool[report.data.length];
+        foreach (i, count; fragment.data)
+        {
+            if (fragment.booleanHits && (fragment.valid[i] || count != 0))
+                report.hitOnly[i] = true;
+            if (report.hitOnly.length && report.hitOnly[i])
+                report.data[i] = report.data[i] != 0 || count != 0;
+            else
+                report.data[i] += count;
+            if (fragment.valid[i])
+                report.valid.ptr[i / (size_t.sizeof * 8)] |= size_t(1) << (i % (size_t.sizeof * 8));
+        }
+        report.minPercent = max(report.minPercent, fragment.minPercent);
+    }
+    bool inconsistent;
+    foreach (c; reports)
+    {
+        if (c.incompatibleLengths)
+        {
+            fprintf(stderr, "Error: coverage registrations for %.*s have different source lengths; rebuild the affected objects.\n",
+                    cast(int)c.filename.length, c.filename.ptr);
+            inconsistent = true;
+            continue;
+        }
         auto fname = appendFN(config.dstpath, addExt(baseName(c.filename), "lst"));
         auto flst = openOrCreateFile(fname);
         if (flst is null)
@@ -267,7 +367,13 @@ shared static ~this()
             // check if source is the same before merge
             if (lstEquals(lines, lstLines))
                 foreach (i, line; lstLines[0 .. min($, c.data.length)])
-                    c.data[i] += parseNum(line);
+                {
+                    const previous = parseNum(line);
+                    if (c.hitOnly.length && c.hitOnly[i])
+                        c.data[i] = c.data[i] != 0 || previous != 0;
+                    else
+                        c.data[i] += previous;
+                }
         }
 
         // Calculate the maximum number of digits in the line with the greatest
@@ -331,6 +437,8 @@ shared static ~this()
         else version (Posix)
             ftruncate(fileno(flst), ftell(flst));
     }
+    if (inconsistent)
+        exit(EXIT_FAILURE);
 }
 
 uint digits(uint number)
@@ -465,7 +573,29 @@ string chomp( string str, string delim = null )
 FILE* openOrCreateFile(string name)
 {
     version (Windows)
-        immutable fd = _wopen(toUTF16z(name), _O_RDWR | _O_CREAT | _O_BINARY, _S_IREAD | _S_IWRITE);
+    {
+        enum flags = _O_RDWR | _O_CREAT | _O_BINARY;
+        enum permissions = _S_IREAD | _S_IWRITE;
+        auto path = toUTF16z(name);
+        int fd = _wopen(path, flags, permissions);
+        if (fd < 0)
+        {
+            const required = GetFullPathNameW(path, 0, null, null);
+            if (!required)
+                return null;
+            auto absolute = new wchar[required];
+            const n = GetFullPathNameW(path, required, absolute.ptr, null);
+            if (!n || n >= required)
+                return null;
+            auto resolved = absolute[0 .. n];
+            if (resolved.length >= 4 && (resolved[0 .. 4] == `\\?\`w || resolved[0 .. 4] == `\\.\`w))
+                return null;
+            auto extended = resolved.length >= 2 && resolved[0 .. 2] == `\\`w
+                ? `\\?\UNC\`w ~ resolved[2 .. $]
+                : `\\?\`w ~ resolved;
+            fd = _wopen((extended ~ '\0').ptr, flags, permissions);
+        }
+    }
     else version (Posix)
         immutable fd = open((name ~ '\0').ptr, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP |
                 S_IROTH | S_IWOTH);
@@ -473,6 +603,7 @@ FILE* openOrCreateFile(string name)
         alias fdopen = _fdopen;
     else version (Posix)
         import core.sys.posix.stdio : fdopen;
+    if (fd < 0) return null;
     return fdopen(fd, "r+b");
 }
 

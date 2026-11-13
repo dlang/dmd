@@ -1,0 +1,49 @@
+Coverage reports count imported templates under separate compilation
+
+When a program calls a template defined in another module, `-cov` now
+records the hit in the defining module's listing even when the modules
+are compiled separately. Previously the executed line could appear
+unmarked or show zero hits, depending on which object the linker selected.
+
+For example, save this template in `numbers.d`:
+-------
+module numbers;
+
+int twice(T)(T x)
+{
+    return x + x;
+}
+-------
+
+Save its caller in `sample.d`:
+-------
+module sample;
+import numbers : twice;
+
+unittest
+{
+    assert(twice(3) == 6);
+}
+
+void main() {}
+-------
+
+In a POSIX shell, compile the modules separately, link them, and run the test:
+
+```console
+dmd -unittest -cov -c numbers.d
+dmd -unittest -cov -c sample.d
+dmd -of=sample sample.o numbers.o
+./sample
+```
+
+The test in `sample.d` passes with or without the fix. The difference is
+visible in `numbers.lst`: previously the count beside `return x + x;` was
+blank. Although the template is defined in `numbers.d`, its only caller is
+in `sample.d`, so DMD emits `twice!int` in `sample.o`. That copy now records
+its hit against the defining source line. After one execution, the listing
+contains:
+
+```console
+      1|    return x + x;
+```

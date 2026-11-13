@@ -1,6 +1,6 @@
 normal := basic
 merge := merge merge_true
-TESTS := $(normal) $(merge) no_code merge_override
+TESTS := $(normal) $(merge) no_code merge_override count_fragments fragments
 include ../common.mak
 
 normal_tests := $(normal:%=$(ROOT)/%.done)
@@ -78,3 +78,26 @@ endif
 	@touch $@
 $(ROOT)/no_code$(DOTEXE): $(SRC)/no_code_imp.d
 $(ROOT)/no_code$(DOTEXE): extra_sources += $(SRC)/no_code_imp.d
+
+$(ROOT)/fragments.done: $(ROOT)/fragments$(DOTEXE) $(SRC)/fragment-lines.txt
+	@$(RM) $(ROOT)/src-fragment-lines.lst
+	$< $(ROOT)
+	$< $(ROOT) reverse
+	grep -Eq '^[[:space:]]*1\|both' $(ROOT)/src-fragment-lines.lst
+	grep -Eq '^[[:space:]]*6\|count only' $(ROOT)/src-fragment-lines.lst
+	grep -Eq '^0000000\|unhit' $(ROOT)/src-fragment-lines.lst
+	@touch $@
+
+$(ROOT)/count_fragments.done: $(ROOT)/count_fragments$(DOTEXE) $(SRC)/count-lines.txt
+	@$(RM) $(ROOT)/src-count-lines.lst $(ROOT)/src-.-count-lines.lst
+	$< $(ROOT)
+	grep -Eq '^[[:space:]]*5\|overlap' $(ROOT)/src-count-lines.lst
+	grep -Eq '^[[:space:]]*3\|second only' $(ROOT)/src-count-lines.lst
+	grep -Eq '^0000000\|unhit' $(ROOT)/src-count-lines.lst
+	test ! -f $(ROOT)/src-.-count-lines.lst
+	@$(RM) $(ROOT)/src-count-lines.lst $(ROOT)/src-count_fragments.lst
+	if $< $(ROOT) stale 2>$(ROOT)/count-stale.err; then exit 1; else test $$? -eq 1; fi
+	grep -F 'different source lengths' $(ROOT)/count-stale.err
+	test ! -f $(ROOT)/src-count-lines.lst
+	test -s $(ROOT)/src-count_fragments.lst
+	@touch $@

@@ -1331,6 +1331,7 @@ private void genObjFile(Module m, bool multiobj, bool doppelganger)
     timeTraceBeginEvent(TimeTraceEventType.codegenModule);
     scope(exit) timeTraceEndEvent(TimeTraceEventType.codegenModule, m);
 
+    beginCoverage(m);
     glue.lastmname = m.srcfile.toChars();
 
     objmod.initfile(glue.lastmname, null, m.toPrettyChars());
@@ -1377,7 +1378,7 @@ private void genObjFile(Module m, bool multiobj, bool doppelganger)
     }
 
     Symbol* mcov;
-    if (global.params.cov)
+    if (global.params.cov && !doppelganger)
     {
         /* Create coverage identifier:
          *  uint[numlines] __coverage;
@@ -1440,24 +1441,6 @@ private void genObjFile(Module m, bool multiobj, bool doppelganger)
     Symbol* msictor;
     if (global.params.cov)
     {
-        /* Generate
-         *  private bit[numlines] __bcoverage;
-         */
-        Symbol* bcov = symbol_calloc("__bcoverage");
-        bcov.Stype = type_fake(TYuint);
-        bcov.Stype.Tcount++;
-        bcov.Sclass = SC.static_;
-        bcov.Sfl = FL.data;
-
-        auto dtb = DtBuilder(0);
-        dtb.nbytes(cast(const(ubyte)[]) m.covb);
-        bcov.Sdt = dtb.finish();
-
-        outdata(bcov);
-
-        free(m.covb.ptr);
-        m.covb = null;
-
         /* Generate:
          *  _d_cover_register(uint[] __coverage, BitArray __bcoverage, string filename);
          * and prepend it to the static constructor.
@@ -1474,27 +1457,52 @@ private void genObjFile(Module m, bool multiobj, bool doppelganger)
         cstate.CSpsymtab = &msictor.Sfunc.Flocsym;
         localgot = glue.ictorlocalgot;
 
-        elem* ecov  = el_pair(TYdarray, el_long(TYsize_t, m.numlines), el_ptr(mcov));
-        elem* ebcov = el_pair(TYdarray, el_long(TYsize_t, m.numlines), el_ptr(bcov));
-
-        if (target.os == Target.OS.Windows && target.isX86_64)
+        void registerLines(Module source, Symbol* counters, Symbol* valid, ubyte minPercent)
         {
-            ecov  = addressElem(ecov,  Type.tvoid.arrayOf(), false);
-            ebcov = addressElem(ebcov, Type.tvoid.arrayOf(), false);
+            elem* ecov  = el_pair(TYdarray, el_long(TYsize_t, source.numlines), el_ptr(counters));
+            elem* ebcov = el_pair(TYdarray, el_long(TYsize_t, source.numlines), el_ptr(valid));
+
+            if (target.os == Target.OS.Windows && target.isX86_64)
+            {
+                ecov  = addressElem(ecov,  Type.tvoid.arrayOf(), false);
+                ebcov = addressElem(ebcov, Type.tvoid.arrayOf(), false);
+            }
+
+            auto path = source.srcfile.toChars();
+            auto length = strlen(path);
+            elem* efilename = el_pair(TYdarray, el_long(TYsize_t, length), el_ptr(toStringSymbol(path, length, 1)));
+            if (target.os == Target.OS.Windows && target.isX86_64)
+                efilename = addressElem(efilename, Type.tstring, true);
+
+            elem* e = el_params(
+                          el_long(TYuchar, minPercent),
+                          ecov,
+                          ebcov,
+                          efilename,
+                          null);
+            e = el_bin(OPcall, TYvoid, el_var(getRtlsym(RTLSYM.DCOVER2)), e);
+            glue.eictor = el_combine(e, glue.eictor);
         }
+        // A deferred archive member has no source of its own. Its real
+        // source lines are registered below through their fragments.
+        if (mcov)
+        {
+            Symbol* bcov = symbol_calloc("__bcoverage");
+            bcov.Stype = type_fake(TYuint);
+            bcov.Stype.Tcount++;
+            bcov.Sclass = SC.static_;
+            bcov.Sfl = FL.data;
 
-        elem* efilename = toEfilename(m);
-        if (target.os == Target.OS.Windows && target.isX86_64)
-            efilename = addressElem(efilename, Type.tstring, true);
+            auto dtb = DtBuilder(0);
+            dtb.nbytes(cast(const(ubyte)[]) m.covb);
+            bcov.Sdt = dtb.finish();
+            outdata(bcov);
 
-        elem* e = el_params(
-                      el_long(TYuchar, global.params.covPercent),
-                      ecov,
-                      ebcov,
-                      efilename,
-                      null);
-        e = el_bin(OPcall, TYvoid, el_var(getRtlsym(RTLSYM.DCOVER2)), e);
-        glue.eictor = el_combine(e, glue.eictor);
+            free(m.covb.ptr);
+            m.covb = null;
+            registerLines(m, mcov, bcov, global.params.covPercent);
+        }
+        registerCoverageFragments(&registerLines);
         glue.ictorlocalgot = localgot;
     }
 
