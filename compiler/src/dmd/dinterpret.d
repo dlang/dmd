@@ -7062,7 +7062,7 @@ private Expression interpret_aaDel(UnionExp* pue, InterState* istate, Expression
     if (exceptionOrCantInterpret(index))
         return index;
     if (agg.op == EXP.null_)
-        return CTFEExp.voidexp; //???
+        return IntegerExp.createBool(false);
 
     AssocArrayLiteralExp aae = agg.isAssocArrayLiteralExp();
     Expressions* keysx = aae.keys;
