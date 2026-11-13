@@ -45,61 +45,39 @@ bool XltY128(ullong xh, ullong xl, ullong yh, ullong yl)
     return xh < yh || (xh == yh && xl < yl);
 }
 
-void u128Div(ullong xh, ullong xl, ullong yh, ullong yl, ullong* pqh, ullong* pql)
+/***
+ * Compute floor(2^^k / d) and 2^^k % d.
+ *
+ * 1 <= d <= ulong.max
+ * 0 <= k <= 128
+ *
+ * The quotient is returned as (qh, ql).
+ * No intermediate value exceeds 64 bits.
+ */
+private void divPow2(int k, ullong d,
+    out ullong qh, out ullong ql, out ullong rem)
 {
-    /* Use auld skool shift & subtract algorithm.
-     * Not very efficient.
-     */
-
-    //ullong xxh = xh, xxl = xl, yyh = yh, yyl = yl;
-
-    assert(yh || yl);           // no div-by-0 bugs
-
-    // left justify y
-    uint shiftcount = 1;
-    if (!yh)
-    {   yh = yl;
-        yl = 0;
-        shiftcount += 64;
-    }
-    while (!SIGN64(yh))
+    assert(d > 1);
+    assert(k >= 0 && k <= 128);
+    qh = 0;
+    ql = 0;
+    rem = 1;
+    for (int i = 0; i < k; ++i)
     {
-        SHL128(yh,yl, yh,yl);
-        shiftcount += 1;
-    }
-
-    ullong qh = 0;
-    ullong ql = 0;
-    do
-    {
-        SHL128(qh,ql, qh,ql);
-        if (XltY128(yh,yl,xh,xl))
+        // Double the 128-bit quotient
+        qh = (qh << 1) | (ql >> 63);
+        ql <<= 1;
+        // Double the remainder, subtracting d
+        // if necessary. Avoid overflow of 2*rem
+        if (rem >= d - rem)
         {
-            // x -= y;
-            if (xl < yl)
-            {   xl -= yl;
-                xh -= yh + 1;
-            }
-            else
-            {   xl -= yl;
-                xh -= yh;
-            }
-
-            ql |= 1;
+            rem -= d - rem;
+            ++ql;
         }
-        SHR128(yh,yl, yh,yl);
-    } while (--shiftcount);
-
-    *pqh = qh;
-    *pql = ql;
-
-    // Remainder is xh,xl
-
-    version (none)
-    {
-        printf("%016llx_%016llx / %016llx_%016llx = %016llx_%016llx\n", xxh,xxl,yyh,yyl,qh,ql);
-        if (xxh == 0 && yyh == 0)
-            printf("should be %llx\n", xxl / yyl);
+        else
+        {
+            rem += rem;
+        }
     }
 }
 
@@ -115,104 +93,81 @@ void u128Div(ullong xh, ullong xl, ullong yh, ullong yl, ullong* pqh, ullong* pq
  * Returns:
  *      true    m >= 2**N
  */
-
 @trusted
 bool choose_multiplier(int N, ullong d, int prec, ullong* pm, int* pshpost)
 {
     assert(N == 32 || N == 64);
-    assert(prec <= N);
+    assert(prec >= 1 && prec <= N);
     assert(d > 1 && (d & (d - 1)));
+    assert(N == 64 || d <= uint.max);
 
-    // Compute b such that 2**(b-1) < d <= 2**b
+    // Compute b such that 2^^(b-1) < d < 2^^b
     // which is the number of significant bits in d
     int b = 0;
-    ullong d1 = d;
-    while (d1)
-    {
+    for (ullong t = d; t; t >>= 1)
         ++b;
-        d1 >>= 1;
-    }
 
     int shpost = b;
+    const int k = N + b;
+    const int e = k - prec;
 
-    bool mhighbit = false;
-    if (N == 32)
+    // mlow = floor(2^^k / d)
+    ullong mlowh, mlowl, rlow;
+    divPow2(k, d, mlowh, mlowl, rlow);
+
+    // Compute floor(2^^e / d) and its remainder
+    ullong eh, el, er;
+    divPow2(e, d, eh, el, er);
+
+    // mhigh = floor((2^^k + 2^^e) / d)
+    //
+    //       = floor(2^^k/d)
+    //       + floor(2^^e/d)
+    //       + carry from the two remainders
+
+    ullong mhighl = mlowl + el;
+    ullong carry = cast(ullong)(mhighl < mlowl);
+    ullong mhighh = mlowh + eh + carry;
+
+    // Add one if rlow + er >= d
+    // Written this way to avoid overflow
+    if (rlow >= d - er)
     {
-        // mlow = (2**(N + b)) / d
-        ullong mlow = (1UL << (N + b)) / d;
-
-        // uhigh = (2**(N + b) + 2**(N + b - prec)) / d
-        ullong mhigh = ((1UL << (N + b)) + (1UL << (N + b - prec))) / d;
-
-        while (mlow/2 < mhigh/2 && shpost)
-        {
-            mlow /= 2;
-            mhigh /= 2;
-            --shpost;
-        }
-
-        *pm = mhigh & 0xFFFFFFFF;
-        mhighbit = (mhigh >> N) != 0;
+        ++mhighl;
+        if (mhighl == 0)
+            ++mhighh;
     }
-    else if (N == 64)
+
+    // Reduce multiplier and post-shift together
+    while (shpost)
     {
-        // Same as for N==32, but use 128 bit unsigned arithmetic
+        ullong lowh, lowl;
+        ullong highh, highl;
 
-        // mlow = (2**(N + b)) / d
-        ullong mlowl = 0;
-        ullong mlowh = 1UL << b;
+        SHR128(lowh, lowl, mlowh, mlowl);
+        SHR128(highh, highl, mhighh, mhighl);
 
-        // mlow /= d
-        u128Div(mlowh, mlowl, 0, d, &mlowh, &mlowl);
+        if (!XltY128(lowh, lowl, highh, highl))
+            break;
 
-        // mhigh = (2**(N + b) + 2**(N + b - prec)) / d
-        ullong mhighl = 0;
-        ullong mhighh = 1UL << b;
-        int e = N + b - prec;
-        if (e < 64)
-            mhighl = 1UL << e;
-        else
-            mhighh |= 1UL << (e - 64);
-
-        // mhigh /= d
-        u128Div(mhighh, mhighl, 0, d, &mhighh, &mhighl);
-
-        while (1)
-        {
-            // mlowb = mlow / 2
-            ullong mlowbh,mlowbl;
-            SHR128(mlowbh,mlowbl, mlowh,mlowl);
-
-            // mhighb = mhigh / 2
-            ullong mhighbh,mhighbl;
-            SHR128(mhighbh,mhighbl, mhighh,mhighl);
-
-            // if (mlowb < mhighb && shpost)
-            if (XltY128(mlowbh,mlowbl, mhighbh,mhighbl) && shpost)
-            {
-                // mlow = mlowb
-                mlowl = mlowbl;
-                mlowh = mlowbh;
-
-                // mhigh = mhighb
-                mhighl = mhighbl;
-                mhighh = mhighbh;
-
-                --shpost;
-            }
-            else
-                break;
-        }
-
-        *pm = mhighl;
-        mhighbit = mhighh & 1;
+        mlowh = lowh;
+        mlowl = lowl;
+        mhighh = highh;
+        mhighl = highl;
+        --shpost;
     }
-    else
-        assert(0);
+
+    *pm = N == 32
+        ? mhighl & 0xFFFFFFFFUL
+        : mhighl;
 
     *pshpost = shpost;
-    return mhighbit;
+
+    return N == 32
+        ? ((mhighl >> 32) != 0 || mhighh != 0)
+        : (mhighh != 0);
 }
+
 
 /*************************************
  * Find coefficients for Algorithm 4.2:
@@ -297,6 +252,26 @@ unittest
         assert(mhighbit == ps.highbit);
         assert(m == ps.m);
         assert(shpost == ps.shpost);
+    }
+
+    // problematic divisors
+    foreach (N; [32, 64])
+    {
+        const ullong top = 1UL << (N - 1);
+        const ullong mask = N == 32 ? 0xFFFFFFFFUL : ulong.max;
+        foreach (d; [top + 1, top + 3, mask - 2, mask])
+        {
+            ullong m;
+            int shpre;
+            int shpost;
+            bool high = udiv_coefficients(N, d, &shpre, &m, &shpost);
+            assert(shpre >= 0);
+            assert(shpost >= 0);
+            assert(shpost <= N);
+
+            // For these odd divisors, no pre-shift
+            assert(shpre == 0);
+        }
     }
 }
 
