@@ -11,4 +11,4 @@ template Template(T...)
 {
     extern(C++) const __gshared int Template = 0;
 }
-auto x = Template!(null);
+auto x = &Template!(null);

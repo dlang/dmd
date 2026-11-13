@@ -1618,17 +1618,11 @@ private final class DsymbolPrettyPrintVisitor : Visitor
 
     void visitTemplateInstance(TemplateInstance ti)
     {
-        if (hgs.fullDump)
+        if (hgs.fullDump && ti.inst is ti)
         {
-            // skip instances that are not code generated, and what they instantiated
-            for (auto t = ti; t; t = t.tinst)
-            {
-                if (auto fd = t.aliasdecl ? t.aliasdecl.isFuncDeclaration() : null)
-                {
-                    if (fd.skipCodegen)
-                        return;
-                }
-            }
+            import dmd.templatesem : needsCodegen;
+            if (!needsCodegen(ti))
+                return;
         }
         buf.put(ti.name.toChars());
         tiargsToBuffer(ti, *buf, *hgs);

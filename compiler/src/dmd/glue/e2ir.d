@@ -583,6 +583,10 @@ bool isDllImported(Dsymbol symbl)
         return !isBeingCompiled; // non-root ModuleInfo symbol
     }
 
+    // Emitted as COMDAT into every object that references it
+    if (needsLinkonceCodegen(symbl))
+        return false;
+
     // Check to see if a template has been instatiated in current compilation,
     //  if it is defined in a external module, its DllImport.
     if (symbl.inNonRoot())

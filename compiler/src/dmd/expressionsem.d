@@ -1201,9 +1201,7 @@ bool expressionsToString(ref OutBuffer buf, Scope* sc, Expressions* exps,
         }
         if (!ex)
             continue;
-        auto sc2 = sc.startCTFE();
-        sc2.tinst = null;
-        sc2.minst = null;       // prevents emission of any instantiated templates to object file
+        auto sc2 = sc.startCTFE().makeSpeculative();
         auto e2 = ex.expressionSemantic(sc2);
         auto e3 = resolveProperties(sc2, e2);
         sc2.endCTFE();
@@ -5428,7 +5426,9 @@ Expression lowerArrayLiteral(ArrayLiteralExp ale, Scope* sc)
 
     auto arguments = new Expressions(new IntegerExp(dim));
     lowering = new CallExp(ale.loc, lowering, arguments);
+    sc = sc.push().makeSpeculative();
     ale.lowering = lowering.expressionSemantic(sc);
+    sc.pop();
 
     return ale.lowering;
 }
@@ -5461,68 +5461,6 @@ Dsymbol getDsymbol(RootObject oarg)
     if (auto ta = isType(oarg))
         return ta.toDsymbol(null);
     return isDsymbol(oarg); // if already a symbol
-}
-
-/**************************************
- * IsExpression can evaluate the specified type speculatively, and even if
- * it instantiates any symbols, they are normally unnecessary for the
- * final executable.
- * However, if those symbols leak to the actual code, compiler should remark
- * them as non-speculative to generate their code and link to the final executable.
- */
-private void unSpeculative(Scope* sc, RootObject o)
-{
-    if (!o)
-        return;
-
-    if (Tuple tup = isTuple(o))
-    {
-        foreach (obj; tup.objects)
-        {
-            unSpeculative(sc, obj);
-        }
-        return;
-    }
-
-    Dsymbol s = getDsymbol(o);
-    if (!s)
-        return;
-
-    if (Declaration d = s.isDeclaration())
-    {
-        if (VarDeclaration vd = d.isVarDeclaration())
-            o = vd.type;
-        else if (AliasDeclaration ad = d.isAliasDeclaration())
-        {
-            o = dmd.dsymbolsem.getType(ad);
-            if (!o)
-                o = ad.toAlias();
-        }
-        else
-            o = d.toAlias();
-
-        s = getDsymbol(o);
-        if (!s)
-            return;
-    }
-
-    if (TemplateInstance ti = s.isTemplateInstance())
-    {
-        // If the instance is already non-speculative,
-        // or it is leaked to the speculative scope.
-        if (ti.minst !is null || sc.minst is null)
-            return;
-
-        // Remark as non-speculative instance.
-        ti.minst = sc.minst;
-        if (!ti.tinst)
-            ti.tinst = sc.tinst;
-
-        unSpeculative(sc, ti.tempdecl);
-    }
-
-    if (TemplateInstance ti = s.isInstantiated())
-        unSpeculative(sc, ti);
 }
 
 private extern (C++) final class ExpressionSemanticVisitor : Visitor
@@ -9267,8 +9205,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                                   conflict.kind(), conflict.toErrMsg());
             }
 
-            unSpeculative(sc, s);
-
             result = IntegerExp.createBool(true);
         }
         void no()
@@ -9307,9 +9243,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
 
         {
-            Scope* sc2 = sc.copy(); // keep sc.flags
-            sc2.tinst = null;
-            sc2.minst = null;
+            Scope* sc2 = sc.copy().makeSpeculative(); // keep sc.flags
             sc2.fullinst = true;
             sc2.traitsCompiles = true;
             Type t = dmd.typesem.trySemantic(e.targ, e.loc, sc2);
@@ -9570,8 +9504,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     eSink.errorSupplemental(conflict.loc, "`%s` `%s` is defined here",
                                         conflict.kind(), conflict.toErrMsg());
                 }
-
-                unSpeculative(sc, s);
             }
             return yes();
         }
@@ -18998,11 +18930,6 @@ void semanticTypeInfo(Scope* sc, Type t)
         else
         {
             getTypeInfoType(sd.loc, t, sc);
-
-            // https://issues.dlang.org/show_bug.cgi?id=15149
-            // if the typeid operand type comes from a
-            // result of auto function, it may be yet speculative.
-            // unSpeculative(sc, sd);
         }
 
         /* Step 2: If the TypeInfo generation requires sd.semantic3, run it later.

@@ -3714,7 +3714,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         Module importer = sc._module;
         if (sc.minst && sc.tinst)
         {
-            importer = sc.minst;
+            importer = sc.instantiatingModule();
             if (!sc.tinst.importedModules.contains(imp.mod))
                 sc.tinst.importedModules.push(imp.mod);
         }
@@ -5113,9 +5113,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             if (scall)
             {
                 const xerrors = global.startGagging();
-                sc = sc.push();
-                sc.tinst = null;
-                sc.minst = null;
+                sc = sc.push().makeSpeculative();
                 auto fcall = resolveFuncCall(sd.loc, sc, scall, null, null, ArgumentList(), FuncResolveFlag.quiet);
                 sc = sc.pop();
                 global.endGagging(xerrors);
@@ -10135,17 +10133,17 @@ private extern(C++) class OneMemberVisitor : Visitor
 }
 
 /****************************************
-* Return true if any of the members are static ctors or static dtors, or if
-* any members have members that are.
+* Return true if `d` contains code that runs without being called:
+* static ctors or dtors, or unittests when compiling with `-unittest`.
 */
-bool hasStaticCtorOrDtor(Dsymbol d)
+bool runsWithoutBeingCalled(Dsymbol d)
 {
-    scope v = new HasStaticCtorOrDtor();
+    scope v = new RunsWithoutBeingCalled();
     d.accept(v);
     return v.result;
 }
 
-private extern(C++) class HasStaticCtorOrDtor : Visitor
+private extern(C++) class RunsWithoutBeingCalled : Visitor
 {
     import dmd.mtype : Type;
 
@@ -10154,27 +10152,16 @@ private extern(C++) class HasStaticCtorOrDtor : Visitor
 
     // attrib.d
     override void visit(AttribDeclaration ad){
-        result = ad.include(null).foreachDsymbol( (s) { return s.hasStaticCtorOrDtor(); } ) != 0;
+        result = ad.include(null).foreachDsymbol( (s) { return s.runsWithoutBeingCalled(); } ) != 0;
     }
 
     // dsymbol.d
     override void visit(Dsymbol d){
-        //printf("Dsymbol::hasStaticCtorOrDtor() %s\n", toChars());
         result = false;
     }
 
     override void visit(ScopeDsymbol sd) {
-        if (sd.members)
-        {
-            for (size_t i = 0; i < sd.members.length; i++)
-            {
-                Dsymbol member = (*(sd.members))[i];
-                if (member.hasStaticCtorOrDtor())
-                    result = true;
-                    return;
-            }
-        }
-        result = false;
+        result = sd.members && sd.members.foreachDsymbol( (s) { return s.runsWithoutBeingCalled(); } ) != 0;
     }
 
     // dtemplate.d
@@ -10189,6 +10176,10 @@ private extern(C++) class HasStaticCtorOrDtor : Visitor
 
     override void visit(StaticDtorDeclaration sdd) @nogc nothrow pure @safe {
         result = true;
+    }
+
+    override void visit(UnitTestDeclaration utd) {
+        result = global.params.useUnitTests;
     }
 }
 

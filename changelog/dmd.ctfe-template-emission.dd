@@ -1,0 +1,41 @@
+Improved detection of CTFE-only template instances
+
+Template instances that are only used at compile time, such as in an `enum` initializer, UDA, or static if condition, used to be
+emitted into the object file.
+Only an eponymous `enum` template with a value of a basic type or `string` was skipped.
+Now every template instance that is only used at compile time is skipped:
+
+---
+struct S { int a, b; }
+
+// Already skipped before
+template fieldCount(T)
+{
+    size_t count() { return T.tupleof.length; }
+    enum fieldCount = count();
+}
+static assert(fieldCount!S == 2);
+
+// Also skipped now
+string repeat(string s)(size_t n)
+{
+    string r;
+    foreach (i; 0 .. n)
+        r ~= s;
+    return r;
+}
+enum line = repeat!"-"(40);
+
+struct Point(T)
+{
+    T x, y;
+    T sum() const { return x + y; }
+}
+enum total = Point!int(1, 2).sum();
+---
+
+Previously, `repeat!"-"`, `Point!int.sum` and the druntime array-appending internals
+used by `repeat` were emitted, even though nothing calls them at run time.
+
+This makes object files and libraries smaller.
+At time of writing, this reduces Phobos's size from 9091 members (19.7 MB) to 8230 (18.3 MB).
