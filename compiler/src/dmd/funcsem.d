@@ -67,6 +67,214 @@ import dmd.typesem;
 import dmd.visitor;
 import dmd.visitor.statement_rewrite_walker;
 
+// Opt-in tracing of requests for function body analysis. See
+// compiler/docs/function-semantic-tracing.md. Printing must not initiate
+// semantic work, and formatting is skipped while tracing is disabled.
+private __gshared FILE* functionSemanticTraceFile;
+private __gshared bool functionSemanticTraceInitialized;
+private __gshared ulong functionSemanticTraceSequence, functionSemanticTraceParent;
+
+package(dmd) void resetFunctionSemanticTrace() nothrow
+{
+    if (functionSemanticTraceFile)
+        fclose(functionSemanticTraceFile);
+    functionSemanticTraceFile = null;
+    functionSemanticTraceInitialized = false;
+    functionSemanticTraceSequence = functionSemanticTraceParent = 0;
+}
+
+private bool functionSemanticTraceEnabled()
+{
+    if (functionSemanticTraceFile)
+        return true;
+    if (!global.params.functionSemanticTraceFile)
+        return false;
+    if (!functionSemanticTraceInitialized)
+    {
+        functionSemanticTraceInitialized = true;
+        functionSemanticTraceFile = fopen(global.params.functionSemanticTraceFile, "w");
+    }
+    return functionSemanticTraceFile !is null;
+}
+
+// Pretty-printing can call oneMembers or inspect template argument types, both
+// of which can perform semantic work. Print only the existing identifier chain.
+// Declaration addresses distinguish instances whose arguments are omitted here.
+private const(char)* functionSemanticTraceName(Dsymbol symbol)
+{
+    if (!symbol)
+        return null;
+    OutBuffer buf;
+    void append(Dsymbol s)
+    {
+        if (s.parent)
+        {
+            append(s.parent);
+            buf.writeByte('.');
+        }
+        auto instance = s.isTemplateInstance();
+        auto ident = instance ? instance.name : s.ident;
+        buf.writestring(ident ? ident.toChars() : "__anonymous");
+        if (instance)
+            buf.writestring("!(...)");
+    }
+    append(symbol);
+    return buf.extractChars();
+}
+
+// Keep every event on one line, even for mixin names or unusual filenames.
+private void functionSemanticTraceText(const(char)[] text)
+{
+    foreach (c; text)
+    {
+        switch (c)
+        {
+            case '\\': fputs("\\\\", functionSemanticTraceFile); break;
+            case '\t': fputs("\\t", functionSemanticTraceFile); break;
+            case '\r': fputs("\\r", functionSemanticTraceFile); break;
+            case '\n': fputs("\\n", functionSemanticTraceFile); break;
+            default: fputc(c, functionSemanticTraceFile); break;
+        }
+    }
+}
+
+private void functionSemanticTraceField(const(char)* key, const(char)* value)
+{
+    fprintf(functionSemanticTraceFile, "\t%s=", key);
+    functionSemanticTraceText(value ? value.toDString() : "unavailable");
+}
+
+package(dmd) ulong traceFunctionSemantic(const(char)* event, const(char)* reason,
+    Dsymbol target, Scope* sc = null, Loc loc = Loc.initial,
+    const(char)* locationKind = "unavailable", Dsymbol context = null,
+    string site = __FILE__, int line = __LINE__)
+{
+    if (!functionSemanticTraceEnabled())
+        return 0;
+    if (!context && sc)
+        context = sc.func ? cast(Dsymbol)sc.func : sc._module;
+    const id = ++functionSemanticTraceSequence;
+    fprintf(functionSemanticTraceFile, "%llu\tparent=%llu\tevent=%s\treason=%s\ttarget=%p",
+        id, functionSemanticTraceParent, event, reason, cast(void*)target);
+    functionSemanticTraceField("name", functionSemanticTraceName(target));
+    functionSemanticTraceField("kind", target ? target.kind() : null);
+    functionSemanticTraceField("decl", target && target.loc.isValid ? target.loc.toChars(true) : null);
+    fprintf(functionSemanticTraceFile, "\tphase=%d\tcontext=%p\tcontextPhase=%d",
+        target ? cast(int)target.semanticRun : -1, cast(void*)context,
+        context ? cast(int)context.semanticRun : -1);
+    functionSemanticTraceField("contextName", functionSemanticTraceName(context));
+    functionSemanticTraceField("locKind", locationKind);
+    functionSemanticTraceField("loc", loc.isValid ? loc.toChars(true) : null);
+    functionSemanticTraceField("module", functionSemanticTraceName(sc ? sc._module : null));
+    auto fd = target ? target.isFuncDeclaration() : null;
+    fprintf(functionSemanticTraceFile,
+        "\ttinst=%p\tspec=%p\tgag=%u\terrors=%u\tgaggedErrors=%u"
+        ~ "\tdeferred3=%d\thasScope=%d\tfullinst=%d\tsavedCompilerHook=%d"
+        ~ "\tpendingPure=%d\tpendingNogc=%d\tpendingNothrow=%d\tsite=",
+        sc ? cast(void*)sc.tinst : null, target ? cast(void*)target.isSpeculative() : null,
+        global.gag, global.errors, global.gaggedErrors,
+        fd ? fd.deferred3 : -1, target ? target._scope !is null : -1,
+        sc ? sc.fullinst : -1, target && target._scope ? target._scope.deferSemantic3InCompilerHook : -1,
+        fd ? fd.purityInprocess : -1, fd ? fd.nogcInprocess : -1, fd ? fd.nothrowInprocess : -1);
+    functionSemanticTraceText(site);
+    fprintf(functionSemanticTraceFile, ":%d\n", line);
+    fflush(functionSemanticTraceFile);
+    return id;
+}
+
+// The guard links synchronous requests and restores the parent on all exits.
+// It stores no Scope*, declaration, or location for later inspection.
+// Cast guards to void where needed: D-Scanner does not recognize destructor-only use.
+package(dmd) struct FunctionSemanticTrace
+{
+    private ulong previous;
+    private bool enabled;
+    @disable this(this);
+
+    this(const(char)* reason, Dsymbol target, Scope* sc = null,
+        Loc loc = Loc.initial, const(char)* locationKind = "unavailable",
+        Dsymbol context = null, string site = __FILE__, int line = __LINE__)
+    {
+        enabled = reason !is null && functionSemanticTraceEnabled();
+        if (!enabled)
+            return;
+        previous = functionSemanticTraceParent;
+        functionSemanticTraceParent = traceFunctionSemantic("request", reason,
+            target, sc, loc, locationKind, context, site, line);
+    }
+
+    ~this()
+    {
+        if (enabled)
+            functionSemanticTraceParent = previous;
+    }
+}
+
+unittest
+{
+    import std.string : indexOf;
+    resetFunctionSemanticTrace();
+    scope (exit) resetFunctionSemanticTrace();
+    const savedPath = global.params.functionSemanticTraceFile;
+    scope (exit) global.params.functionSemanticTraceFile = savedPath;
+    global.params.functionSemanticTraceFile = null;
+    {
+        auto disabled = FunctionSemanticTrace("disabled", null);
+        assert(!disabled.enabled);
+        assert(traceFunctionSemantic("start", "disabled", null) == 0);
+        assert(!functionSemanticTraceInitialized && functionSemanticTraceSequence == 0);
+    }
+    functionSemanticTraceFile = tmpfile();
+    assert(functionSemanticTraceFile);
+    functionSemanticTraceInitialized = true;
+    const errors = global.errors;
+    const gag = global.gag;
+    const gaggedErrors = global.gaggedErrors;
+    {
+        auto outer = FunctionSemanticTrace("outer", null);
+        assert(outer.enabled);
+        const parent = functionSemanticTraceParent;
+        void nested()
+        {
+            auto inner = FunctionSemanticTrace("inner", null);
+            assert(inner.enabled);
+            assert(functionSemanticTraceParent != parent);
+            return; // exercise restoration at an early exit
+        }
+        nested();
+        assert(functionSemanticTraceParent == parent);
+    }
+    assert(functionSemanticTraceParent == 0);
+    assert(global.errors == errors && global.gag == gag && global.gaggedErrors == gaggedErrors);
+    functionSemanticTraceField("escaped", "a\tb\nc\r\\d");
+    rewind(functionSemanticTraceFile);
+    char[4096] contents;
+    auto n = fread(contents.ptr, 1, contents.length, functionSemanticTraceFile);
+    assert(contents[0 .. n].indexOf("1\tparent=0\tevent=request\treason=outer") >= 0);
+    assert(contents[0 .. n].indexOf("2\tparent=1\tevent=request\treason=inner") >= 0);
+    assert(contents[0 .. n].indexOf("escaped=a\\tb\\nc\\r\\\\d") >= 0);
+
+    // Collapsing eponymous template names with oneMembers can attach storage
+    // classes and link overloads. Neither target nor context formatting may do so.
+    auto ident = Identifier.idPool("traceName");
+    auto instance = new TemplateInstance(Loc.initial, ident, new Objects());
+    auto first = new FuncDeclaration(Loc.initial, Loc.initial, ident, STC.none, null);
+    auto second = new FuncDeclaration(Loc.initial, Loc.initial, ident, STC.none, null);
+    first.parent = second.parent = instance;
+    auto overloads = new Dsymbols();
+    overloads.push(first);
+    overloads.push(second);
+    instance.members = new Dsymbols();
+    instance.members.push(new StorageClassDeclaration(STC.const_, overloads));
+    traceFunctionSemantic("request", "name-state", first, null, Loc.initial, "unavailable", second);
+    assert(first.storage_class2 == STC.none && second.storage_class2 == STC.none);
+    assert(first.overnext0 is null && second.overnext0 is null);
+    assert(functionSemanticTraceName(first).toDString() == "traceName!(...).traceName");
+
+    resetFunctionSemanticTrace();
+    assert(!functionSemanticTraceInitialized && functionSemanticTraceSequence == 0);
+}
+
 bool addPostInvariant(FuncDeclaration _this)
 {
     static bool visitFuncDeclaration(FuncDeclaration _this)
@@ -1572,9 +1780,14 @@ private void initInferAttributes(FuncDeclaration fd)
 public
 bool functionSemantic(FuncDeclaration fd)
 {
+    auto semanticTrace = FunctionSemanticTrace("functionSemantic", fd);
+    cast(void)semanticTrace;
     //printf("functionSemantic() %p %s\n", this, toChars());
     if (!fd._scope)
+    {
+        traceFunctionSemantic("skip", "no-saved-scope", fd);
         return !fd.errors;
+    }
 
     fd.cppnamespace = fd._scope.namespace;
 
@@ -1590,15 +1803,22 @@ bool functionSemantic(FuncDeclaration fd)
         if (spec && global.errors != olderrs)
             spec.errors = (global.errors - olderrs != 0);
         if (olderrs != global.errors) // if errors compiling this function
+        {
+            traceFunctionSemantic("skip", "signature-errors", fd);
             return false;
+        }
     }
 
     if (fd.deferred3) // wait until final round of deferred semantic
+    {
+        traceFunctionSemantic("defer", "final-deferred-round", fd);
         return !fd.errors;
+    }
     if (fd._scope && fd._scope.deferSemantic3InCompilerHook && !fd.errors)
     {
         fd._scope.deferSemantic3InCompilerHook = false;
         addDeferredSemantic3(fd);
+        traceFunctionSemantic("defer", "compiler-hook", fd);
         return !fd.errors;
     }
 
@@ -1607,7 +1827,11 @@ bool functionSemantic(FuncDeclaration fd)
     //   the inferred return type is valid.
     //   So, the body errors should become the function signature error.
     if (fd.inferRetType && fd.type && !fd.type.nextOf())
+    {
+        auto request = FunctionSemanticTrace("inferred-return-type", fd);
+        cast(void)request;
         return fd.functionSemantic3();
+    }
 
     TemplateInstance ti;
     if (fd.isInstantiated() && !fd.isVirtualMethod() &&
@@ -1620,14 +1844,24 @@ bool functionSemantic(FuncDeclaration fd)
              * then setting SIZOKfwd is too conservative and would break existing code.
              * So, just stop method attributes inference until ad.dsymbolSemantic() done.
              */
+            traceFunctionSemantic("defer", "aggregate-layout-incomplete", fd);
             //ad.sizeok = Sizeok.fwd;
         }
         else
+        {
+            auto request = FunctionSemanticTrace("instantiated-function-attributes", fd);
+            cast(void)request;
             return fd.functionSemantic3() || !fd.errors;
+        }
     }
 
     if (fd.storage_class & STC.inference)
+    {
+        auto request = FunctionSemanticTrace("STC.inference", fd);
+        cast(void)request;
         return fd.functionSemantic3() || !fd.errors;
+    }
+    traceFunctionSemantic("skip", "no-eager-body-request", fd);
 
     return !fd.errors;
 }
@@ -1639,6 +1873,16 @@ bool functionSemantic(FuncDeclaration fd)
 public
 bool functionSemantic3(FuncDeclaration fd)
 {
+    auto semanticTrace = FunctionSemanticTrace("functionSemantic3", fd);
+    cast(void)semanticTrace;
+    if (global.params.functionSemanticTraceFile)
+    {
+        // The guard below owns the semantic decision; this only explains it.
+        if (fd.deferred3 || fd.semanticRun >= PASS.semantic3 || !fd._scope)
+            traceFunctionSemantic("skip", fd.deferred3 ? "deferred3" :
+                fd.semanticRun == PASS.semantic3 ? "already-active" :
+                fd.semanticRun >= PASS.semantic3done ? "already-complete" : "no-saved-scope", fd);
+    }
     if (!fd.deferred3 && fd.semanticRun < PASS.semantic3 && fd._scope)
     {
         /* Forward reference - we need to run semantic3 on this function.
@@ -1737,6 +1981,8 @@ extern (D) void declareThis(FuncDeclaration fd, Scope* sc)
  */
 extern (D) bool checkForwardRef(FuncDeclaration fd, Loc loc)
 {
+    auto request = FunctionSemanticTrace("checkForwardRef", fd, null, loc, "request");
+    cast(void)request;
     if (!functionSemantic(fd))
         return true;
 
@@ -1979,7 +2225,11 @@ FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s,
         if (m.count == 1) // exactly one match
         {
             if (!(flags & FuncResolveFlag.quiet))
+            {
+                auto request = FunctionSemanticTrace("resolveFuncCall-selected-function", m.lastf, sc, loc, "request");
+                cast(void)request;
                 functionSemantic(m.lastf);
+            }
             return m.lastf;
         }
         if ((flags & FuncResolveFlag.overloadOnly) && !tthis && m.lastf.needThis())

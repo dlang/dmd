@@ -10,6 +10,48 @@ import support : afterEach, defaultImportPaths;
     deinitializeDMD();
 }
 
+@("function semantic trace - frontend sessions")
+unittest
+{
+    import std.file : exists, readText, remove, tempDir;
+    import std.path : buildPath;
+    import std.string : indexOf, startsWith, toStringz;
+    import std.uuid : randomUUID;
+
+    import dmd.frontend;
+    import dmd.globals : global;
+
+    const path = buildPath(tempDir(), "dmd-semantic-" ~ randomUUID().toString() ~ ".trace");
+    scope (exit) if (exists(path)) remove(path);
+    // Alternate disabled/enabled sessions to detect leaked configuration,
+    // parent IDs, or file handles. No runtime imports are needed.
+    foreach (i; 0 .. 4)
+    {
+        initDMD();
+        assert(global.params.functionSemanticTraceFile is null);
+        const enabled = i % 2 != 0;
+        if (enabled)
+            global.params.functionSemanticTraceFile = path.toStringz();
+        auto parsed = parseModule("object.d", q{
+            int f()(int n) { return n ? f(n - 1) : 0; }
+            void g() { f(1); }
+        });
+        assert(!parsed.diagnostics.hasErrors);
+        parsed.module_.fullSemantic();
+        assert(global.errors == 0);
+        deinitializeDMD();
+        assert(exists(path) == enabled);
+        if (enabled)
+        {
+            const text = readText(path);
+            assert(text.startsWith("1\tparent=0\t"));
+            assert(text.indexOf("reason=already-active") >= 0);
+            // In particular, Windows rejects removal if the stdio handle is open.
+            remove(path);
+        }
+    }
+}
+
 @("parseModule - custom AST family")
 unittest
 {

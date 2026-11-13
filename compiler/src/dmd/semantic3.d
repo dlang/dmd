@@ -92,6 +92,11 @@ enum LOG = false;
  */
 void semantic3(Dsymbol dsym, Scope* sc)
 {
+    auto semanticTrace = FunctionSemanticTrace(
+        global.params.functionSemanticTraceFile &&
+        (dsym.isFuncDeclaration() || dsym.isModule() || dsym.isAggregateDeclaration() || dsym.isTemplateInstance())
+            ? "semantic3-dispatch".ptr : null, dsym, sc);
+    cast(void)semanticTrace;
     scope v = new Semantic3Visitor(sc);
     dsym.accept(v);
 }
@@ -255,6 +260,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
         }
         if (funcdecl.errors || isError(funcdecl.parent))
         {
+            traceFunctionSemantic("skip", "function-or-parent-errors", funcdecl, sc);
             funcdecl.errors = true;
 
             // Mark that the return type could not be inferred
@@ -301,7 +307,14 @@ private extern(C++) final class Semantic3Visitor : Visitor
 
         //printf(" sc.incontract = %d\n", sc.contract);
         if (funcdecl.semanticRun >= PASS.semantic3)
+        {
+            traceFunctionSemantic("skip",
+                funcdecl.semanticRun == PASS.semantic3 ? "visitor-already-active" : "visitor-already-complete", funcdecl, sc);
             return;
+        }
+        traceFunctionSemantic("start", "function-semantic3", funcdecl, sc);
+        scope (exit) traceFunctionSemantic("finish",
+            funcdecl.semanticRun == PASS.semantic3done ? "completed" : "early-exit", funcdecl);
         funcdecl.semanticRun = PASS.semantic3;
         funcdecl.hasSemantic3Errors = false;
         funcdecl.saferD = sc.previews.safer && !sc.inCfile;
@@ -1808,6 +1821,8 @@ void semanticTypeInfoMembers(StructDeclaration sd)
     {
         if (fd && fd._scope && fd.semanticRun < PASS.semantic3done)
         {
+            auto request = FunctionSemanticTrace("typeinfo-special-member", fd, null, Loc.initial, "unavailable", sd);
+            cast(void)request;
             const errors = global.startGagging();
             fd.semantic3(fd._scope);
             if (global.endGagging(errors))

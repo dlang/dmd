@@ -1473,6 +1473,7 @@ Laftersemantic:
 
 void templateInstanceSemantic3(TemplateInstance tempinst, Scope* sc, Scope* sc2)
 {
+    auto semanticTrace = FunctionSemanticTrace("template-instance-scheduling", tempinst, sc, tempinst.loc, "instantiation");
     if ((sc.func || sc.fullinst) && !tempinst.tinst)
     {
         /* If a template is instantiated inside function, the whole instantiation
@@ -1497,6 +1498,7 @@ void templateInstanceSemantic3(TemplateInstance tempinst, Scope* sc, Scope* sc2)
 
         {
             timeTraceBeginEvent(TimeTraceEventType.sema1TemplateInstanceSema3);
+            auto request = FunctionSemanticTrace("template-local-or-fullinst", tempinst, sc, tempinst.loc, "instantiation");
             tempinst.trySemantic3(sc2);
             timeTraceEndEvent(TimeTraceEventType.sema1TemplateInstanceSema3, tempinst,
                 () => tempinst.toPrettyChars().toDString());
@@ -1562,7 +1564,14 @@ void templateInstanceSemantic3(TemplateInstance tempinst, Scope* sc, Scope* sc2)
             //printf("[%s] %s doSemantic3 = %d\n", tempinst.tinst.loc.toChars(), tempinst.tinst.toChars(), doSemantic3);
         }
         if (doSemantic3)
+        {
+            auto request = FunctionSemanticTrace("nested-template-immediate", tempinst, sc, tempinst.loc, "instantiation");
             tempinst.trySemantic3(sc2);
+        }
+        else
+        {
+            traceFunctionSemantic("defer", "nested-template-not-immediate", tempinst, sc, tempinst.loc, "instantiation");
+        }
 
         TemplateInstance ti = tempinst.tinst;
         int nest = 0;
@@ -1591,6 +1600,10 @@ void templateInstanceSemantic3(TemplateInstance tempinst, Scope* sc, Scope* sc2)
                     break;
             }
         }
+    }
+    else
+    {
+        traceFunctionSemantic("defer", "template-awaits-module-traversal", tempinst, sc, tempinst.loc, "instantiation");
     }
 }
 

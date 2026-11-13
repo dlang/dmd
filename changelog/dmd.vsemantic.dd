@@ -1,0 +1,12 @@
+Add `-vsemantic=<filename>` to trace function body analysis requests
+
+The `-vsemantic` switch records which expressions and scheduling operations
+request function body analysis, together with starts, finishes, skips and
+deferrals. It helps investigate attribute inference and forward references.
+
+---
+dmd -vsemantic=analysis.trace -c example.d
+---
+
+Tracing is disabled by default and writes to a separate file. The output is a
+debugging aid; its format may change. It does not change inference or scheduling.

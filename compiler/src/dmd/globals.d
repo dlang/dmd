@@ -274,6 +274,7 @@ extern (C++) struct Param
     bool timeTrace = false; /// Whether profiling of compile time is enabled
     uint timeTraceGranularityUs = 500; /// In microseconds, minimum event size to report
     const(char)* timeTraceFile; /// File path of output file
+    const(char)* functionSemanticTraceFile; /// -vsemantic output file, null disables tracing
 
     ///
     bool parsingUnittestsRequired(bool isRoot) @safe
@@ -389,6 +390,10 @@ extern (C++) struct Global
 
     extern (C++) void _init()
     {
+        {
+            import dmd.funcsem : resetFunctionSemanticTrace;
+            resetFunctionSemanticTrace();
+        }
         errorSink = new ErrorSinkCompiler;
         errorSinkNull = new ErrorSinkNull;
 
@@ -444,6 +449,10 @@ extern (C++) struct Global
      */
     extern (D) void deinitialize()
     {
+        {
+            import dmd.funcsem : resetFunctionSemanticTrace;
+            resetFunctionSemanticTrace();
+        }
         this = this.init;
     }
 

@@ -294,6 +294,7 @@ struct Param
     bool timeTrace;
     uint32_t timeTraceGranularityUs;
     const char* timeTraceFile;
+    const char* functionSemanticTraceFile;
 };
 
 struct structalign_t
