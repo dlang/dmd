@@ -669,7 +669,12 @@ private:
             if (either is null && haveConstraintOnLifeTime)
                 lookAtConstraintOnly = true;
 
-            if (intoVar.param !is null && either !is null && either.param !is null)
+            // A by-value parameter's cell belongs to this callee, not its caller.
+            const calleeOwnedCell = constrainedTo is null && cellOf !is null
+                && !cellOf.isByRef && !hadAnIndirection;
+
+            if (intoVar.param !is null && either !is null && either.param !is null
+                && !calleeOwnedCell)
             {
                 either.mayEscapeInitialValue = true;
                 inferParameter(either, hadAnIndirection, haveConstraintOnLifeTime, inCell);
@@ -680,7 +685,9 @@ private:
             {
             }
             else if (cellOf !is null && !cellOf.unmodellable
-                && intoVar.youngestLifeTimeAllowedDepth < cellOf.oldestLifeTimeAllowedDepth)
+                && (intoVar.youngestLifeTimeAllowedDepth < cellOf.oldestLifeTimeAllowedDepth
+                    || (intoVar is returnVar && cellOf.oldestLifeTimeAllowedDepth > 0
+                        && dfaCommon.currentFunction.type.isTypeFunction.trust == TRUST.safe)))
             {
                 cellOf.mayEscapeInitialValue = true;
 
