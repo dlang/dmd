@@ -1473,7 +1473,7 @@ Laftersemantic:
 
 void templateInstanceSemantic3(TemplateInstance tempinst, Scope* sc, Scope* sc2)
 {
-    debug (TraceFunctionSemantic) auto semanticTrace = FunctionSemanticTrace("template-instance-scheduling", tempinst, sc, tempinst.loc, "instantiation");
+    auto semanticTrace = FunctionSemanticTrace("template-instance-scheduling", tempinst, sc, tempinst.loc, "instantiation");
     if ((sc.func || sc.fullinst) && !tempinst.tinst)
     {
         /* If a template is instantiated inside function, the whole instantiation
@@ -1498,7 +1498,7 @@ void templateInstanceSemantic3(TemplateInstance tempinst, Scope* sc, Scope* sc2)
 
         {
             timeTraceBeginEvent(TimeTraceEventType.sema1TemplateInstanceSema3);
-            debug (TraceFunctionSemantic) auto request = FunctionSemanticTrace("template-local-or-fullinst", tempinst, sc, tempinst.loc, "instantiation");
+            auto request = FunctionSemanticTrace("template-local-or-fullinst", tempinst, sc, tempinst.loc, "instantiation");
             tempinst.trySemantic3(sc2);
             timeTraceEndEvent(TimeTraceEventType.sema1TemplateInstanceSema3, tempinst,
                 () => tempinst.toPrettyChars().toDString());
@@ -1565,12 +1565,12 @@ void templateInstanceSemantic3(TemplateInstance tempinst, Scope* sc, Scope* sc2)
         }
         if (doSemantic3)
         {
-            debug (TraceFunctionSemantic) auto request = FunctionSemanticTrace("nested-template-immediate", tempinst, sc, tempinst.loc, "instantiation");
+            auto request = FunctionSemanticTrace("nested-template-immediate", tempinst, sc, tempinst.loc, "instantiation");
             tempinst.trySemantic3(sc2);
         }
         else
         {
-            debug (TraceFunctionSemantic) traceFunctionSemantic("defer", "nested-template-not-immediate", tempinst, sc, tempinst.loc, "instantiation");
+            traceFunctionSemantic("defer", "nested-template-not-immediate", tempinst, sc, tempinst.loc, "instantiation");
         }
 
         TemplateInstance ti = tempinst.tinst;
@@ -1603,7 +1603,7 @@ void templateInstanceSemantic3(TemplateInstance tempinst, Scope* sc, Scope* sc2)
     }
     else
     {
-        debug (TraceFunctionSemantic) traceFunctionSemantic("defer", "template-awaits-module-traversal", tempinst, sc, tempinst.loc, "instantiation");
+        traceFunctionSemantic("defer", "template-awaits-module-traversal", tempinst, sc, tempinst.loc, "instantiation");
     }
 }
 

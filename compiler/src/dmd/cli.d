@@ -1006,6 +1006,11 @@ dmd -cov -unittest myprog.d
             will cause a warning to be emitted for default nan initialization`,
             TargetOS.all, false,
         ),
+        Option("vsemantic=<filename>",
+            "trace requests for function body analysis to a file",
+            `Record function-body analysis requests, their origins, and start/finish/skip/defer decisions.
+            Output is separate from diagnostics. Its format is a debugging aid and may change.`,
+        ),
         Option("vtls",
             "list all variables going into thread local storage"
         ),

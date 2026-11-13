@@ -2934,7 +2934,7 @@ Lagain:
     if (auto f = s.isFuncDeclaration())
     {
         f = f.toAliasFunc();
-        debug (TraceFunctionSemantic) auto request = FunctionSemanticTrace("symbol-to-expression-function", f, sc, loc, "request");
+        auto request = FunctionSemanticTrace("symbol-to-expression-function", f, sc, loc, "request");
         if (!functionSemantic(f))
             return ErrorExp.get();
 
@@ -4351,7 +4351,7 @@ private bool functionParameters(Loc loc, Scope* sc,
     // If inferring return type, and semantic3() needs to be run if not already run
     if (!tf.next && fd.inferRetType)
     {
-        debug (TraceFunctionSemantic) auto request = FunctionSemanticTrace("functionParameters-return-type", fd, sc, loc, "request");
+        auto request = FunctionSemanticTrace("functionParameters-return-type", fd, sc, loc, "request");
         functionSemantic(fd);
     }
     else if (fd && fd.parent)
@@ -4359,7 +4359,7 @@ private bool functionParameters(Loc loc, Scope* sc,
         TemplateInstance ti = fd.parent.isTemplateInstance();
         if (ti && ti.tempdecl)
         {
-            debug (TraceFunctionSemantic) auto request = FunctionSemanticTrace("functionParameters-template-parent", fd, sc, loc, "request");
+            auto request = FunctionSemanticTrace("functionParameters-template-parent", fd, sc, loc, "request");
             fd.functionSemantic3();
         }
     }
@@ -7427,7 +7427,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (fd)
         {
             //printf("L%d fd = %s\n", __LINE__, f.toChars());
-            debug (TraceFunctionSemantic) auto request = FunctionSemanticTrace("VarExp-function", fd, sc, e.loc, "request");
+            auto request = FunctionSemanticTrace("VarExp-function", fd, sc, e.loc, "request");
             if (!functionSemantic(fd))
                 return setError();
         }
@@ -10331,7 +10331,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (FuncDeclaration fd = exp.var.isFuncDeclaration())
         {
             // for functions, do checks after overload resolution
-            debug (TraceFunctionSemantic) auto request = FunctionSemanticTrace("DotVarExp-function", fd, sc, exp.loc, "request");
+            auto request = FunctionSemanticTrace("DotVarExp-function", fd, sc, exp.loc, "request");
             if (!functionSemantic(fd))
                 return setError();
 

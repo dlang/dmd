@@ -1,30 +1,12 @@
 # Tracing requests for function body analysis
 
-When investigating attribute inference or forward references, knowing which function started semantic3 is not enough: a module traversal, a template instantiation, or an expression can request that analysis. The developer-only `TraceFunctionSemantic` debug identifier records those request origins and the decisions between them. It does not change inference or scheduling.
+When investigating attribute inference or forward references, knowing which function started semantic3 is not enough: a module traversal, a template instantiation, or an expression can request that analysis. The `-vsemantic=<filename>` switch records those request origins and the decisions between them. It works in ordinary compiler builds and does not change inference or scheduling.
 
-Build a compiler with the debug identifier, then select a trace file at runtime. From the repository root, using an existing host compiler:
-
-```sh
-dmd -run compiler/src/build.d --force dmd AUTO_BOOTSTRAP=0 DFLAGS=-debug=TraceFunctionSemantic
-```
-
-Set `HOST_DMD=/path/to/dmd` as an additional build argument if necessary. `--force` matters when changing build flags in an existing build directory: timestamp checks alone do not detect that change. The executable is under `generated/<os>/<build>/<model>/`.
-
-For example, on a POSIX shell:
+Select a separate trace file for each compilation:
 
 ```sh
-DMD_TRACE_FUNCTION_SEMANTIC=annotated-first.trace /path/to/traced/dmd -c -o- annotated.d ion.d
-DMD_TRACE_FUNCTION_SEMANTIC=ion-first.trace /path/to/traced/dmd -c -o- ion.d annotated.d
-```
-
-In PowerShell:
-
-```powershell
-$env:DMD_TRACE_FUNCTION_SEMANTIC = "$PWD/annotated-first.trace"
-& /path/to/traced/dmd -c -o- annotated.d ion.d
-$env:DMD_TRACE_FUNCTION_SEMANTIC = "$PWD/ion-first.trace"
-& /path/to/traced/dmd -c -o- ion.d annotated.d
-Remove-Item Env:DMD_TRACE_FUNCTION_SEMANTIC
+dmd -vsemantic=annotated-first.trace -c -o- annotated.d ion.d
+dmd -vsemantic=ion-first.trace -c -o- ion.d annotated.d
 ```
 
 Use runtime headers matching the compiler source revision, as with other development builds. The examples above use the two files from [issue #24202](https://github.com/dlang/dmd/issues/24202). With the behavior reported there, the request chains differ as follows:
@@ -78,12 +60,14 @@ Unavailable textual values are `unavailable`; inapplicable numeric fields use `-
 
 ## Scope and lifecycle
 
-Ordinary compiler builds contain none of the tracing code and ignore `DMD_TRACE_FUNCTION_SEMANTIC`. In a trace build, an unset or empty variable disables output. The file is opened with truncation on the first traced operation; use a separate writable filename for each process or frontend session. If opening it fails, no trace is produced and compiler diagnostics are unaffected. Frontend initialization/deinitialization resets the trace state and closes its file. Rows are flushed as they are written.
+Tracing is disabled by default. Without `-vsemantic`, the probes skip formatting and file output. A filename is required; the file is opened with truncation on the first traced operation. Use a separate writable filename for each process or frontend session. If opening it fails, no trace is produced and compiler diagnostics are unaffected. Frontend initialization/deinitialization resets the trace state and closes its file. Rows are flushed as they are written.
+
+Clients of the frontend library can set `global.params.functionSemanticTraceFile` to a null-terminated filename after `initDMD()` and before semantic analysis. Keep that filename valid until frontend teardown; select a new destination only between sessions.
 
 The probes cover root-module scheduling, template-instance scheduling, selected function-expression and call-resolution requests, TypeInfo equality/comparison helper requests, `functionSemantic`/`functionSemantic3`, and function semantic3 entry/exit guards. They are not an inventory of every semantic3 caller or attribute consumer. Uninstrumented callers can appear as a dispatcher request without a more specific parent. Tracing does not retain `Scope*` values, call mutating attribute queries, change error counts, or change gagging.
 
-The helper's unit test checks nested/early-return parent restoration, escaping, reset, and preservation of error/gagging counters. Run it with the compiler unit tests in a trace build:
+The helper's unit test checks nested/early-return parent restoration, escaping, reset, and preservation of error/gagging counters. Run it with the compiler unit tests:
 
 ```sh
-dmd -run compiler/src/build.d --force unittest AUTO_BOOTSTRAP=0 DFLAGS=-debug=TraceFunctionSemantic
+dmd -run compiler/src/build.d --force unittest AUTO_BOOTSTRAP=0
 ```
