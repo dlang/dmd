@@ -67,13 +67,7 @@ struct SectionGroup
         return _gcRanges[];
     }
 
-    @property immutable(FuncTable)[] ehTables() const nothrow @nogc
-    {
-        return _ehTables[];
-    }
-
 private:
-    immutable(FuncTable)[] _ehTables;
     ModuleGroup _moduleGroup;
     Array!(void[]) _gcRanges;
     immutable(void)[][2] _tlsImage;
@@ -226,16 +220,6 @@ extern (C) void sections_osx_onAddImage(const scope mach_header* h, intptr_t sli
         immutable len = minfosect.length / (*p).sizeof;
 
         _sections._moduleGroup = ModuleGroup(p[0 .. len]);
-    }
-
-    auto ehsect = getSection(h, slide, "__DATA", "__deh_eh");
-    if (ehsect != null)
-    {
-        debug(PRINTF) printf("  deh_eh\n");
-        auto p = cast(immutable(FuncTable)*)ehsect.ptr;
-        immutable len = ehsect.length / (*p).sizeof;
-
-        _sections._ehTables = p[0 .. len];
     }
 
     auto tlssect = getSection(h, slide, "__DATA", "__tls_data");

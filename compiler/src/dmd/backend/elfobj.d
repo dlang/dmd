@@ -3462,22 +3462,9 @@ private void obj_rtinit()
     // make the symbols hidden so that each DSO gets its own brackets
     IDXSYM minfo_beg, minfo_end, dso_rec;
 
-    IDXSYM deh_beg, deh_end;
-
     {
     // needs to be writeable for PIC code, see Bugzilla 13117
     const shf_flags = SHF_ALLOC | SHF_WRITE;
-
-    if (config.exe & (EX_OPENBSD | EX_OPENBSD64))
-    {
-        const namidx3 = ElfObj_addstr(&elfobj.symtab_strings,"__start_deh");
-        deh_beg = elf_addsym(namidx3, 0, 0, STT_NOTYPE, STB_GLOBAL, SHN_UNDEF, STV_HIDDEN);
-
-        ElfObj_getsegment("deh", null, SHT_PROGBITS, shf_flags, _tysize[TYnptr]);
-
-        const namidx4 = ElfObj_addstr(&elfobj.symtab_strings,"__stop_deh");
-        deh_end = elf_addsym(namidx4, 0, 0, STT_NOTYPE, STB_GLOBAL, SHN_UNDEF, STV_HIDDEN);
-    }
 
     const namidx = ElfObj_addstr(&elfobj.symtab_strings,"__start_minfo");
     minfo_beg = elf_addsym(namidx, 0, 0, STT_NOTYPE, STB_GLOBAL, SHN_UNDEF, STV_HIDDEN);
@@ -3664,11 +3651,6 @@ private void obj_rtinit()
             off += 1;
         }
 
-        if (config.exe & (EX_OPENBSD | EX_OPENBSD64))
-        {
-            writeSym(deh_end);
-            writeSym(deh_beg);
-        }
         writeSym(minfo_end);
         writeSym(minfo_beg);
         writeSym(dso_rec);
@@ -3826,22 +3808,9 @@ private void obj_rtinit_aarch64()
     // make the symbols hidden so that each DSO gets its own brackets
     IDXSYM minfo_beg, minfo_end, dso_rec;
 
-    IDXSYM deh_beg, deh_end;
-
     {
     // needs to be writeable for PIC code, see Bugzilla 13117
     const shf_flags = SHF_ALLOC | SHF_WRITE;
-
-    if (config.exe & (EX_OPENBSD | EX_OPENBSD64))
-    {
-        const namidx3 = ElfObj_addstr(&elfobj.symtab_strings,"__start_deh");
-        deh_beg = elf_addsym(namidx3, 0, 0, STT_NOTYPE, STB_GLOBAL, SHN_UNDEF, STV_HIDDEN);
-
-        ElfObj_getsegment("deh", null, SHT_PROGBITS, shf_flags, _tysize[TYnptr]);
-
-        const namidx4 = ElfObj_addstr(&elfobj.symtab_strings,"__stop_deh");
-        deh_end = elf_addsym(namidx4, 0, 0, STT_NOTYPE, STB_GLOBAL, SHN_UNDEF, STV_HIDDEN);
-    }
 
     const namidx = ElfObj_addstr(&elfobj.symtab_strings,"__start_minfo");
     minfo_beg = elf_addsym(namidx, 0, 0, STT_NOTYPE, STB_GLOBAL, SHN_UNDEF, STV_HIDDEN);

@@ -1,36 +1,18 @@
 /**
  * Implementation of exception handling support routines for Win64.
  *
- * Note that this code also support POSIX, however since v2.070.0,
- * DWARF exception handling is used instead when possible,
- * as it provides better compatibility with C++.
- *
  * Copyright: Copyright Digital Mars 2000 - 2013.
  * License: Distributed under the
  *      $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost Software License 1.0).
  *    (See accompanying file LICENSE)
  * Authors:   Walter Bright, Sean Kelly
- * Source: $(DRUNTIMESRC rt/deh_win64_posix.d)
+ * Source: $(DRUNTIMESRC rt/deh_win64.d)
  * See_Also: https://docs.microsoft.com/en-us/cpp/build/exception-handling-x64?view=vs-2019
  */
 
-module rt.deh_win64_posix;
+module rt.deh_win64;
 
-version (Win64)
-    version = Win64_Posix;
-version (Posix)
-    version = Win64_Posix;
-
-version (Win64_Posix):
-
-version (OSX)
-    version = Darwin;
-else version (iOS)
-    version = Darwin;
-else version (TVOS)
-    version = Darwin;
-else version (WatchOS)
-    version = Darwin;
+version (Win64):
 
 //debug=PRINTF;
 debug(PRINTF) import core.stdc.stdio : printf;
@@ -157,33 +139,27 @@ immutable(FuncTable)* __eh_finddata(void *address, immutable(FuncTable)* pstart,
         if (ft >= pend)
             break;
 
-        version (Win64)
+        /* The MS Linker has an inexplicable and erratic tendency to insert
+         * 8 zero bytes between sections generated from different .obj
+         * files. This kludge tries to skip over them.
+         */
+        if (ft.fptr == null)
         {
-            /* The MS Linker has an inexplicable and erratic tendency to insert
-             * 8 zero bytes between sections generated from different .obj
-             * files. This kludge tries to skip over them.
-             */
-            if (ft.fptr == null)
-            {
-                ft = cast(immutable(FuncTable)*)(cast(void**)ft + 1);
-                goto Lagain;
-            }
+            ft = cast(immutable(FuncTable)*)(cast(void**)ft + 1);
+            goto Lagain;
         }
 
         debug(PRINTF) printf("  ft = %p, fptr = %p, handlertable = %p, fsize = x%03x\n",
               ft, ft.fptr, ft.handlertable, ft.fsize);
 
         immutable(void)* fptr = ft.fptr;
-        version (Win64)
-        {
-            /* If linked with /DEBUG, the linker rewrites it so the function pointer points
-             * to a JMP to the actual code. The address will be in the actual code, so we
-             * need to follow the JMP.
-             */
-            if ((cast(ubyte*)fptr)[0] == 0xE9)
-            {   // JMP target = RIP of next instruction + signed 32 bit displacement
-                fptr = fptr + 5 + *cast(int*)(fptr + 1);
-            }
+        /* If linked with /DEBUG, the linker rewrites it so the function pointer points
+         * to a JMP to the actual code. The address will be in the actual code, so we
+         * need to follow the JMP.
+         */
+        if ((cast(ubyte*)fptr)[0] == 0xE9)
+        {   // JMP target = RIP of next instruction + signed 32 bit displacement
+            fptr = fptr + 5 + *cast(int*)(fptr + 1);
         }
 
         if (fptr <= address &&
@@ -291,16 +267,13 @@ extern (C) void _d_throwc(Throwable h)
             continue;
         }
         auto funcoffset = cast(size_t)func_table.fptr;
-        version (Win64)
-        {
-            /* If linked with /DEBUG, the linker rewrites it so the function pointer points
-             * to a JMP to the actual code. The address will be in the actual code, so we
-             * need to follow the JMP.
-             */
-            if ((cast(ubyte*)funcoffset)[0] == 0xE9)
-            {   // JMP target = RIP of next instruction + signed 32 bit displacement
-                funcoffset = funcoffset + 5 + *cast(int*)(funcoffset + 1);
-            }
+        /* If linked with /DEBUG, the linker rewrites it so the function pointer points
+         * to a JMP to the actual code. The address will be in the actual code, so we
+         * need to follow the JMP.
+         */
+        if ((cast(ubyte*)funcoffset)[0] == 0xE9)
+        {   // JMP target = RIP of next instruction + signed 32 bit displacement
+            funcoffset = funcoffset + 5 + *cast(int*)(funcoffset + 1);
         }
         auto spoff = handler_table.espoffset;
         auto retoffset = handler_table.retoffset;
@@ -445,25 +418,21 @@ extern (C) void _d_throwc(Throwable h)
                 inflight.t    = cast(Throwable) h;
                 __inflight    = &inflight;
 
-                version (Darwin)
-                {
-                    version (D_InlineAsm_X86)
-                        asm
-                        {
-                            sub     ESP,4           ;
-                            push    EBX             ;
-                            mov     EBX,blockaddr   ;
-                            push    EBP             ;
-                            mov     EBP,regebp      ;
-                            call    EBX             ;
-                            pop     EBP             ;
-                            pop     EBX             ;
-                            add     ESP,4           ;
-                        }
-                    else version (D_InlineAsm_X86_64)
-                        asm
-                        {
-                            sub     RSP,8           ;
+                version (D_InlineAsm_X86)
+                    asm
+                    {
+                        push    EBX             ;
+                        mov     EBX,blockaddr   ;
+                        push    EBP             ;
+                        mov     EBP,regebp      ;
+                        call    EBX             ;
+                        pop     EBP             ;
+                        pop     EBX             ;
+                    }
+                else version (D_InlineAsm_X86_64)
+                    asm
+                    {
+                        sub     RSP,8           ;
                             push    RBX             ;
                             mov     RBX,blockaddr   ;
                             push    RBP             ;
@@ -473,46 +442,12 @@ extern (C) void _d_throwc(Throwable h)
                             pop     RBX             ;
                             add     RSP,8           ;
                         }
-                    else version (AArch64)
-                    {
-                        assert(0);    // TODO AArch64
-                    }
-                    else
-                        static assert(0);
+                else version (AArch64)
+                {
+                    assert(0);    // TODO AArch64
                 }
                 else
-                {
-                    version (D_InlineAsm_X86)
-                        asm
-                        {
-                            push    EBX             ;
-                            mov     EBX,blockaddr   ;
-                            push    EBP             ;
-                            mov     EBP,regebp      ;
-                            call    EBX             ;
-                            pop     EBP             ;
-                            pop     EBX             ;
-                        }
-                    else version (D_InlineAsm_X86_64)
-                        asm
-                        {
-                            sub     RSP,8           ;
-                            push    RBX             ;
-                            mov     RBX,blockaddr   ;
-                            push    RBP             ;
-                            mov     RBP,regebp      ;
-                            call    RBX             ;
-                            pop     RBP             ;
-                            pop     RBX             ;
-                            add     RSP,8           ;
-                        }
-                    else version (AArch64)
-                    {
-                        assert(0);    // TODO AArch64
-                    }
-                    else
-                        static assert(0);
-                }
+                    static assert(0);
 
                 if (__inflight is &inflight)
                     __inflight = __inflight.next;

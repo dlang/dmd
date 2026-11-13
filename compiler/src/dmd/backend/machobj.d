@@ -117,7 +117,6 @@ struct MachObj
     int seg_cstring = UNKNOWN;        // __cstring section
     int seg_mod_init_func = UNKNOWN;  // __mod_init_func section
     int seg_mod_term_func = UNKNOWN;  // __mod_term_func section
-    int seg_deh_eh = UNKNOWN;         // __deh_eh section
     int seg_textcoal_nt = UNKNOWN;
     int seg_tlscoal_nt = UNKNOWN;
     int seg_datacoal_nt = UNKNOWN;
@@ -351,7 +350,6 @@ Obj MachObj_init(OutBuffer* objbuf, const(char)* filename, const(char)* csegname
     machobj.seg_cstring = UNKNOWN;
     machobj.seg_mod_init_func = UNKNOWN;
     machobj.seg_mod_term_func = UNKNOWN;
-    machobj.seg_deh_eh = UNKNOWN;
     machobj.seg_textcoal_nt = UNKNOWN;
     machobj.seg_tlscoal_nt = UNKNOWN;
     machobj.seg_datacoal_nt = UNKNOWN;
@@ -2106,28 +2104,7 @@ void MachObj_setModuleCtorDtor(Symbol* sfunc, bool isCtor)
 void MachObj_ehtables(Symbol* sfunc,uint size,Symbol* ehsym)
 {
     //dbg_printf("MachObj_ehtables(%s) \n",sfunc.Sident.ptr);
-
-    /* BUG: this should go into a COMDAT if sfunc is in a COMDAT
-     * otherwise the duplicates aren't removed.
-     */
-
-    int p2align = I64 ? 3 : 2;            // align to _tysize[TYnptr]
-    // The size is (FuncTable).sizeof in deh2.d
-    int seg = getsegment2(machobj.seg_deh_eh, "__deh_eh", "__DATA", p2align, S_REGULAR);
-
-    OutBuffer* buf = SegData[seg].SDbuf;
-    if (I64)
-    {
-        MachObj_reftoident(seg, buf.length(), sfunc, 0, CF.off | CF.offset64);
-        MachObj_reftoident(seg, buf.length(), ehsym, 0, CF.off | CF.offset64);
-        buf.write64(sfunc.Ssize);
-    }
-    else
-    {
-        MachObj_reftoident(seg, buf.length(), sfunc, 0, CF.off);
-        MachObj_reftoident(seg, buf.length(), ehsym, 0, CF.off);
-        buf.write32(cast(int)sfunc.Ssize);
-    }
+    assert(0);                  // converted to Dwarf EH debug format
 }
 
 /*********************************************
