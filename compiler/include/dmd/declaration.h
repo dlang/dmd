@@ -322,6 +322,13 @@ class SymbolDeclaration final : public Declaration
 {
 public:
     AggregateDeclaration *dsym;
+    enum class Kind : uint8_t
+    {
+        initializer,
+        vtbl,
+        interfaces
+    };
+    Kind kind;
 
     // Eliminate need for dynamic_cast
     void accept(Visitor *v) override { v->visit(this); }
