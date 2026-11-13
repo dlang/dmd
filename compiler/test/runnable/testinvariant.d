@@ -231,48 +231,18 @@ void test16384()
 /***************************************************/
 // Fix: https://github.com/dlang/dmd/issues/20924 (invariant not called on extern(C++) classes)
 
-extern(C++) class C
+extern (C++) class C20924
 {
-    invariant { assert(0); }
-    void f() {}
-}
-
-extern(D) class D
-{
-    invariant { assert(0); }
-    void f() {}
+    __gshared int count;
+    invariant() { ++count; }
+    void foo() {}
 }
 
 void test20924()
 {
-    import core.exception : AssertError;
-    // Test extern(C++) class invariant
-    try
-    {
-        auto c = new C();
-        c.f(); // Trigger invariant
-        assert(false, "Failed: invariant in extern(C++) class not checked");
-    }
-    catch (AssertError e)
-    {
-        // Expected behavior - invariant was checked
-        return;
-    }
-    assert(0, "Invariant in extern(C++) class was not checked");
-
-    // Test extern(D) class invariant
-    try
-    {
-        auto d = new D();
-        d.f(); // Trigger invariant
-        assert(false, "Failed: invariant in extern(D) class not checked");
-    }
-    catch (AssertError e)
-    {
-        // Expected behavior - invariant was checked
-        return;
-    }
-    assert(0, "Invariant in extern(D) class was not checked");
+    auto c = new C20924();
+    c.foo();
+    assert(C20924.count == 2);
 }
 
 void main()
