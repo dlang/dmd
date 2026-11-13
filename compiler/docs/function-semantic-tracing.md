@@ -44,7 +44,7 @@ Important fields:
 
 | Field | Meaning |
 | --- | --- |
-| `target`, `name`, `kind` | Declaration address, readable name, and kind. Use the address to distinguish instances with identical printed names. |
+| `target`, `name`, `kind` | Declaration address, identifier chain, and kind. Template arguments are omitted as `!(...)`; eponymous member names are retained. Use the address to distinguish instances with identical printed names. |
 | `decl` | Target declaration location. It is not a request location. |
 | `phase` | Target's current `PASS`: 0 initial, 1 semantic, 2 semanticdone, 3 semantic2, 4 semantic2done, 5 semantic3, 6 semantic3done; later values are defined in `dsymbol.d`. |
 | `context`, `contextName`, `contextPhase` | Owner of the scope supplied at this event, or an explicitly supplied scheduling owner. A dispatcher using a saved declaration scope can name the target's module here. Follow `parent` links to the requesting expression or scheduler to identify the dynamic caller. |
@@ -58,6 +58,8 @@ Important fields:
 
 Unavailable textual values are `unavailable`; inapplicable numeric fields use `-1`, and absent pointers print as null addresses. Backslashes, tabs, CR and LF in textual values are escaped as `\\`, `\t`, `\r`, and `\n`. The format is a debugging aid, not a stable tooling interface.
 
+Names deliberately use existing identifiers rather than the diagnostic pretty-printer: shortening eponymous names can modify overload links or storage classes, and printing template argument types can initiate semantic work. The same restriction applies to `contextName` and `module`. The request chains above abbreviate these names for readability.
+
 ## Scope and lifecycle
 
 Tracing is disabled by default. Without `-vsemantic`, the probes skip formatting and file output. A filename is required; the file is opened with truncation on the first traced operation. Use a separate writable filename for each process or frontend session. If opening it fails, no trace is produced and compiler diagnostics are unaffected. Frontend initialization/deinitialization resets the trace state and closes its file. Rows are flushed as they are written.
@@ -66,7 +68,7 @@ Clients of the frontend library can set `global.params.functionSemanticTraceFile
 
 The probes cover root-module scheduling, template-instance scheduling, selected function-expression and call-resolution requests, TypeInfo equality/comparison helper requests, `functionSemantic`/`functionSemantic3`, and function semantic3 entry/exit guards. They are not an inventory of every semantic3 caller or attribute consumer. Uninstrumented callers can appear as a dispatcher request without a more specific parent. Tracing does not retain `Scope*` values, call mutating attribute queries, change error counts, or change gagging.
 
-The helper's unit test checks nested/early-return parent restoration, escaping, reset, and preservation of error/gagging counters. Run it with the compiler unit tests:
+The helper's unit test checks nested/early-return parent restoration, escaping, reset, preservation of error/gagging counters, and name formatting without changes to storage classes or overload links. Run it with the compiler unit tests:
 
 ```sh
 dmd -run compiler/src/build.d --force unittest AUTO_BOOTSTRAP=0

@@ -97,6 +97,31 @@ private bool functionSemanticTraceEnabled()
     return functionSemanticTraceFile !is null;
 }
 
+// Pretty-printing can call oneMembers or inspect template argument types, both
+// of which can perform semantic work. Print only the existing identifier chain.
+// Declaration addresses distinguish instances whose arguments are omitted here.
+private const(char)* functionSemanticTraceName(Dsymbol symbol)
+{
+    if (!symbol)
+        return null;
+    OutBuffer buf;
+    void append(Dsymbol s)
+    {
+        if (s.parent)
+        {
+            append(s.parent);
+            buf.writeByte('.');
+        }
+        auto instance = s.isTemplateInstance();
+        auto ident = instance ? instance.name : s.ident;
+        buf.writestring(ident ? ident.toChars() : "__anonymous");
+        if (instance)
+            buf.writestring("!(...)");
+    }
+    append(symbol);
+    return buf.extractChars();
+}
+
 // Keep every event on one line, even for mixin names or unusual filenames.
 private void functionSemanticTraceText(const(char)[] text)
 {
@@ -131,16 +156,16 @@ package(dmd) ulong traceFunctionSemantic(const(char)* event, const(char)* reason
     const id = ++functionSemanticTraceSequence;
     fprintf(functionSemanticTraceFile, "%llu\tparent=%llu\tevent=%s\treason=%s\ttarget=%p",
         id, functionSemanticTraceParent, event, reason, cast(void*)target);
-    functionSemanticTraceField("name", target ? target.toPrettyChars() : null);
+    functionSemanticTraceField("name", functionSemanticTraceName(target));
     functionSemanticTraceField("kind", target ? target.kind() : null);
     functionSemanticTraceField("decl", target && target.loc.isValid ? target.loc.toChars(true) : null);
     fprintf(functionSemanticTraceFile, "\tphase=%d\tcontext=%p\tcontextPhase=%d",
         target ? cast(int)target.semanticRun : -1, cast(void*)context,
         context ? cast(int)context.semanticRun : -1);
-    functionSemanticTraceField("contextName", context ? context.toPrettyChars() : null);
+    functionSemanticTraceField("contextName", functionSemanticTraceName(context));
     functionSemanticTraceField("locKind", locationKind);
     functionSemanticTraceField("loc", loc.isValid ? loc.toChars(true) : null);
-    functionSemanticTraceField("module", sc && sc._module ? sc._module.toPrettyChars() : null);
+    functionSemanticTraceField("module", functionSemanticTraceName(sc ? sc._module : null));
     auto fd = target ? target.isFuncDeclaration() : null;
     fprintf(functionSemanticTraceFile,
         "\ttinst=%p\tspec=%p\tgag=%u\terrors=%u\tgaggedErrors=%u"
@@ -228,6 +253,24 @@ unittest
     assert(contents[0 .. n].indexOf("1\tparent=0\tevent=request\treason=outer") >= 0);
     assert(contents[0 .. n].indexOf("2\tparent=1\tevent=request\treason=inner") >= 0);
     assert(contents[0 .. n].indexOf("escaped=a\\tb\\nc\\r\\\\d") >= 0);
+
+    // Collapsing eponymous template names with oneMembers can attach storage
+    // classes and link overloads. Neither target nor context formatting may do so.
+    auto ident = Identifier.idPool("traceName");
+    auto instance = new TemplateInstance(Loc.initial, ident, new Objects());
+    auto first = new FuncDeclaration(Loc.initial, Loc.initial, ident, STC.none, null);
+    auto second = new FuncDeclaration(Loc.initial, Loc.initial, ident, STC.none, null);
+    first.parent = second.parent = instance;
+    auto overloads = new Dsymbols();
+    overloads.push(first);
+    overloads.push(second);
+    instance.members = new Dsymbols();
+    instance.members.push(new StorageClassDeclaration(STC.const_, overloads));
+    traceFunctionSemantic("request", "name-state", first, null, Loc.initial, "unavailable", second);
+    assert(first.storage_class2 == STC.none && second.storage_class2 == STC.none);
+    assert(first.overnext0 is null && second.overnext0 is null);
+    assert(functionSemanticTraceName(first).toDString() == "traceName!(...).traceName");
+
     resetFunctionSemanticTrace();
     assert(!functionSemanticTraceInitialized && functionSemanticTraceSequence == 0);
 }
