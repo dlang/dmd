@@ -15,6 +15,7 @@ module dmd.pragmasem;
 
 import core.stdc.stdio;
 import core.stdc.string;
+import core.stdc.stdlib : strtol;
 
 import dmd.astenums;
 import dmd.arraytypes;
@@ -30,6 +31,7 @@ import dmd.globals;
 import dmd.hdrgen : toErrMsg;
 import dmd.location;
 import dmd.id;
+import dmd.root.string : split;
 import dmd.statement;
 
 /**
@@ -112,6 +114,11 @@ void pragmaDeclSemantic(PragmaDeclaration pd, Scope* sc)
         if (!pragmaMsgSemantic(pd.loc, sc, pd.args))
             return;
 
+        return noDeclarations();
+    }
+    else if (pd.ident == Id.breakpoint)
+    {
+        pragmaBreakpointSemantic(pd.loc, sc, pd.args);
         return noDeclarations();
     }
     else if (pd.ident == Id.lib)
@@ -284,7 +291,7 @@ bool pragmaStmtSemantic(PragmaStatement ps, Scope* sc)
      */
     // Should be merged with PragmaDeclaration
 
-    //printf("pragmaStmtSemantic() %s\n", ps.toChars());
+    //printf("pragmaStmtSemantic() %p\n", ps);
     //printf("body = %p\n", ps._body);
     if (ps.ident == Id.msg)
     {
@@ -356,6 +363,10 @@ bool pragmaStmtSemantic(PragmaStatement ps, Scope* sc)
         Dsymbols decls = de ? Dsymbols(de.declaration) : Dsymbols();
         if (!pragmaMangleSemantic(ps.loc, sc, ps.args, decls.length ? &decls : null))
             return false;
+    }
+    else if (ps.ident == Id.breakpoint)
+    {
+        pragmaBreakpointSemantic(ps.loc, sc, ps.args);
     }
     else if (!global.params.ignoreUnsupportedPragmas)
     {
@@ -445,6 +456,39 @@ private bool pragmaMsgSemantic(Loc loc, Scope* sc, Expressions* args)
     buf.writestring("\n");
     fprintf(stderr, "%s", buf.extractChars);
     return true;
+}
+
+
+/**
+ * Evaluate pragma backtreace
+ params:
+ loc = location for errors and diagnostics
+ sc = scope for backtracing
+ args = optional expressions to print
+ **/
+private void pragmaBreakpointSemantic(Loc loc, Scope* sc, Expressions* args){
+
+    fprintf(stderr,"Pragma Breakpoint: ");
+    // allow support for a message saying where this breakpoint is
+    pragmaMsgSemantic(loc, sc, args);
+    fflush(stderr);
+
+    debuggerRepl(loc, sc);
+
+    /*
+    fprintf(stderr,"Starting backtrace\n");
+    Loc l = loc;
+    for (auto s = sc; s; s = s.enclosing)
+    {
+        if(s.scopesym !is null)
+        {
+            fprintf(stderr,"%s: scope: %s\n", l.toChars(), s.scopesym.toChars);
+            if(s.parent)
+            {
+                l = s.parent.loc;
+            }
+        }
+        }*/
 }
 
 /**
@@ -741,4 +785,113 @@ private bool pragmaMangleSemantic(Loc loc, Scope* sc, Expressions* args, Dsymbol
         return false;
     }
     return true;
+}
+
+
+private void debuggerRepl(Loc loc, Scope* sc)
+{
+
+    //TODO: is there a compiler-accessible version of this somewhere?  I didn't see one
+    static string readline()
+    {
+        import core.stdc.stdio : getchar;
+        auto ret = "";
+        while (true)
+        {
+            auto ch = getchar();
+            if(ch != '\n')
+            {
+                ret ~= ch;
+            }
+            else
+            {
+                return ret;
+            }
+        }
+    }
+
+
+    Scope*[] scopes;
+    for (auto s = sc; s; s = s.enclosing)
+    {
+        scopes ~= s;
+    }
+
+    const prompt = "(ctdb) ";
+
+
+    while (true)
+    {
+        fprintf(stdout, "%s", prompt.ptr);
+        fflush(stdout);
+        auto line = readline();
+
+        const words = line.split(' ');
+        if(words.length == 0 || words[0].length == 0)
+        {
+            continue;
+        }
+
+        switch(words[0])
+        {
+            case "bt":
+            case "backtrace":
+                printBacktrace(scopes);
+                break;
+            case "c":
+            case "continue":
+                fprintf(stdout, "continuing compilation\n");
+                fflush(stdout);
+                return;
+            case "m":
+            case "members":
+                if (words.length != 2)
+                {
+                    fprintf(stdout, "usage: members <frame number>\n");
+                }
+                else
+                {
+                    immutable(char)* end;
+                    //cast here for 32 bit archs.  4B scopes out to be enough for anyone
+                    const frame = cast(uint)(strtol(words[1].ptr, &end, 10));
+                    if (end == words[1].ptr)
+                    {
+                        fprintf(stdout, "usage: members <frame number>\n");
+                    }
+                    printScopeFrame(scopes[frame]);
+                }
+                break;
+            default:
+                fprintf(stdout, "unknown command\n");
+        }
+        fflush(stdout);
+
+    }
+
+
+}
+
+private void printBacktrace(Scope*[] scopes)
+{
+    fprintf(stdout,"Backtrace\n");
+
+    foreach(i, s; scopes)
+    {
+        if(s.scopesym !is null)
+        {
+            fprintf(stdout,"frame %zu %s: scope: %s (%s)\n", i, s.scopesym.loc.toChars(), s.scopesym.toChars, s.scopesym.kind);
+        } else {
+            fprintf(stdout, "frame %zu, no scope symbol\n", i);
+        }
+    }
+}
+
+private void printScopeFrame(Scope* sc)
+{
+    fprintf(stdout, "Members of scope %s\n", sc.scopesym.toChars);
+    if (!sc.scopesym.members) return;
+    foreach (sym; *(sc.scopesym.members))
+    {
+        fprintf(stdout, "%s\n", sym.toPrettyChars);
+    }
 }
