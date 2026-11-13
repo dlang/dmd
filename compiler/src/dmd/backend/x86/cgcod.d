@@ -2826,6 +2826,7 @@ private immutable nothrow void function (ref CGstate, ref CodeBuilder,elem *,ref
 @trusted
 void codelem(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs,uint constflag)
 {
+    //printf("codelem(retregs: %s)\n", regm_str(pretregs));
     Symbol* s;
 
     debug if (debugw)
@@ -2876,7 +2877,7 @@ void codelem(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs,uin
                 {
                     if ((pretregs & (cg.allregs | INSTR.FLOATREGS)) == 0)
                     {
-                        pretregs = (tyfloating(e.Ety)) ? INSTR.FLOATREGS : cg.allregs;
+                        pretregs |= (tyfloating(e.Ety)) ? INSTR.FLOATREGS : cg.allregs;
                     }
                 }
                 else if ((pretregs & (mSTACK | mES | ALLREGS | mBP | XMMREGS)) == 0)
