@@ -2,7 +2,7 @@
 
 set -e
 
-echo 'import std.stdio; void main() { writeln("Success"); }' | \
+echo 'import core.stdc.stdio; void main() { puts("Success"); }' | \
 	$DMD -m${MODEL} -of${OUTPUT_BASE}${EXE} -
 
 ${OUTPUT_BASE}${EXE}

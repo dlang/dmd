@@ -8,8 +8,7 @@
         "defFile": null,
         "importPaths": [
             "compilable",
-            "../../druntime/import",
-            "../../../phobos"
+            "../../druntime/import"
         ],
         "libName": "VALUE_REMOVED_FOR_TEST",
         "libraryFiles": [
