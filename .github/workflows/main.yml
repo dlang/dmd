@@ -27,8 +27,7 @@ jobs:
           - name: Ubuntu 22.04 x64, DMD (bootstrap)
             os: ubuntu-22.04
             host: dmd-2.079.0
-            no_debug_unittests: true # host frontend too old for `-debug`
-            no_publictests: true # dub too old
+            minimal: true # host too old for `-debug` unittests and dub
           - name: Ubuntu 22.04 x86, DMD (latest)
             os: ubuntu-22.04
             model: 32
@@ -42,9 +41,8 @@ jobs:
             host: ldc
           - name: Ubuntu 22.04 x64, GDC
             os: ubuntu-22.04
-            host: gdmd-9
-            no_debug_unittests: true # host frontend too old for `-debug`
-            no_publictests: true # no dub
+            host: gdc-9
+            minimal: true
           - name: Alpine 3.21 x64, LDC
             os: ubuntu-latest
             container: alpine:3.21
@@ -92,7 +90,7 @@ jobs:
     defaults:
       run:
         # FreeBSD: run steps inside the VM
-        shell: ${{ matrix.vm && 'cpa.sh {0} --sync-files runner-to-vm --environment-variables OS_NAME MODEL HOST N MAKEFLAGS' || 'bash' }}
+        shell: ${{ matrix.vm && 'cpa.sh {0} --sync-files runner-to-vm --environment-variables OS_NAME MODEL HOST N' || 'bash' }}
     steps:
       - name: Start FreeBSD VM
         if: matrix.vm
@@ -116,13 +114,6 @@ jobs:
         with:
           fetch-depth: 50
 
-      - name: Set make parallelism
-        shell: bash
-        run: |
-          N=$(nproc 2>/dev/null || sysctl -n hw.ncpu)
-          echo "N=$N" >> $GITHUB_ENV
-          echo "MAKEFLAGS=-j$N" >> $GITHUB_ENV
-
       - name: 'Ubuntu: Install packages'
         if: runner.os == 'Linux' && !matrix.container && !matrix.vm
         run: |
@@ -133,13 +124,6 @@ jobs:
           fi
           sudo apt-get -q update
           sudo apt-get install -yq $packages
-
-      - name: 'Linux x64: Use ld.gold'
-        if: runner.os == 'Linux' && !matrix.vm && env.MODEL == '64'
-        run: |
-          mkdir -p "$RUNNER_TEMP/linker"
-          ln -sf /usr/bin/ld.gold "$RUNNER_TEMP/linker/ld"
-          echo "$RUNNER_TEMP/linker" >> $GITHUB_PATH
 
       - name: 'macOS: Install GNU make'
         if: runner.os == 'macOS'
@@ -156,24 +140,17 @@ jobs:
           curl -fsSL --retry 5 https://dlang.org/install.sh -o "$HOME/install.sh"
           bash "$HOME/install.sh" "$HOST"
 
-      - name: 'GDC: Install host compiler'
-        if: startsWith(matrix.host, 'gdmd')
-        run: |
-          sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
-          sudo apt-get install -y gdc-9
-          sudo curl -fsSL --retry 5 https://raw.githubusercontent.com/D-Programming-GDC/GDMD/master/dmd-script -o /usr/bin/gdmd-9
-          sudo chmod +x /usr/bin/gdmd-9
-          echo "DMD=gdmd-9" >> $GITHUB_ENV
-
       - name: Install host compiler
-        if: '!matrix.vm && !matrix.container && !startsWith(matrix.host, ''gdmd'')'
+        if: '!matrix.vm && !matrix.container'
         uses: dlang-community/setup-dlang@v2
         with:
           compiler: ${{ matrix.host }}
 
-      - name: Don't load host druntime/Phobos shared libraries
-        if: runner.os != 'Windows' && !matrix.vm
-        run: echo "LD_LIBRARY_PATH=" >> $GITHUB_ENV
+      - name: Set parallelism, don't load host druntime/Phobos shared libraries
+        shell: bash
+        run: |
+          echo "N=$(nproc 2>/dev/null || sysctl -n hw.ncpu)" >> $GITHUB_ENV
+          echo "LD_LIBRARY_PATH=" >> $GITHUB_ENV
 
       - name: Clone Phobos
         run: git clone --depth 1 --branch "${{ github.base_ref || github.ref_name }}" https://github.com/dlang/phobos ../phobos || git clone --depth 1 https://github.com/dlang/phobos ../phobos
@@ -182,9 +159,9 @@ jobs:
         id: build
         run: |
           ${{ matrix.vm && 'source ~/dlang/*/activate' || '' }}
-          make MODEL=$MODEL HOST_DMD="$DMD" BUILD=debug ${{ matrix.no_debug_unittests && 'ENABLE_DEBUG=0' || '' }} dmd-unittest
-          make MODEL=$MODEL HOST_DMD="$DMD" ENABLE_RELEASE=1
-          make -C ../phobos MODEL=$MODEL
+          make -j$N MODEL=$MODEL HOST_DMD="$DMD" BUILD=debug ${{ matrix.minimal && 'ENABLE_DEBUG=0' || '' }} dmd-unittest
+          make -j$N MODEL=$MODEL HOST_DMD="$DMD" ENABLE_RELEASE=1
+          make -j$N -C ../phobos MODEL=$MODEL
 
       - name: 'Windows: Set up MSVC environment'
         if: runner.os == 'Windows'
@@ -203,13 +180,13 @@ jobs:
 
       - name: Test druntime
         if: always() && steps.build.outcome == 'success'
-        run: make -C druntime MODEL=$MODEL unittest
+        run: make -j$N -C druntime MODEL=$MODEL unittest
 
       - name: 'Windows: Test shared druntime'
         if: always() && steps.build.outcome == 'success' && runner.os == 'Windows'
         run: |
           rm -rf druntime/test/shared/generated
-          make -C druntime MODEL=$MODEL SHARED=1 UT_SRCS=src/object.d ADDITIONAL_TESTS=test/shared unittest
+          make -j$N -C druntime MODEL=$MODEL SHARED=1 UT_SRCS=src/object.d ADDITIONAL_TESTS=test/shared unittest
 
       - name: 'Windows x86: Put 32-bit libcurl.dll in PATH'
         if: always() && steps.build.outcome == 'success' && runner.os == 'Windows' && env.MODEL == '32'
@@ -217,20 +194,20 @@ jobs:
 
       - name: Test Phobos
         if: always() && steps.build.outcome == 'success'
-        run: make -C ../phobos MODEL=$MODEL unittest
+        run: make -j$N -C ../phobos MODEL=$MODEL unittest
 
       - name: Test Phobos public unittests
-        if: always() && steps.build.outcome == 'success' && runner.os != 'Windows' && !matrix.no_publictests
+        if: always() && steps.build.outcome == 'success' && runner.os != 'Windows' && !matrix.minimal
         run: |
           ${{ matrix.vm && 'source ~/dlang/*/activate' || '' }}
-          make -C ../phobos MODEL=$MODEL publictests
-          make -C ../phobos MODEL=$MODEL publictests NO_BOUNDSCHECKS=1
+          make -j$N -C ../phobos MODEL=$MODEL publictests
+          make -j$N -C ../phobos MODEL=$MODEL publictests NO_BOUNDSCHECKS=1
 
       - name: Test Phobos -betterC
-        if: always() && steps.build.outcome == 'success' && runner.os != 'Windows' && runner.os != 'macOS' && !matrix.no_publictests
+        if: always() && steps.build.outcome == 'success' && runner.os != 'Windows' && runner.os != 'macOS' && !matrix.minimal
         run: |
           ${{ matrix.vm && 'source ~/dlang/*/activate' || '' }}
-          make -C ../phobos MODEL=$MODEL betterc
+          make -j$N -C ../phobos MODEL=$MODEL betterc
 
       - name: Check for leftover files
         if: always() && steps.build.outcome == 'success' && matrix.check_clean_git
@@ -250,7 +227,7 @@ jobs:
         run: |
           mkdir -p _generated/$OS_NAME/release
           mv generated/$OS_NAME/release/$MODEL _generated/$OS_NAME/release/
-          make MODEL=$MODEL HOST_DMD=$PWD/_generated/$OS_NAME/release/$MODEL/dmd${{ runner.os == 'Windows' && '.exe' || '' }} ENABLE_RELEASE=0 dmd
+          make -j$N MODEL=$MODEL HOST_DMD=$PWD/_generated/$OS_NAME/release/$MODEL/dmd${{ runner.os == 'Windows' && '.exe' || '' }} ENABLE_RELEASE=0 dmd
 
   windows-msbuild:
     strategy:
@@ -279,10 +256,7 @@ jobs:
       - uses: actions/checkout@v7
 
       - name: Set make parallelism
-        run: |
-          N=$(nproc 2>/dev/null || sysctl -n hw.ncpu)
-          echo "N=$N" >> $GITHUB_ENV
-          echo "MAKEFLAGS=-j$N" >> $GITHUB_ENV
+        run: echo "N=$(nproc)" >> $GITHUB_ENV
 
       - name: Install host compiler
         uses: dlang-community/setup-dlang@v2
@@ -308,10 +282,11 @@ jobs:
           dmd=$(cygpath -m "$PWD/generated/Windows/$CONFIGURATION/$PLATFORM/dmd.exe")
           echo "DMD_EXE=$dmd" >> $GITHUB_ENV
           msbuild.exe //target:dmd //p:Configuration=$CONFIGURATION //p:Platform=$PLATFORM //p:DCompiler=LDC compiler/src/vcbuild/dmd.sln
-          make -C druntime MODEL=$MODEL "DMD=$dmd"
-          make -C ../phobos MODEL=$MODEL "DMD=$dmd" "DMD_DIR=$(cygpath -m "$PWD")"
+          make -j$N -C druntime MODEL=$MODEL "DMD=$dmd"
+          make -j$N -C ../phobos MODEL=$MODEL "DMD=$dmd" "DMD_DIR=$(cygpath -m "$PWD")"
           cd compiler/test
-          "$DMD" -m$MODEL -g -i run.d
+          # MSVC link.exe instead of Git's
+          PATH="$(dirname "$(command -v cl)"):$PATH" "$DMD" -m$MODEL -g -i run.d
           ./run.exe tools "BUILD=$CONFIGURATION" "DMD_MODEL=$PLATFORM"
 
       - name: 'MinGW: Install lld-link and MinGW libraries'
@@ -330,21 +305,21 @@ jobs:
           rm compiler/test/runnable/testpdb.d
 
       - name: Test druntime
-        run: make -C druntime MODEL=$MODEL "DMD=$DMD_EXE" ${{ matrix.mingw && 'unittest-debug' || 'unittest' }}
+        run: make -j$N -C druntime MODEL=$MODEL "DMD=$DMD_EXE" ${{ matrix.mingw && 'unittest-debug' || 'unittest' }}
 
       - name: Test dmd
         if: always()
         run: |
           cd compiler/test
           # MinGW: runnable_cxx needs the same MSVC runtime as cl.exe
-          ./run.exe --environment runnable compilable fail_compilation dshell ${{ !matrix.mingw && 'runnable_cxx' || '' }} "ARGS=-O -inline -g" "BUILD=$CONFIGURATION" "DMD_MODEL=$PLATFORM"
+          ./run.exe --environment -j$N runnable compilable fail_compilation dshell ${{ !matrix.mingw && 'runnable_cxx' || '' }} "ARGS=-O -inline -g" "BUILD=$CONFIGURATION" "DMD_MODEL=$PLATFORM"
 
       - name: Test Phobos
         # MinGW: lld-link fails to link the Phobos unittests
         if: always() && !matrix.mingw
         run: |
           cp "$(dirname "$DC")/../lib$MODEL/libcurl.dll" ../phobos/
-          make -C ../phobos MODEL=$MODEL "DMD=$DMD_EXE" "DMD_DIR=$(cygpath -m "$PWD")" unittest
+          make -j$N -C ../phobos MODEL=$MODEL "DMD=$DMD_EXE" "DMD_DIR=$(cygpath -m "$PWD")" unittest
 
   aarch64:
     name: Ubuntu 24.04 x64, DMD (AArch64 cross-compile via QEMU)
@@ -353,11 +328,10 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Set make parallelism
-        run: echo "MAKEFLAGS=-j$(nproc)" >> $GITHUB_ENV
-
       - name: Install packages
-        run: sudo apt-get install -y gdb qemu-user clang lld gcc-aarch64-linux-gnu
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y qemu-user clang lld gcc-aarch64-linux-gnu
 
       - name: Install host compiler
         uses: dlang-community/setup-dlang@v2
@@ -369,9 +343,9 @@ jobs:
 
       - name: Build
         run: |
-          make HOST_DMD="$DMD" BUILD=debug dmd-unittest
-          make HOST_DMD="$DMD" ENABLE_RELEASE=1
-          make -C ../phobos
+          make -j$(nproc) HOST_DMD="$DMD" BUILD=debug dmd-unittest
+          make -j$(nproc) HOST_DMD="$DMD" ENABLE_RELEASE=1
+          make -j$(nproc) -C ../phobos
 
       - name: Test AArch64 cross-compile and run via QEMU
         run: compiler/test/run.d arm
