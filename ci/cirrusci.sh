@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
 # Installs the OS-specific prerequisites for CI jobs on Posix platforms.
-# This file is invoked from the DMD and Phobos CI YAMLs
-# and sets up the machine for the later steps with ci/run.sh.
+# Only used by the Phobos CI. dmd CI installs its prerequisites in .github/workflows,
+# this sets up the machine for the later steps with ci/run.sh.
 
 set -uexo pipefail
 

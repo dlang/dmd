@@ -1,7 +1,6 @@
 # Continuous Integration
 
 When a Pull Request (PR) is opened, several automated checks are performed to ensure the new compiler still builds, passes tests, and does not break external projects.
-Since DMD runs on many platforms and lots of D infrastructure depends on it, they are spread over many CI services.
 
 ## Troubleshooting failed checks
 When your PR fails checks, click on the "Details" link next to it to see what the error is.
@@ -60,130 +59,21 @@ When an unrelated failure persists, ask a maintainer for help.
 
 ## Overview of checks
 
-### GHA Main
+All checks except buildkite and DAutoTest run on GitHub Actions, configured in [.github/workflows](../.github/workflows).
+Each job's steps are plain `make` and `run.d` commands, so you can run the same command locally to reproduce a failure.
 
-**Config**: [main.yml](https://github.com/dlang/dmd/blob/master/.github/workflows/main.yml)
+| Check | Config | What it does |
+|---|---|---|
+| `Lint` | [lint.yml](../.github/workflows/lint.yml), [.pre-commit-config.yaml](../.pre-commit-config.yaml) | Trailing whitespace, line endings, workflow syntax, changelog file names. |
+| `Main / <OS>, <host compiler>` | [main.yml](../.github/workflows/main.yml) | Builds dmd with the named host compiler, then runs the dmd unittests, the compiler test suite, the druntime and Phobos unittests, and a self-compile. *bootstrap* jobs use the oldest supported host compiler. The *Visual D* jobs build dmd with the Visual Studio project. |
+| `C++ interop (<C++ compiler>)` | [cxx.yml](../.github/workflows/cxx.yml) | `runnable_cxx` tests, druntime's `core.stdcpp` tests and the C++ header checks against old and new GCC and Clang. MSVC and Apple Clang are tested by the main jobs. |
+| `perf` | [perf.yml](../.github/workflows/perf.yml) | Compares compile time, memory and binary size with the target branch, see [PERF.md](../.github/PERF.md). |
+| `buildkite/dmd` | [dlang/ci](https://github.com/dlang/ci/tree/master/buildkite) | Builds and tests popular D projects from the dub registry with the new compiler. |
+| `CyberShadow/DAutoTest` | [DAutoTest](https://github.com/CyberShadow/DAutoTest) | Builds the dlang.org documentation (catches bad DDoc in changelog entries) and shows a diff of the generated HTML. |
 
-**Checks**: Main / …
-
-Tests DMD, druntime and Phobos on multiple platforms, using various D host compilers (for building DMD).
-
-### Azure pipelines
-
-**Config**: [azure-pipelines.yml](https://github.com/dlang/dmd/blob/master/azure-pipelines.yml)
-
-**Checks**:
-- Azure pipelines
-- Azure pipelines (Windows_Coverage x64)
-- Azure pipelines (Windows_DMD_bootstrap x64)
-- Azure pipelines (Windows_DMD_latest x64)
-- Azure pipelines (Windows_VisualD_LDC x64_Debug)
-- Azure pipelines (Windows_VisualD_LDC x86-mscoff)
-- Azure pipelines (Windows_VisualD_LDC x86-mscoff_MinGW)
-
-Azure pipelines run on Windows platforms, and build DMD, Phobos and Druntime, and run their unittests.
-Windows has two binary formats: 32-bit COFF, and 64-bit COFF.
-
-### DAutoTest
-
-**Config**: [CyberShadow/DAutoTest](https://github.com/CyberShadow/DAutoTest)
-
-**Checks**:
-- CyberShadow/DAutoTest — Documentation
-
-DMD includes a documentation generator, which is also used to build [the dlang.org website](https://github.com/dlang/dlang.org/).
-DAutoTest does the following:
-
-* Builds the documentation by invoking the dlang.org makefile.
-
-* This necessarily also builds the compiler, runtime, standard library, and fetches some dependencies.
-
-* Saves the resulting HTML files and makes them available for preview.
-
-* Allows looking at the differences in generated HTML between the base branch and the PR branch.
-
-If your [changelog entry](https://github.com/dlang/dmd/tree/master/changelog) has incorrect DDoc syntax, it will be caught by this check.
-
-### auto-tester
-
-**Config**: private
-
-**Checks**:
-- auto-tester
-
-The auto tester tests DMD on various Posix platforms.
-
-### C++ interop tests
-
-**Config**: [runnable_cxx.yml](https://github.com/dlang/dmd/blob/master/.github/workflows/runnable_cxx.yml)
-
-**Checks**:
-- C++ interop tests / Run (macos-13, clang-13.0.0)
-- C++ interop tests / Run (macos-13, clang-12.0.0)
-- C++ interop tests / Run (macos-13, clang-11.0.0)
-- C++ interop tests / Run (macos-13, clang-10.0.0)
-- C++ interop tests / Run (macos-13, clang-9.0.0)
-- C++ interop tests / Run (macos-13, clang-8.0.0)
-- C++ interop tests / Run (ubuntu-20.04, clang-13.0.0)
-- C++ interop tests / Run (ubuntu-20.04, clang-12.0.0)
-- C++ interop tests / Run (ubuntu-20.04, clang-11.0.0)
-- C++ interop tests / Run (ubuntu-20.04, g++-11)
-- C++ interop tests / Run (ubuntu-20.04, g++-10)
-- C++ interop tests / Run (ubuntu-20.04, g++-9)
-
-Github action to test for C++ interoperability
-
-Most tests in the test-suite run on the CI when it comes to cross-platform testing.
-However, the dlang auto-tester uses a somewhat old host C/C++ compiler.
-This is good for testing compatibility with e.g. LTS distributions, but becomes problematic when we want to test more cutting-edge features, such as newer C++ standards (C++17, C++20, etc...).
-This is the reason why we have this action: we have full control over the toolchain, and it's cross platform.
-
-### Codecov
-
-**Config**: [.codecov.yml](https://github.com/dlang/dmd/blob/master/.codecov.yml)
-
-**Checks**:
-- codecov/patch
-
-Codecov checks code coverage, meaning that the lines of code you modified are executed at least once in the test suite.
-While there are currently no hard constraints on coverage for a Pull Request to pass the check, it does emit warnings for modified lines that are not covered into the "Files Changed" tab.
-These should be taken seriously, since untested code is likely to introduce bugs, and can easily be accidentally broken by future changes.
+On pushes to master and stable, [bootstrap.yml](../.github/workflows/bootstrap.yml) also checks that dmd builds with every host compiler release since 2.076.
 
 ### pre-commit
 
-**Config**: [.pre-commit-config.yaml](https://github.com/dlang/dmd/blob/master/.pre-commit-config.yaml)
-
-**Checks**:
-- pre_commit
-
-pre-commit checks for redundant white space, such as trailing whitespace and newlines.
-
-If you want to automatically make your changes comply with the check, you can download `pre-commit` via your package manager, or with  `pip`.
-See https://pre-commit.com/.
-
-Run `pre-commit install` inside the root of the repository,
-This will add a hook into `.git/hooks/pre-commit`.
-Every time you do a commit it will do pre-commit checks.
-
-If you already have a custom `pre-commit` hook, you can modify the bash script to run `pre-commit` manually with `pre-commit run`.
-pre-commit is designed to run only on diffed files so it will run pretty quickly, but if you want to for it to run on all files you can do `pre-commit run --all-files`.
-
-### buildkite
-
-**Config:** [ci/buildkite](https://github.com/dlang/ci/tree/master/buildkite)
-
-**Checks**:
-- buildkite
-
-Buildkite tests that the compiler is still able to compile and pass the test suite of several popular D projects.
-
-The configuration file is found in a separate repository, since it is shared by druntime and Phobos.
-
-### CircleCI
-
-**Config**: [.circleci/config.yml](https://github.com/dlang/dmd/blob/master/.circleci/config.yml)
-
-**Checks**:
-- ci/circleci: build
-
-CircleCI tests DMD on Ubuntu 18.04.
+To fix lint failures automatically, install [`pre-commit`](https://pre-commit.com/) and run `pre-commit install` in the repository root.
+This runs the checks on every commit. To check all files, run `pre-commit run --all-files`.
