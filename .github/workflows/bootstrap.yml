@@ -35,48 +35,24 @@ jobs:
     name: Build with dmd-${{ matrix.version }}
     runs-on: ubuntu-22.04
     timeout-minutes: 10
-    env:
-      # for ci/run.sh:
-      OS_NAME: linux
-      MODEL: 64
-      HOST_DMD: dmd-${{ matrix.version }}
-      # N is set dynamically below
-      FULL_BUILD: true
-    defaults:
-      run:
-        shell: bash
-
     steps:
-    - uses: actions/checkout@v7
-      with:
-        fetch-depth: 50
+      - uses: actions/checkout@v7
 
-    - name: Set environment variable N (parallelism)
-      run: echo "N=$(nproc)" >> $GITHUB_ENV
+      - name: Install host compiler
+        uses: dlang-community/setup-dlang@v2
+        with:
+          compiler: dmd-${{ matrix.version }}
 
-    - name: Install host compiler
-      run: ci/run.sh install_host_compiler
+      - name: Clone Phobos
+        run: git clone --depth 1 --branch "${{ github.base_ref || github.ref_name }}" https://github.com/dlang/phobos ../phobos || git clone --depth 1 https://github.com/dlang/phobos ../phobos
 
-    - name: Set up repos
-      run: |
-        set -uexo pipefail
-        ref='${{ github.ref }}'
-        if [[ "$ref" =~ ^refs/pull/ ]]; then
-          # PR: clone the Phobos head with the same name as this DMD PR's target branch
-          # e.g., Phobos stable when targeting DMD stable
-          REPO_BRANCH="$GITHUB_BASE_REF"
-        elif [[ "$ref" =~ ^refs/(heads|tags)/(.*)$ ]]; then
-          # no PR: try to clone the Phobos head with the same name as this DMD head, falling back to master
-          # e.g., Phobos stable for a push to DMD stable, or Phobos v2.105.2 for DMD tag v2.105.2
-          REPO_BRANCH="${BASH_REMATCH[2]}"
-        else
-          echo "Error: unexpected GitHub ref '$ref'" >&2
-          exit 1
-        fi
-        ci/run.sh setup_repos "$REPO_BRANCH"
+      - name: Build
+        run: |
+          make -j$(nproc) HOST_DMD="$DMD" ENABLE_RELEASE=0 ENABLE_DEBUG=0
+          make -j$(nproc) -C ../phobos
 
-    - name: Build dmd
-      run: ENABLE_RELEASE=0 ENABLE_DEBUG=0 ci/run.sh build 0
-
-    - name: Rebuild dmd
-      run: ENABLE_RELEASE=0 ENABLE_DEBUG=0 ci/run.sh rebuild
+      - name: Self-compile dmd
+        run: |
+          mkdir -p _generated/linux/release
+          mv generated/linux/release/64 _generated/linux/release/
+          make -j$(nproc) HOST_DMD=$PWD/_generated/linux/release/64/dmd ENABLE_RELEASE=0 ENABLE_DEBUG=0 dmd

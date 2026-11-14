@@ -23,7 +23,6 @@ jobs:
     env:
       OS_NAME: linux
       MODEL: 64
-      FULL_BUILD: false
       HOST_DMD: ldc-1.42.0
     defaults:
       run:
@@ -66,16 +65,13 @@ jobs:
           valgrind --version
 
       - name: Install host compiler
-        run: |
-          ci/run.sh install_host_compiler
-          source ~/dlang/*/activate
-          which ldc-profdata
-          deactivate
+        uses: dlang-community/setup-dlang@v2
+        with:
+          compiler: ${{ env.HOST_DMD }}
 
       - name: Build dmd at base and head
         run: |
           set -uexo pipefail
-          source ~/dlang/*/activate
           BASE_SHA="${{ steps.refs.outputs.base }}"
 
           # Check out a ref in an isolated temp dir and clone phobos.
@@ -83,7 +79,7 @@ jobs:
             local dir="$RUNNER_TEMP/$2/dmd"
             mkdir -p "$RUNNER_TEMP/$2"
             git worktree add --force "$dir" "$1"
-            ( cd "$dir" && ci/run.sh setup_repos "${{ steps.refs.outputs.branch }}" )
+            git clone --depth 1 --branch "${{ steps.refs.outputs.branch }}" https://github.com/dlang/phobos "$RUNNER_TEMP/$2/phobos"
           }
 
           # Build LTO+PGO'd dmd, druntime and phobos, Lines are tagged with the ref.
@@ -101,7 +97,6 @@ jobs:
           if [ -n "$BASE_SHA" ]; then
             wait $base_pid
           fi
-          deactivate
 
       - name: Cache dub packages
         uses: actions/cache@v6
@@ -112,7 +107,6 @@ jobs:
       - name: Measure
         run: |
           set -uexo pipefail
-          source ~/dlang/*/activate
           built=generated/$OS_NAME/release/$MODEL/dmd
           BASE_SHA="${{ steps.refs.outputs.base }}"
 

@@ -1,0 +1,91 @@
+# Runs the C++ interop tests against a range of GCC and Clang versions.
+# MSVC and Apple Clang are covered by the Windows and macOS jobs in main.yml.
+
+name: C++ interop
+on:
+  pull_request:
+    branches:
+      - master
+      - stable
+    paths-ignore:
+      - 'spec/**'
+  push:
+    branches:
+      - master
+      - stable
+    paths-ignore:
+      - 'spec/**'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: C++ interop (${{ matrix.compiler }}, ${{ matrix.model }}-bit)
+    if: github.repository == 'dlang/dmd'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # 32-bit clang fails runnable_cxx/cppa.d:261 (check13956)
+          - { os: ubuntu-24.04, compiler: clang-18, model: 64, header_tests: true }
+          - { os: ubuntu-22.04, compiler: clang-11, model: 64 }
+          - { os: ubuntu-24.04, compiler: g++-13, model: 64 }
+          - { os: ubuntu-24.04, compiler: g++-13, model: 32 }
+          - { os: ubuntu-22.04, compiler: g++-9, model: 64 }
+          - { os: ubuntu-22.04, compiler: g++-9, model: 32 }
+    runs-on: ${{ matrix.os }}
+    env:
+      MODEL: ${{ matrix.model }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set make parallelism
+        run: echo "MAKEFLAGS=-j$(nproc)" >> $GITHUB_ENV
+
+      - name: Install C++ compiler
+        run: |
+          compiler='${{ matrix.compiler }}'
+          packages=$compiler
+          if [ "$MODEL" == 32 ]; then
+            packages="$packages ${compiler/clang-*/g++}-multilib"
+          fi
+          sudo apt-get update
+          sudo apt-get install -y $packages
+          echo "CC=${compiler/g++/gcc}" >> $GITHUB_ENV
+          echo "CXX=${compiler/clang/clang++}" >> $GITHUB_ENV
+
+      - name: Install host D compiler
+        uses: dlang-community/setup-dlang@v2
+
+      - name: Don't load host druntime/Phobos shared libraries
+        run: echo "LD_LIBRARY_PATH=" >> $GITHUB_ENV
+
+      - name: Clone Phobos
+        run: git clone --depth 1 --branch "${{ github.base_ref || github.ref_name }}" https://github.com/dlang/phobos ../phobos || git clone --depth 1 https://github.com/dlang/phobos ../phobos
+
+      - name: Build
+        id: build
+        run: |
+          make
+          make -C ../phobos
+
+      - name: Test dmd C++ interop
+        run: compiler/test/run.d --environment runnable_cxx dshell/dll_cxx.d
+
+      - name: Test druntime C++ bindings
+        if: always() && steps.build.outcome == 'success'
+        run: make -C druntime test/stdcpp/.run
+
+      - name: Run C++ frontend unittests
+        if: always() && steps.build.outcome == 'success'
+        run: generated/build cxx-unittest
+
+      - name: Check C++ headers match the D sources
+        if: always() && steps.build.outcome == 'success' && matrix.header_tests
+        run: |
+          python3 -m pip install libclang
+          generated/build cpp-layout-test
