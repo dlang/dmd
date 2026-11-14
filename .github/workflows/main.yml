@@ -186,7 +186,7 @@ jobs:
         if: always() && steps.build.outcome == 'success' && runner.os == 'Windows'
         run: |
           rm -rf druntime/test/shared/generated
-          make -j$N -C druntime MODEL=$MODEL SHARED=1 UT_SRCS=src/object.d ADDITIONAL_TESTS=test/shared unittest
+          make -C druntime MODEL=$MODEL SHARED=1 UT_SRCS=src/object.d ADDITIONAL_TESTS=test/shared unittest
 
       - name: 'Windows x86: Put 32-bit libcurl.dll in PATH'
         if: always() && steps.build.outcome == 'success' && runner.os == 'Windows' && env.MODEL == '32'
@@ -286,8 +286,9 @@ jobs:
           make -j$N -C ../phobos MODEL=$MODEL "DMD=$dmd" "DMD_DIR=$(cygpath -m "$PWD")"
           cd compiler/test
           # MSVC link.exe instead of Git's
-          PATH="$(dirname "$(command -v cl)"):$PATH" "$DMD" -m$MODEL -g -i run.d
-          ./run.exe tools "BUILD=$CONFIGURATION" "DMD_MODEL=$PLATFORM"
+          export PATH="$(dirname "$(command -v cl)"):$PATH"
+          "$DMD" -m$MODEL -g -i run.d
+          ./run.exe tools "HOST_DMD=$DMD" "BUILD=$CONFIGURATION" "DMD_MODEL=$PLATFORM"
 
       - name: 'MinGW: Install lld-link and MinGW libraries'
         if: matrix.mingw
@@ -312,7 +313,7 @@ jobs:
         run: |
           cd compiler/test
           # MinGW: runnable_cxx needs the same MSVC runtime as cl.exe
-          ./run.exe --environment -j$N runnable compilable fail_compilation dshell ${{ !matrix.mingw && 'runnable_cxx' || '' }} "ARGS=-O -inline -g" "BUILD=$CONFIGURATION" "DMD_MODEL=$PLATFORM"
+          ./run.exe --environment -j$N runnable compilable fail_compilation dshell ${{ !matrix.mingw && 'runnable_cxx' || '' }} "ARGS=-O -inline -g" "HOST_DMD=$DMD" "BUILD=$CONFIGURATION" "DMD_MODEL=$PLATFORM"
 
       - name: Test Phobos
         # MinGW: lld-link fails to link the Phobos unittests
