@@ -1,6 +1,0 @@
-steps:
-  - task: PublishPipelineArtifact@0
-    inputs:
-      artifactName: windows-$(MODEL)
-      targetPath: artifacts
-    displayName: Publish artifacts

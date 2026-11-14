@@ -1,11 +1,11 @@
-# https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions
+# Builds dmd, druntime and Phobos with a range of host compilers and runs all their tests.
 
 name: Main
 on:
-  pull_request: # without merge conflicts
+  pull_request:
     paths-ignore:
       - 'spec/**'
-  push: # branch or tag
+  push:
     paths-ignore:
       - 'spec/**'
 
@@ -14,249 +14,364 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  call-precommit:
-    uses: ./.github/workflows/pre_commit.yml
-
-  main:
-    needs: call-precommit
+  test:
     strategy:
       fail-fast: false
       matrix:
         include:
-          # Linux
-          - job_name: Ubuntu 22.04 x64, DMD (latest)
+          - name: Ubuntu 22.04 x64, DMD (latest)
             os: ubuntu-22.04
-            host_dmd: dmd
-          # Enable this to replace coverage tests on CircleCI
-          # - job_name: Ubuntu 22.04 x64, DMD (coverage)
-          #   os: ubuntu-22.04
-          #   host_dmd: dmd
-          #   coverage: true
-          - job_name: Ubuntu 22.04 x64, DMD (bootstrap)
+            host: dmd
+            dub: true
+            check_clean_git: true
+          - name: Ubuntu 22.04 x64, DMD (bootstrap)
             os: ubuntu-22.04
-            host_dmd: dmd-2.079.0
-            disable_debug_for_dmd_unittests: true # no `-debug` - host frontend too old
-          - job_name: Ubuntu 22.04 x86, DMD (latest)
+            host: dmd-2.079.0
+            no_debug_unittests: true # host frontend too old for `-debug`
+            no_publictests: true # dub too old
+          - name: Ubuntu 22.04 x86, DMD (latest)
             os: ubuntu-22.04
             model: 32
-            host_dmd: dmd-2.113.1
-          # Disabled because of failure https://issues.dlang.org/show_bug.cgi?id=24518
-          # - job_name: Ubuntu 22.04 x86, DMD (coverage)
-          #   os: ubuntu-22.04
-          #   model: 32
-          #   host_dmd: dmd
-          #   coverage: true
-          - job_name: Ubuntu 22.04 x86, DMD (bootstrap)
+            host: dmd-2.113.1
+          - name: Ubuntu 22.04 x86, DMD (bootstrap)
             os: ubuntu-22.04
             model: 32
-            host_dmd: dmd-2.097.1
-          - job_name: Ubuntu 22.04 x64, LDC
+            host: dmd-2.097.1
+          - name: Ubuntu 22.04 x64, LDC
             os: ubuntu-22.04
-            host_dmd: ldc
-          - job_name: Ubuntu 22.04 x64, GDC
+            host: ldc
+          - name: Ubuntu 22.04 x64, GDC
             os: ubuntu-22.04
-            host_dmd: gdmd-9
-            disable_debug_for_dmd_unittests: true # no `-debug` - host frontend too old
-          - job_name: Alpine 3.21 x64, LDC
+            host: gdmd-9
+            no_debug_unittests: true # host frontend too old for `-debug`
+            no_publictests: true # no dub
+          - name: Alpine 3.21 x64, LDC
             os: ubuntu-latest
-            container_image: alpine:3.21
-            host_dmd: ldmd2
-          # macOS
-          - job_name: macOS 15 x64, DMD (latest)
+            container: alpine:3.21
+            host: ldmd2
+          - name: macOS 15 x64, DMD (latest)
             os: macos-15-intel
-            host_dmd: dmd
-          # Disabled because of failure https://issues.dlang.org/show_bug.cgi?id=24518
-          #- job_name: macOS 15 x64, DMD (coverage)
-          #  os: macos-15-intel
-          #  host_dmd: dmd
-          #  coverage: true
-          - job_name: macOS 15 x64, DMD (bootstrap)
+            host: dmd
+            dub: true
+          - name: macOS 15 x64, DMD (bootstrap)
             os: macos-15-intel
-            host_dmd: dmd-2.112.1
-          # Windows
-          - job_name: Windows x64, LDC
+            host: dmd-2.112.1
+          - name: Windows x64, DMD (latest)
             os: windows-2022
-            host_dmd: ldc-latest
-          - job_name: Windows x86, DMD (latest)
+            host: dmd
+            dub: true
+          - name: Windows x64, DMD (bootstrap)
             os: windows-2022
-            host_dmd: dmd-2.113.1
+            host: dmd-2.097.1
+          - name: Windows x64, LDC
+            os: windows-2022
+            host: ldc-latest
+          - name: Windows x86, DMD (latest)
+            os: windows-2022
             model: 32
-          # FreeBSD (VMs on Ubuntu)
-          - job_name: FreeBSD 14.4 x64, DMD (latest)
+            host: dmd-2.113.1
+          - name: FreeBSD 14.4 x64, DMD (latest)
             os: ubuntu-latest
-            vm_os: freebsd
-            vm_os_version: '14.4'
-            host_dmd: dmd
-          - job_name: FreeBSD 14.4 x64, DMD (bootstrap)
+            vm: freebsd
+            host: dmd
+            dub: true
+          - name: FreeBSD 14.4 x64, DMD (bootstrap)
             os: ubuntu-latest
-            vm_os: freebsd
-            vm_os_version: '14.4'
-            host_dmd: dmd-2.095.0
-    name: ${{ matrix.job_name }}
+            vm: freebsd
+            host: dmd-2.095.0
+    name: ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
-    container: ${{ matrix.container_image }}
-    timeout-minutes: 60 # OSX tests can still be running runnable at 40
+    container: ${{ matrix.container }}
+    timeout-minutes: 60
     env:
-      # for ci/run.sh:
-      OS_NAME: ${{ matrix.vm_os || (startsWith(matrix.os, 'ubuntu') && 'linux' || (startsWith(matrix.os, 'macos') && 'osx' || (startsWith(matrix.os, 'windows') && 'windows' || ''))) }}
+      OS_NAME: ${{ matrix.vm || (startsWith(matrix.os, 'ubuntu') && 'linux') || (startsWith(matrix.os, 'macos') && 'osx') || 'windows' }}
       MODEL: ${{ matrix.model || '64' }}
-      HOST_DMD: ${{ matrix.host_dmd }}
-      # N is set dynamically below
-      FULL_BUILD: true
-      # for coverage:
-      DMD_TEST_COVERAGE: ${{ matrix.coverage && '1' || '0' }}
-      # work around https://issues.dlang.org/show_bug.cgi?id=23517
+      HOST: ${{ matrix.host }}
+      # https://issues.dlang.org/show_bug.cgi?id=23517
       MACOSX_DEPLOYMENT_TARGET: '11'
     defaults:
       run:
-        # cpa.sh comes with cross-platform-actions and delegates to the VM.
-        # Use it by default for all `run` steps below, i.e., run them in the VM (with a bash shell).
-        shell: ${{ matrix.vm_os && 'cpa.sh {0} --sync-files runner-to-vm --environment-variables OS_NAME MODEL HOST_DMD CI_DFLAGS N FULL_BUILD DMD_TEST_COVERAGE' || 'bash' }}
+        # FreeBSD: run steps inside the VM
+        shell: ${{ matrix.vm && 'cpa.sh {0} --sync-files runner-to-vm --environment-variables OS_NAME MODEL HOST N MAKEFLAGS' || 'bash' }}
     steps:
-      - name: Start VM
-        if: matrix.vm_os
+      - name: Start FreeBSD VM
+        if: matrix.vm
         uses: cross-platform-actions/action@v1.5.0
         with:
-          operating_system: ${{ matrix.vm_os }}
-          version: ${{ matrix.vm_os_version }}
+          operating_system: freebsd
+          version: '14.4'
           shell: bash
           memory: 12G
           cpu_count: 4
           sync_files: runner-to-vm
 
-      - name: 'Alpine container: Pre-install bash, git and sudo'
-        if: startsWith(matrix.container_image, 'alpine')
+      - name: 'Alpine: Install packages'
+        if: matrix.container
         shell: sh
-        run: apk add bash git sudo
+        run: |
+          apk add bash git make g++ ldc dub grep coreutils diffutils curl gdb linux-headers
+          echo "DMD=ldmd2" >> $GITHUB_ENV
 
       - uses: actions/checkout@v7
         with:
           fetch-depth: 50
 
-      - name: Set environment variable N (parallelism)
-        run: echo "N=$(${{ runner.os == 'macOS' && 'sysctl -n hw.logicalcpu' || 'nproc' }})" >> $GITHUB_ENV
-        shell: bash  # don't run in VM, but host runner (for exporting env var)
+      - name: Set make parallelism
+        shell: bash
+        run: |
+          N=$(nproc 2>/dev/null || sysctl -n hw.ncpu)
+          echo "N=$N" >> $GITHUB_ENV
+          echo "MAKEFLAGS=-j$N" >> $GITHUB_ENV
 
-      - name: 'Posix: Install prerequisites'
-        if: runner.os != 'Windows'
-        run: ${{ runner.os == 'macOS' && 'ci/cirrusci.sh' || 'sudo --preserve-env=OS_NAME,MODEL,HOST_DMD,FULL_BUILD,N ci/cirrusci.sh' }}
+      - name: 'Ubuntu: Install packages'
+        if: runner.os == 'Linux' && !matrix.container && !matrix.vm
+        run: |
+          packages="git-core make g++ gdb gnupg curl libcurl4 tzdata zip unzip xz-utils llvm valgrind libc6-dbg"
+          if [ "$MODEL" == 32 ]; then
+            sudo dpkg --add-architecture i386
+            packages="$packages g++-multilib libcurl4:i386 libc6-dbg:i386"
+          fi
+          sudo apt-get -q update
+          sudo apt-get install -yq $packages
 
-      - name: 'macOS: Switch Xcode version if required'
-        if: runner.os == 'macOS' && matrix.xcode
-        run: sudo xcode-select -switch /Applications/Xcode_${{ matrix.xcode }}.app
+      - name: 'Linux x64: Use ld.gold'
+        if: runner.os == 'Linux' && !matrix.vm && env.MODEL == '64'
+        run: |
+          mkdir -p "$RUNNER_TEMP/linker"
+          ln -sf /usr/bin/ld.gold "$RUNNER_TEMP/linker/ld"
+          echo "$RUNNER_TEMP/linker" >> $GITHUB_PATH
 
-      - name: 'Posix: Install host compiler'
-        if: runner.os != 'Windows'
-        run: ci/run.sh install_host_compiler
-      - name: 'Windows: Install host compiler'
-        if: runner.os == 'Windows'
+      - name: 'macOS: Install GNU make'
+        if: runner.os == 'macOS'
+        run: |
+          brew install make
+          echo "/usr/local/opt/make/libexec/gnubin" >> $GITHUB_PATH
+          echo "/usr/local/opt/llvm/bin" >> $GITHUB_PATH
+
+      - name: 'FreeBSD: Install packages and host compiler'
+        if: matrix.vm
+        run: |
+          sudo pkg install -y git gmake binutils
+          sudo ln -sf /usr/local/bin/gmake /usr/bin/make
+          curl -fsSL --retry 5 https://dlang.org/install.sh -o "$HOME/install.sh"
+          bash "$HOME/install.sh" "$HOST"
+
+      - name: 'GDC: Install host compiler'
+        if: startsWith(matrix.host, 'gdmd')
+        run: |
+          sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+          sudo apt-get install -y gdc-9
+          sudo curl -fsSL --retry 5 https://raw.githubusercontent.com/D-Programming-GDC/GDMD/master/dmd-script -o /usr/bin/gdmd-9
+          sudo chmod +x /usr/bin/gdmd-9
+          echo "DMD=gdmd-9" >> $GITHUB_ENV
+
+      - name: Install host compiler
+        if: '!matrix.vm && !matrix.container && !startsWith(matrix.host, ''gdmd'')'
         uses: dlang-community/setup-dlang@v2
         with:
-          compiler: ${{ matrix.host_dmd }}
+          compiler: ${{ matrix.host }}
 
-      - name: Set up repos
-        run: |
-          set -uexo pipefail
+      - name: Don't load host druntime/Phobos shared libraries
+        if: runner.os != 'Windows' && !matrix.vm
+        run: echo "LD_LIBRARY_PATH=" >> $GITHUB_ENV
 
-          ref='${{ github.ref }}'
-          if [[ "$ref" =~ ^refs/pull/ ]]; then
-            # PR: clone the Phobos head with the same name as this DMD PR's target branch
-            # e.g., Phobos stable when targeting DMD stable
-            REPO_BRANCH="$GITHUB_BASE_REF"
-          elif [[ "$ref" =~ ^refs/(heads|tags)/(.*)$ ]]; then
-            # no PR: try to clone the Phobos head with the same name as this DMD head, falling back to master
-            # e.g., Phobos stable for a push to DMD stable, or Phobos v2.105.2 for DMD tag v2.105.2
-            REPO_BRANCH="${BASH_REMATCH[2]}"
-          else
-            echo "Error: unexpected GitHub ref '$ref'" >&2
-            exit 1
-          fi
+      - name: Clone Phobos
+        run: git clone --depth 1 --branch "${{ github.base_ref || github.ref_name }}" https://github.com/dlang/phobos ../phobos || git clone --depth 1 https://github.com/dlang/phobos ../phobos
 
-          ci/run.sh setup_repos "$REPO_BRANCH"
       - name: Build
-        run: ${{ matrix.disable_debug_for_dmd_unittests && 'ENABLE_DEBUG=0' || '' }} ci/run.sh build
-      - name: Rebuild dmd (with enabled coverage)
-        if: matrix.coverage
-        run: ENABLE_RELEASE=0 ENABLE_DEBUG=1 ENABLE_COVERAGE=1 ci/run.sh rebuild
-      - name: 'Windows: Set up MSVC environment' # some tests need cl.exe etc. in PATH
+        id: build
+        run: |
+          ${{ matrix.vm && 'source ~/dlang/*/activate' || '' }}
+          make MODEL=$MODEL HOST_DMD="$DMD" BUILD=debug ${{ matrix.no_debug_unittests && 'ENABLE_DEBUG=0' || '' }} dmd-unittest
+          make MODEL=$MODEL HOST_DMD="$DMD" ENABLE_RELEASE=1
+          make -C ../phobos MODEL=$MODEL
+
+      - name: 'Windows: Set up MSVC environment'
         if: runner.os == 'Windows'
         shell: pwsh
         run: ./.github/scripts/setup_msvc.ps1 -Arch ${{ env.MODEL == '64' && 'x64' || 'x86' }}
-      - name: Test dmd
-        run: ci/run.sh test_dmd
-      - name: Test frontend subpackage
-        if: '!matrix.coverage && (success() || failure()) && (matrix.host_dmd == ''dmd'' || matrix.host_dmd == ''dmd-latest'')'
-        run: ci/run.sh test_frontend_subpackage
-      - name: Test druntime
-        if: '!matrix.coverage && (success() || failure())'
-        run: ci/run.sh test_druntime
-      - name: 'Windows x86: Add 32-bit libcurl.dll to PATH (required for Phobos unittests)'
-        if: runner.os == 'Windows' && env.MODEL == '32' && !matrix.coverage && (success() || failure())
-        run: |
-          set -uexo pipefail
-          if [[ "$HOST_DMD" =~ ^ldc ]]; then
-            echo "$(dirname "$DC")/../lib32" >> $GITHUB_PATH
-          else # DMD
-            echo "$(dirname "$DC")/../bin" >> $GITHUB_PATH
-          fi
-      - name: Test phobos
-        if: '!matrix.coverage && (success() || failure())'
-        run: ci/run.sh test_phobos
-      - name: Test self-compile
-        if: '!matrix.coverage && (success() || failure())' # already re-built with enabled coverage
-        run: ENABLE_RELEASE=0 ci/run.sh rebuild
-      - name: Upload coverage report
-        if: matrix.coverage
-        run: ci/run.sh codecov
 
-  arm-qemu:
-    needs: call-precommit
-    name: 'Ubuntu 24.04 x64, DMD (AArch64 cross-compile via QEMU)'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 30
+      - name: 'Alpine: Skip gdb test (no TLS support in gdb)'
+        if: matrix.container
+        run: rm compiler/test/runnable/gdb4181.d
+
+      - name: Test dmd
+        run: |
+          dmd=generated/$OS_NAME/release/$MODEL/dmd
+          $dmd -g -i -Icompiler/test -release compiler/test/run.d -ofgenerated/run
+          generated/run -j$N --environment MODEL=$MODEL HOST_DMD=$dmd ${{ env.OS_NAME != 'linux' && '"ARGS=-inline ''-O -release''"' || '' }}
+
+      - name: Test druntime
+        if: always() && steps.build.outcome == 'success'
+        run: make -C druntime MODEL=$MODEL unittest
+
+      - name: 'Windows: Test shared druntime'
+        if: always() && steps.build.outcome == 'success' && runner.os == 'Windows'
+        run: |
+          rm -rf druntime/test/shared/generated
+          make -C druntime MODEL=$MODEL SHARED=1 UT_SRCS=src/object.d ADDITIONAL_TESTS=test/shared unittest
+
+      - name: 'Windows x86: Put 32-bit libcurl.dll in PATH'
+        if: always() && steps.build.outcome == 'success' && runner.os == 'Windows' && env.MODEL == '32'
+        run: echo "$(dirname "$DC")/../${{ startsWith(matrix.host, 'ldc') && 'lib32' || 'bin' }}" >> $GITHUB_PATH
+
+      - name: Test Phobos
+        if: always() && steps.build.outcome == 'success'
+        run: make -C ../phobos MODEL=$MODEL unittest
+
+      - name: Test Phobos public unittests
+        if: always() && steps.build.outcome == 'success' && runner.os != 'Windows' && !matrix.no_publictests
+        run: |
+          ${{ matrix.vm && 'source ~/dlang/*/activate' || '' }}
+          make -C ../phobos MODEL=$MODEL publictests
+          make -C ../phobos MODEL=$MODEL publictests NO_BOUNDSCHECKS=1
+
+      - name: Test Phobos -betterC
+        if: always() && steps.build.outcome == 'success' && runner.os != 'Windows' && runner.os != 'macOS' && !matrix.no_publictests
+        run: |
+          ${{ matrix.vm && 'source ~/dlang/*/activate' || '' }}
+          make -C ../phobos MODEL=$MODEL betterc
+
+      - name: Check for leftover files
+        if: always() && steps.build.outcome == 'success' && matrix.check_clean_git
+        run: make check-clean-git HOST_DMD=dummy
+
+      - name: Build with dub
+        if: always() && steps.build.outcome == 'success' && matrix.dub
+        run: |
+          ${{ matrix.vm && 'source ~/dlang/*/activate' || '' }}
+          dub run dmd:compiler -- --version
+          dub build dmd:frontend
+          dub --single compiler/test/dub_package/frontend_subpackage.d
+          DFLAGS="-m$MODEL -de" dub --single --compiler="$PWD/generated/$OS_NAME/release/$MODEL/dmd" compiler/test/dub_package/frontend_subpackage.d
+
+      - name: Self-compile dmd
+        if: always() && steps.build.outcome == 'success'
+        run: |
+          mkdir -p _generated/$OS_NAME/release
+          mv generated/$OS_NAME/release/$MODEL _generated/$OS_NAME/release/
+          make MODEL=$MODEL HOST_DMD=$PWD/_generated/$OS_NAME/release/$MODEL/dmd${{ runner.os == 'Windows' && '.exe' || '' }} ENABLE_RELEASE=0 dmd
+
+  windows-msbuild:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Windows x64, LDC (Visual D, Debug)
+            arch: x64
+            configuration: Debug
+          - name: Windows x86, LDC (Visual D)
+            arch: x86
+          - name: Windows x86, LDC (Visual D, MinGW libs)
+            arch: x86
+            mingw: true
+    name: ${{ matrix.name }}
+    runs-on: windows-2022
+    timeout-minutes: 60
     env:
-      OS_NAME: linux
-      MODEL: 64
-      HOST_DMD: dmd
-      FULL_BUILD: true
+      MODEL: ${{ matrix.arch == 'x64' && '64' || '32' }}
+      PLATFORM: ${{ matrix.arch == 'x64' && 'x64' || 'Win32' }}
+      CONFIGURATION: ${{ matrix.configuration || 'RelWithAsserts' }}
     defaults:
       run:
         shell: bash
     steps:
       - uses: actions/checkout@v7
-        with:
-          fetch-depth: 50
 
-      - name: Set environment variable N (parallelism)
-        run: echo "N=$(nproc)" >> $GITHUB_ENV
-
-      - name: Install prerequisites
-        run: sudo --preserve-env=OS_NAME,MODEL,HOST_DMD,FULL_BUILD,N ci/cirrusci.sh
+      - name: Set make parallelism
+        run: |
+          N=$(nproc 2>/dev/null || sysctl -n hw.ncpu)
+          echo "N=$N" >> $GITHUB_ENV
+          echo "MAKEFLAGS=-j$N" >> $GITHUB_ENV
 
       - name: Install host compiler
-        run: ci/run.sh install_host_compiler
+        uses: dlang-community/setup-dlang@v2
+        with:
+          compiler: ldc-1.23.0
 
-      - name: Set up repos
+      - name: Install Visual D
+        shell: cmd
         run: |
-          set -uexo pipefail
-          ref='${{ github.ref }}'
-          if [[ "$ref" =~ ^refs/pull/ ]]; then
-            REPO_BRANCH="$GITHUB_BASE_REF"
-          elif [[ "$ref" =~ ^refs/(heads|tags)/(.*)$ ]]; then
-            REPO_BRANCH="${BASH_REMATCH[2]}"
-          else
-            echo "Error: unexpected GitHub ref '$ref'" >&2
-            exit 1
-          fi
-          ci/run.sh setup_repos "$REPO_BRANCH"
+          curl -fsSL --retry 5 https://github.com/dlang/visuald/releases/download/v1.4.0/VisualD-v1.4.0.exe -o VisualD.exe || exit /b 1
+          VisualD.exe /S || exit /b 1
+          for %%I in ("%DC%\..\..") do reg add "HKLM\SOFTWARE\LDC" /v InstallationFolder /t REG_SZ /d "%%~fI" /reg:32 /f
 
-      - name: Build DMD
-        run: ci/run.sh build
+      - name: Set up MSVC environment
+        shell: pwsh
+        run: ./.github/scripts/setup_msvc.ps1 -Arch ${{ matrix.arch }}
 
-      - name: Install AArch64 cross-compile tools
-        run: sudo apt-get install -y qemu-user clang lld gcc-aarch64-linux-gnu
+      - name: Clone Phobos
+        run: git clone --depth 1 --branch "${{ github.base_ref || github.ref_name }}" https://github.com/dlang/phobos ../phobos || git clone --depth 1 https://github.com/dlang/phobos ../phobos
+
+      - name: Build
+        run: |
+          dmd=$(cygpath -m "$PWD/generated/Windows/$CONFIGURATION/$PLATFORM/dmd.exe")
+          echo "DMD_EXE=$dmd" >> $GITHUB_ENV
+          msbuild.exe //target:dmd //p:Configuration=$CONFIGURATION //p:Platform=$PLATFORM //p:DCompiler=LDC compiler/src/vcbuild/dmd.sln
+          make -C druntime MODEL=$MODEL "DMD=$dmd"
+          make -C ../phobos MODEL=$MODEL "DMD=$dmd" "DMD_DIR=$(cygpath -m "$PWD")"
+          cd compiler/test
+          "$DMD" -m$MODEL -g -i run.d
+          ./run.exe tools "BUILD=$CONFIGURATION" "DMD_MODEL=$PLATFORM"
+
+      - name: 'MinGW: Install lld-link and MinGW libraries'
+        if: matrix.mingw
+        run: |
+          bindir=generated/Windows/$CONFIGURATION/$PLATFORM
+          curl -fsSL --retry 5 https://downloads.dlang.org/other/lld-link-9.0.0-seh.zip -o lld.zip
+          7z x lld.zip -o"$bindir"
+          curl -fsSL --retry 5 https://github.com/dlang/installer/releases/download/mingw-libs-8.0.0/mingw-libs-8.0.0.zip -o mingw.zip
+          7z x mingw.zip -omingw
+          lib=$(cygpath -w "$PWD/mingw/dmd2/windows/lib32mscoff/mingw")
+          echo "DFLAGS=-mscrtlib=ucrtbase" >> $GITHUB_ENV
+          echo "LIB=$lib" >> $GITHUB_ENV
+          echo "REQUIRED_ARGS=-mscrtlib=ucrtbase -L/LIBPATH:$lib" >> $GITHUB_ENV
+          # debug info incomplete when linking through lld-link
+          rm compiler/test/runnable/testpdb.d
+
+      - name: Test druntime
+        run: make -C druntime MODEL=$MODEL "DMD=$DMD_EXE" ${{ matrix.mingw && 'unittest-debug' || 'unittest' }}
+
+      - name: Test dmd
+        if: always()
+        run: |
+          cd compiler/test
+          # MinGW: runnable_cxx needs the same MSVC runtime as cl.exe
+          ./run.exe --environment runnable compilable fail_compilation dshell ${{ !matrix.mingw && 'runnable_cxx' || '' }} "ARGS=-O -inline -g" "BUILD=$CONFIGURATION" "DMD_MODEL=$PLATFORM"
+
+      - name: Test Phobos
+        # MinGW: lld-link fails to link the Phobos unittests
+        if: always() && !matrix.mingw
+        run: |
+          cp "$(dirname "$DC")/../lib$MODEL/libcurl.dll" ../phobos/
+          make -C ../phobos MODEL=$MODEL "DMD=$DMD_EXE" "DMD_DIR=$(cygpath -m "$PWD")" unittest
+
+  aarch64:
+    name: Ubuntu 24.04 x64, DMD (AArch64 cross-compile via QEMU)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set make parallelism
+        run: echo "MAKEFLAGS=-j$(nproc)" >> $GITHUB_ENV
+
+      - name: Install packages
+        run: sudo apt-get install -y gdb qemu-user clang lld gcc-aarch64-linux-gnu
+
+      - name: Install host compiler
+        uses: dlang-community/setup-dlang@v2
+        with:
+          compiler: dmd
+
+      - name: Clone Phobos
+        run: git clone --depth 1 --branch "${{ github.base_ref || github.ref_name }}" https://github.com/dlang/phobos ../phobos || git clone --depth 1 https://github.com/dlang/phobos ../phobos
+
+      - name: Build
+        run: |
+          make HOST_DMD="$DMD" BUILD=debug dmd-unittest
+          make HOST_DMD="$DMD" ENABLE_RELEASE=1
+          make -C ../phobos
 
       - name: Test AArch64 cross-compile and run via QEMU
-        run: |
-          source ~/dlang/*/activate
-          compiler/test/run.d arm
+        run: compiler/test/run.d arm

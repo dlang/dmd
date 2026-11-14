@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 
-# Implements CI steps for multiple CI services.
-# This file is invoked from the DMD and Phobos CI YAMLs.
+# Only used by the Phobos CI. dmd CI runs its steps directly in .github/workflows.
 
 set -uexo pipefail
 
@@ -291,12 +290,6 @@ install_host_compiler() {
   fi
 }
 
-# Upload coverage reports
-codecov()
-{
-    source ci/codecov.sh
-}
-
 # Define commands
 
 if [ "$#" -gt 0 ]; then
@@ -312,7 +305,6 @@ if [ "$#" -gt 0 ]; then
     test_dub_package) test_dub_package ;;
     test_frontend_subpackage) test_frontend_subpackage ;;
     testsuite) testsuite ;;
-    codecov) codecov ;;
     *) echo "Unknown command: $1" >&2; exit 1 ;;
   esac
 fi
