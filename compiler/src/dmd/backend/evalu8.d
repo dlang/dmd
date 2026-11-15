@@ -1709,6 +1709,8 @@ else
         e.Vint = boolres(e1);
         break;
     case OP32_16:
+        e.Vint = cast(ushort)l1;
+        break;
     case OPoffset:
         e.Vint = cast(targ_int)l1;
         break;
