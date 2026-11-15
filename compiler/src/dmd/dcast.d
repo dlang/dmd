@@ -4361,6 +4361,12 @@ Expression typeCombine(BinExp be, Scope* sc)
 Expression integralPromotions(Expression e, Scope* sc)
 {
     //printf("integralPromotions %s %s\n", e.toChars(), e.type.toChars());
+    BitFieldDeclaration bf = e.isBitField();
+    if (bf && bf.fieldWidth < 32)
+    {
+        // C11 6.3.1.1p2: a bit field whose values all fit in `int` is promoted to `int`
+        e = e.castTo(sc, Type.tint32);
+    }
     switch (e.type.toBasetype().ty)
     {
     case Tvoid:

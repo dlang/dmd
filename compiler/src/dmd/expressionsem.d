@@ -4206,6 +4206,42 @@ private Expression rewriteOpAssign(BinExp exp)
     }
 }
 
+/*********************
+ * Rewrite v.field op= e2
+ * Params:
+ *	exp = the bitfield op assignment
+ *	bf = the bit field declaration
+ * Returns:
+ *	rewritten exp
+ */
+private Expression rewriteBitFieldOpAssign(BinExp exp, BitFieldDeclaration bf)
+{
+    DotVarExp dve = exp.e1.isDotVarExp();
+    if (dve.e1.isVarExp())
+    {
+        // dve.var = dve.var op e2
+        Expression e = opAssignToOp(exp.loc, exp.op, dve, exp.e2);
+        e = new AssignExp(exp.loc, dve.syntaxCopy(), e);
+        return e;
+    }
+    else
+    {
+        // ref tmp = dve.e1;
+        auto tmp = copyToTemp(STC.ref_, "__bitfieldptr", dve.e1);
+        // tmp.bf
+        Expression e1 = new DotVarExp(dve.loc, new VarExp(dve.loc, tmp), bf);
+	// tmp.bf
+        Expression elvalue = e1.syntaxCopy();
+        // tmp.bf op e2
+        Expression e = opAssignToOp(exp.loc, exp.op, e1, exp.e2); //
+        // tmp.bf = tmp.bf op e2
+        e = new AssignExp(exp.loc, elvalue, e);
+	// (ref tmp = dve.e1) , (tmp.bf = tmp.bf op e2)
+        e = new CommaExp(exp.loc, new DeclarationExp(dve.loc, tmp), e);
+        return e;
+    }
+}
+
 /****************************************
  * Preprocess arguments to function.
  *
@@ -9591,15 +9627,27 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (Expression e = exp.opOverloadBinaryAssign(sc, aliasThisStop))
             return setOpOverloadAssign(e);
 
-        Expression e;
         if (exp.e1.op == EXP.arrayLength)
         {
             // arr.length op= e2;
-            e = rewriteOpAssign(exp);
+            Expression e = rewriteOpAssign(exp);
             e = e.expressionSemantic(sc);
             result = e;
             return;
         }
+
+        if (BitFieldDeclaration bf = exp.e1.isBitField())
+	{
+	    /* If lvalue is a bit field, because integral promotions interfere with bit field operations,
+	     * decompose it into two expressions
+	     *   v.field op= e2
+	     */
+            Expression e = rewriteBitFieldOpAssign(exp, bf);
+            e = e.expressionSemantic(sc);
+            result = e;
+            return;
+	}
+
         if (exp.e1.op == EXP.slice || exp.e1.type.isStaticOrDynamicArray())
         {
             if (checkNonAssignmentArrayOp(exp.e1))
@@ -9675,7 +9723,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (exp.e1.op == EXP.error || exp.e2.op == EXP.error)
             return setError();
 
-        e = exp.checkOpAssignTypes(sc);
+        Expression e = exp.checkOpAssignTypes(sc);
         if (e.op == EXP.error)
         {
             result = e;
