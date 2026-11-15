@@ -176,7 +176,11 @@ __gshared const Ssindex[21] ssindex_array =
 int ssindex(OPER op,targ_uns product)
 {
     if (op == OPshl)
+    {
+        if (product >= targ_uns.sizeof * 8)
+            return 0;
         product = 1 << product;
+    }
     for (size_t i = 1; i < ssindex_array.length; i++)
     {
         if (ssindex_array[i].product == product)
