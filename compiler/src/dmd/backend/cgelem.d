@@ -1552,16 +1552,6 @@ private elem* elbitwise(elem* e, Goal goal)
                 goto Lopt;
             }
 
-            // Replace (((a & b) ^ c) & d) with ((a ^ c) & e), where
-            // e is (b&d).
-            if (e.Eoper == OPand && op == OPxor && e1.E1.Eoper == OPand &&
-                e1.E1.E2.Eoper == OPconst)
-            {
-                e2.Vullong &= e1.E1.E2.Vullong;
-                e1.E1 = el_selecte1(e1.E1);
-                goto Lopt;
-            }
-
             // Replace ((a >> b) & 1) with (a btst b)
             if ((I32 || I64) &&
                 e.Eoper == OPand &&
