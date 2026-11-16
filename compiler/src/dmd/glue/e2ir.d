@@ -216,7 +216,17 @@ package(dmd.glue)
 Symbol* toStringSymbol(const(char)* str, size_t len, size_t sz)
 {
     //printf("toStringSymbol() %s\n", str);
-    auto sv = stringTab.update(str, len * sz);
+    import dmd.common.outbuffer : OutBuffer;
+    /* The lookup key includes sz: the same bytes at a different code unit size
+     * need a terminator of a different width, so they must not share a symbol.
+     * The buffer is reused across calls; StringTable copies the key, so it
+     * never retains this pointer.
+     */
+    __gshared OutBuffer key;
+    key.setsize(0);
+    key.writeByte(cast(ubyte)sz);
+    key.write(str[0 .. len * sz]);
+    auto sv = stringTab.update(cast(const(char)*)key[].ptr, key.length);
     if (sv.value)
         return sv.value;
 
@@ -1221,24 +1231,8 @@ elem* toElem(Expression e, ref IRState irs)
         }
         else if (tb.ty == Tpointer)
         {
-            if (config.objfmt == OBJ_MACH && target.isAArch64)
-            {
-                Symbol* si = toStringSymbol(se);
-                e = el_ptr(si);
-            }
-            else
-            {
-                e = el_calloc();
-                e.Eoper = OPstring;
-                // freed in el_free
-                string s;
-                const n = cast(int)se.numberOfCodeUnits(0, s);
-                const len = cast(size_t)((n + 1) * se.sz);
-                e.Vstring = cast(char *)mem_malloc2(cast(uint) len);
-                se.writeTo(e.Vstring, true);
-                e.Vstrlen = len;
-                e.Ety = TYnptr;
-            }
+            Symbol* si = toStringSymbol(se);
+            e = el_ptr(si);
         }
         else
         {
@@ -3989,6 +3983,13 @@ elem* toElem(Expression e, ref IRState irs)
 
         //printf("IndexExp.toElem() %s\n", ie.toChars());
         Type t1 = ie.e1.type.toBasetype();
+
+        if (t1.isTypeNoreturn())
+        {
+            elem_setLoc(n1, ie.loc);
+            return n1;
+        }
+
         if (auto taa = t1.isTypeAArray())
         {
             assert(false, "no index lowering for associative array literal");
