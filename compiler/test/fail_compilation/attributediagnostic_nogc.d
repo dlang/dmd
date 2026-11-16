@@ -12,7 +12,7 @@ fail_compilation/attributediagnostic_nogc.d(38):        and calling non-@nogc `f
 fail_compilation/attributediagnostic_nogc.d(45): Error: `@nogc` function `D main` cannot call non-@nogc function `attributediagnostic_nogc.gcClosure`
 fail_compilation/attributediagnostic_nogc.d(48):        and allocating a closure for `gcClosure()` makes it fail to infer `@nogc`
 fail_compilation/attributediagnostic_nogc.d(55): Error: `@nogc` function `attributediagnostic_nogc.cycle` cannot call non-@nogc function `attributediagnostic_nogc.cycleA!()`
-fail_compilation/attributediagnostic_nogc.d(56):        and a cyclic dependency (mutual recursion) makes it fail to infer `@nogc`
+fail_compilation/attributediagnostic_nogc.d(56):        and a cyclic dependency during attribute inference makes it fail to infer `@nogc`
 ---
 */
 #line 18
