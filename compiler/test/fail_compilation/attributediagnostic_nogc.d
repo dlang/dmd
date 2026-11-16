@@ -11,6 +11,8 @@ fail_compilation/attributediagnostic_nogc.d(44): Error: `@nogc` function `D main
 fail_compilation/attributediagnostic_nogc.d(38):        and calling non-@nogc `fgc` makes it fail to infer `@nogc`
 fail_compilation/attributediagnostic_nogc.d(45): Error: `@nogc` function `D main` cannot call non-@nogc function `attributediagnostic_nogc.gcClosure`
 fail_compilation/attributediagnostic_nogc.d(48):        and allocating a closure for `gcClosure()` makes it fail to infer `@nogc`
+fail_compilation/attributediagnostic_nogc.d(55): Error: `@nogc` function `attributediagnostic_nogc.cycle` cannot call non-@nogc function `attributediagnostic_nogc.cycleA!()`
+fail_compilation/attributediagnostic_nogc.d(56):        and a cyclic dependency during attribute inference makes it fail to infer `@nogc`
 ---
 */
 #line 18
@@ -50,3 +52,7 @@ auto gcClosure()
     int bar() { return x; }
     return &bar;
 }
+
+void cycle() @nogc { cycleA(); }
+void cycleA()() { cycleB(); }
+void cycleB()() { cycleA(); }

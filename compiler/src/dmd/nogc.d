@@ -421,7 +421,7 @@ bool isNogc(FuncDeclaration fd)
 {
     //printf("isNogc() %s, inprocess: %d\n", toChars(), !!(flags & FUNCFLAG.nogcInprocess));
     if (fd.nogcInprocess)
-        setGC(null, fd, fd.loc, null);
+        setGC(null, fd, fd.loc, "a cyclic dependency during attribute inference");
     return fd.type.toTypeFunction().isNogc;
 }
 
