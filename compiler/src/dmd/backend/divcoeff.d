@@ -265,7 +265,7 @@ unittest
             ullong m;
             int shpre;
             int shpost;
-            bool high = udiv_coefficients(N, d, &shpre, &m, &shpost);
+            udiv_coefficients(N, d, &shpre, &m, &shpost);
             assert(shpre >= 0);
             assert(shpost >= 0);
             assert(shpost <= N);
