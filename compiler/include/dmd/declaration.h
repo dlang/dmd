@@ -284,6 +284,7 @@ public:
     bool systemInferred() const;
     bool systemInferred(bool v);
     static VarDeclaration *create(Loc loc, Type *t, Identifier *id, Initializer *init, StorageClass storage_class = STCundefined);
+    static void fixImportCStaticVisibility();
     VarDeclaration *syntaxCopy(Dsymbol *) override;
     const char *kind() const override;
     AggregateDeclaration *isThis() override final;

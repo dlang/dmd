@@ -464,7 +464,7 @@ extern (C++) class VarDeclaration : Declaration
      * expressions referencing these variables get their own access
      * checked.
      */
-    extern (D) static void fixImportCStaticVisibility()
+    extern (C++) static void fixImportCStaticVisibility()
     {
         foreach (vd; importCStaticGlobals)
             vd.visibility = Visibility(Visibility.Kind.private_);
