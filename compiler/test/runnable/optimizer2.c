@@ -63,15 +63,6 @@ int test24336(void)
 }
 
 
-int x_24337;
-
-int test24337(void)
-{
-    assert(0 - (x_24337 || 1) == -1);
-    return 0;
-}
-
-
 struct S_24344 { short a : 1; unsigned char b : 8; short c : 14; } s_24344;
 
 int test24344(void)
@@ -97,15 +88,31 @@ int test24352(void)
 
 /***************************************************/
 
+// https://github.com/dlang/dmd/issues/24337
+int x_24337;
+
+int test24337(void)
+{
+    assert(0 - (x_24337 || 1) == -1);
+    assert(~(x_24337 && 0) == -1);
+    x_24337 = -17;
+    assert(-(x_24337 || 1) == -1);
+    assert(~(x_24337 && 0) == -1);
+    int evaluated = 0;
+    assert(-((++evaluated) || 1) == -1);
+    assert(evaluated == 1);
+    return 0;
+}
+
 int main(void)
 {
     test24303();
+    test24337();
 /*
     test24322();
     test24324();
     test24326();
     test24336();
-    test24337();
     test24344();
     test24352();
 */

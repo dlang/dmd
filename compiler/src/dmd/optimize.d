@@ -1307,7 +1307,8 @@ Expression optimize(Expression e, int result, bool keepLvalue = false)
             {
                 // e1 || true -> (e1, true)
                 // e1 && false -> (e1, false)
-                ret = IntegerExp.createBool(oror);
+                Type type = e.type.toBasetype().ty == Tvoid ? Type.tbool : e.type;
+                ret = type == Type.tbool ? IntegerExp.createBool(oror) : new IntegerExp(e.loc, oror, type);
                 ret = Expression.combine(e.e1, ret);
                 if (e.type.toBasetype().ty == Tvoid)
                 {
