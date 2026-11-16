@@ -917,7 +917,11 @@ Expression optimize(Expression e, int result, bool keepLvalue = false)
                 if (e.e1.type.equals(e.type) && e.type.equals(e.to))
                     ret = e.e1;
                 else
+                {
                     ret = Cast(e.loc, e.type, e.to, e.e1).copy();
+                    if (CTFEExp.isCantExp(ret))
+                        ret = e;
+                }
             }
         }
         //printf(" returning6 %s\n", ret.toChars());
