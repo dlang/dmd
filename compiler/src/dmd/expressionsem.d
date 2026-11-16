@@ -17371,6 +17371,7 @@ bool checkSharedAccess(Expression e, Scope* sc, bool returnRef = false)
             // Those have no indirections / can be ignored
             case EXP.call:
             case EXP.error:
+            case EXP.float64:
             case EXP.complex80:
             case EXP.int64:
             case EXP.null_:       return false;

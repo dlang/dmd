@@ -188,3 +188,8 @@ class ClassWithSharedMember
 private:
     shared uint x;
 }
+
+void testSharedFloatInit()
+{
+    shared double d;
+}
