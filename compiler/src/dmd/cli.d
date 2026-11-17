@@ -521,8 +521,10 @@ dmd -cov -unittest myprog.d
                         $(LI Look for a package module if the file name is a directory.)
                     )
                 )
-                $(LI $(B File extensions): Modules are matched to files with specific
-                file extensions. The order in which each extension is searched is as follows:
+                $(LI $(B File extensions): In each directory, DMD checks the following
+                candidates in order and stops at the first match. For example, with
+                `-Ifirst -Isecond`, `import foo;` selects `foo.c` in `first` even
+                if `second` contains `foo.d`.
                     $(OL
                         $(LI `.di`)
                         $(LI `.d`)
