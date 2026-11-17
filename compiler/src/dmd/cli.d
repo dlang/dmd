@@ -490,6 +490,11 @@ dmd -cov -unittest myprog.d
             q"{$(P Adds $(I directory) to the list of paths to be searched for imports.
              Multiple `-I`'s can be used, and the paths are searched in the same order.)
 
+             $(P For ImportC, `-Ibindings` allows `import foo;` to find `foo.c` in
+             the `bindings` directory. Use $(SWLINK -P) to pass additional include
+             directories to the C preprocessor for `#include` directives, for example
+             $(UNIX `-P-Iheaders`)$(WINDOWS `-P/Iheaders`) to search the `headers` directory.)
+
              $(P The process of finding a module during the resolution of an import
              declaration involves several steps.
              $(UL
