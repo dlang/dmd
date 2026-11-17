@@ -721,6 +721,34 @@ void dsymbolSemantic(Dsymbol dsym, Scope* sc)
     dsym.accept(v);
 }
 
+/*************************************
+ * Run the semantic analysis CTFE needs on function or variable `s`.
+ * CTFE can call a function whose body is not analysed yet (e.g. one from an
+ * imported module), or read a variable whose initializer is still pending.
+ * The interpreter asks for that here instead of calling the semantic routines
+ * itself, so CTFE starts semantic in one place only.
+ * Returns: false on error
+ */
+bool ctfeSemantic(Dsymbol s)
+{
+    if (auto fd = s.isFuncDeclaration())
+        return functionSemantic3(fd);
+
+    auto v = s.isVarDeclaration();
+    if (!v.originalType && v.semanticRun < PASS.semanticdone) // semantic() not yet run
+    {
+        v.dsymbolSemantic(null);
+        return v.type.ty != Terror;
+    }
+    if (v._init && v._scope) // might not be run on aggregate members
+    {
+        v.inuse++;
+        v._init = v._init.initializerSemantic(v._scope, v.type, INITinterpret, global.errorSink);
+        v.inuse--;
+    }
+    return true;
+}
+
 
 
 /*******************************************
