@@ -473,6 +473,8 @@ FILE* openOrCreateFile(string name)
         alias fdopen = _fdopen;
     else version (Posix)
         import core.sys.posix.stdio : fdopen;
+    // The Microsoft CRT fails fast if fdopen receives an invalid descriptor.
+    if (fd < 0) return null;
     return fdopen(fd, "r+b");
 }
 

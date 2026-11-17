@@ -1,6 +1,6 @@
 normal := basic
 merge := merge merge_true
-TESTS := $(normal) $(merge) no_code merge_override
+TESTS := $(normal) $(merge) no_code merge_override report_open
 include ../common.mak
 
 normal_tests := $(normal:%=$(ROOT)/%.done)
@@ -78,3 +78,13 @@ endif
 	@touch $@
 $(ROOT)/no_code$(DOTEXE): $(SRC)/no_code_imp.d
 $(ROOT)/no_code$(DOTEXE): extra_sources += $(SRC)/no_code_imp.d
+
+# A failed report open must not abort during runtime shutdown.
+$(ROOT)/report_open.done: $(ROOT)/basic$(DOTEXE)
+	@test ! -e $(ROOT)/missing-report-directory
+	$< $(ROOT)/missing-report-directory
+	@test ! -e $(ROOT)/missing-report-directory
+	@echo not-a-directory > $(ROOT)/report-destination-file
+	$< $(ROOT)/report-destination-file
+	@$(RM) $(ROOT)/report-destination-file
+	@touch $@
