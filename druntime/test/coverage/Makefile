@@ -88,3 +88,18 @@ $(ROOT)/report_open.done: $(ROOT)/basic$(DOTEXE)
 	$< $(ROOT)/report-destination-file
 	@$(RM) $(ROOT)/report-destination-file
 	@touch $@
+
+ifeq (windows,$(OS))
+all: $(ROOT)/long_report.done
+
+# Each component is valid, but the complete path exceeds MAX_PATH.
+long_component := aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+long_report_dir := $(ROOT)/coverage reports/$(long_component)/$(long_component)/$(long_component)
+$(ROOT)/long_report.done: $(ROOT)/basic$(DOTEXE)
+	@mkdir -p "$(long_report_dir)"
+	@$(RM) "$(long_report_dir)/src-basic.lst"
+	$< "$(long_report_dir)"
+	$(SED) 's@^src.@src/@' < "$(long_report_dir)/src-basic.lst" > $(ROOT)/long-report.lst
+	$(DIFF) src-basic.lst.exp $(ROOT)/long-report.lst
+	@touch $@
+endif
