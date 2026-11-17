@@ -3718,6 +3718,7 @@ void cdshtlng(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 
             reg = allocreg(cdb,retregs,TYint);
             loadea(cg,cdb,e1,cs,LOD,reg,0,retregs,retregs);  //  MOV Ereg,EA
+            genregs(cdb,LOD,reg,reg);  // MOV Ereg,Ereg (zero out the upper 32 bits)
             freenode(e1);
         }
         else
