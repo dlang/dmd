@@ -158,6 +158,8 @@ extern (C++) struct Scope
     Scope* callsc;                  /// used for __FUNCTION__, __PRETTY_FUNCTION__ and __MODULE__
     Dsymbol inunion;                /// != null if processing members of a union
     VarDeclaration lastVar;         /// Previous symbol used to prevent goto-skips-init
+    VarDeclaration dollarVar;
+    size_t dollarDim;
     ErrorSink eSink;                /// sink for error messages
 
     /* If  minst && !tinst, it's in definitely non-speculative scope (eg. module member scope).

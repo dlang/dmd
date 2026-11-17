@@ -196,7 +196,6 @@ Expression opOverloadUnary(UnaExp e, Scope* sc)
                 return ae.e1;
             }
             Expression ae1save = ae.e1;
-            ae.lengthVar = null;
 
             AggregateDeclaration ad = isAggregate(ae.e1.type);
             if (!ad)
@@ -228,7 +227,7 @@ Expression opOverloadUnary(UnaExp e, Scope* sc)
             {
                 // Deal with $
                 Expression e0;
-                auto ae2 = resolveOpDollar(sc, ae, ie, e0);
+                auto ae2 = dollarSemantic(sc, ae, ie, 0, e0);
                 if (ae2.isErrorExp())
                     return ae2;
                 /* Rewrite op(a[i..j]) as:
@@ -253,7 +252,6 @@ Expression opOverloadUnary(UnaExp e, Scope* sc)
             break;
         }
         ae.e1 = ae1old; // recovery
-        ae.lengthVar = null;
     }
     e.e1 = e.e1.expressionSemantic(sc);
     e.e1 = resolveProperties(sc, e.e1);
@@ -325,7 +323,6 @@ Expression opOverloadArray(ArrayExp ae, Scope* sc)
         }
         Expression e0 = null;
         Expression ae1save = ae.e1;
-        ae.lengthVar = null;
         Type t1b = ae.e1.type.toBasetype();
         AggregateDeclaration ad = isAggregate(t1b);
         if (!ad)
@@ -382,7 +379,7 @@ Expression opOverloadArray(ArrayExp ae, Scope* sc)
         if (maybeSlice && search_function(ad, Id.opSlice))
         {
             // Deal with $
-            auto ae2 = resolveOpDollar(sc, ae, ie, e0);
+            auto ae2 = dollarSemantic(sc, ae, ie, 0, e0);
 
             if (ae2.isErrorExp())
             {
@@ -423,7 +420,6 @@ Expression opOverloadArray(ArrayExp ae, Scope* sc)
         break;
     }
     ae.e1 = ae1old; // recovery
-    ae.lengthVar = null;
     return null;
 }
 
@@ -949,7 +945,6 @@ Expression opOverloadBinaryAssign(BinAssignExp e, Scope* sc, Type[2] aliasThisSt
 
             Expression e0 = null;
             Expression ae1save = ae.e1;
-            ae.lengthVar = null;
             AggregateDeclaration ad = isAggregate(ae.e1.type);
             if (!ad)
                 break;
@@ -983,7 +978,7 @@ Expression opOverloadBinaryAssign(BinAssignExp e, Scope* sc, Type[2] aliasThisSt
             if (maybeSlice && search_function(ad, Id.opSliceOpAssign))
             {
                 // Deal with $
-                Expression ae2 = resolveOpDollar(sc, ae, ie, e0);
+                Expression ae2 = dollarSemantic(sc, ae, ie, 0, e0);
                 if (ae2.isErrorExp())
                     return ae2;
 
@@ -1013,7 +1008,6 @@ Expression opOverloadBinaryAssign(BinAssignExp e, Scope* sc, Type[2] aliasThisSt
             break;
         }
         ae.e1 = ae1old; // recovery
-        ae.lengthVar = null;
     }
 
     if (Expression result = e.binSemanticProp(sc))
