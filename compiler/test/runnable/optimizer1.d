@@ -77,8 +77,8 @@ void test24305()
 
 /**************************************************/
 
-static if (0)
-{
+// https://github.com/dlang/dmd/issues/24306
+
 ulong f_24306(byte p)
 {
     ulong v = p;
@@ -91,9 +91,8 @@ void test24306()
     assert(f_24306(-5) == 0xFFFF_FFFB);
 }
 
-}
 /**************************************************/
-// https://github.com/dlang/dmd/issues/24305
+// https://github.com/dlang/dmd/issues/24307
 
 short f_24307(int n)
 {
@@ -867,7 +866,7 @@ void main()
     //test24113();
     test24304();
     test24305();
-//    test24306();
+    test24306();
     test24307();
 /*
     test24308();
