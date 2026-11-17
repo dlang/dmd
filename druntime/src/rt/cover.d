@@ -229,6 +229,42 @@ shared static this()
     config.initialize();
 }
 
+// Identify the source the reporter will actually open, allowing different input spellings.
+private struct SourceKey
+{
+    ulong device;
+    ulong index;
+    string unresolved;
+}
+
+private SourceKey sourceKey(string filename)
+{
+    version (Windows)
+    {
+        import core.sys.windows.winnt : FILE_SHARE_READ, FILE_SHARE_WRITE, FILE_SHARE_DELETE, FILE_ATTRIBUTE_NORMAL;
+        auto handle = CreateFileW(toUTF16z(filename), 0,
+            FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+            null, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, null);
+        if (handle != INVALID_HANDLE_VALUE)
+        {
+            scope(exit) CloseHandle(handle);
+            BY_HANDLE_FILE_INFORMATION info;
+            if (GetFileInformationByHandle(handle, &info) &&
+                (info.nFileIndexHigh || info.nFileIndexLow))
+                return SourceKey(info.dwVolumeSerialNumber,
+                    (ulong(info.nFileIndexHigh) << 32) | info.nFileIndexLow);
+        }
+    }
+    else version (Posix)
+    {
+        import core.sys.posix.sys.stat : stat, stat_t;
+        stat_t info;
+        if (!stat((filename ~ '\0').ptr, &info))
+            return SourceKey(info.st_dev, info.st_ino);
+    }
+    return SourceKey(0, 0, filename);
+}
+
 shared static ~this()
 {
     if (!gdata.length || config.disable) return;
@@ -240,8 +276,48 @@ shared static ~this()
     auto lines = new char[][NUMLINES];
     auto lstLines = new char[][NUMLINES];
 
+    Cover[][SourceKey] bySource;
     foreach (c; gdata)
+        bySource[sourceKey(appendFN(config.srcpath, c.filename))] ~= c;
+
+    bool inconsistent;
+    reports: foreach (parts; bySource)
     {
+        auto c = parts[0];
+        if (parts.length > 1)
+        {
+            enum bits = size_t.sizeof * 8;
+            c.data = null;
+            foreach (part; parts)
+            {
+                if (part.filename.length < c.filename.length ||
+                    (part.filename.length == c.filename.length && part.filename < c.filename))
+                    c.filename = part.filename;
+                c.minPercent = max(c.minPercent, part.minPercent);
+                // DMD can register empty counters for deferred -multiobj members.
+                if (!part.data.length)
+                    continue;
+                if (!c.data.length)
+                {
+                    c.data = new uint[part.data.length];
+                    c.valid.len = part.valid.len;
+                    c.valid.ptr = (new size_t[(c.data.length + bits - 1) / bits]).ptr;
+                }
+                else if (part.data.length != c.data.length)
+                {
+                    fprintf(cast()stderr, "Error: coverage registrations for %.*s have different source lengths; rebuild the affected objects.\n",
+                        cast(int)c.filename.length, c.filename.ptr);
+                    inconsistent = true;
+                    continue reports;
+                }
+                foreach (i, count; part.data)
+                {
+                    c.data[i] += count;
+                    if (part.valid[i])
+                        c.valid.ptr[i / bits] |= size_t(1) << (i % bits);
+                }
+            }
+        }
         auto fname = appendFN(config.dstpath, addExt(baseName(c.filename), "lst"));
         auto flst = openOrCreateFile(fname);
         if (flst is null)
@@ -331,6 +407,8 @@ shared static ~this()
         else version (Posix)
             ftruncate(fileno(flst), ftell(flst));
     }
+    if (inconsistent)
+        exit(EXIT_FAILURE);
 }
 
 uint digits(uint number)
