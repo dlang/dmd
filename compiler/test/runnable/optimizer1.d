@@ -7,14 +7,15 @@ import core.bitop;
 import core.math : fabs;
 import core.simd;
 
-static if (0)
-{
+/****************************************************/
+
+// https://github.com/dlang/dmd/issues/24111
+
 long f_24111(ulong a, long b) { return (a & 0xFFFF_FFFF) + (b <= 0); }
 
 void test24111()
 {
     assert(f_24111(5, 0) == 6);
-}
 }
 
 /****************************************************/
@@ -854,7 +855,7 @@ void test24351l()
 
 void main()
 {
-    //test24111();
+    test24111();
     test24112();
     //test24113();
     test24304();
