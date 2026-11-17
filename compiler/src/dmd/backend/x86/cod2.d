@@ -3022,7 +3022,7 @@ void cdshift(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
                 getregs(cdb,retregs);      // trash these regs
                 cdb.gen2(0xD3 ^ isbyte,grex | modregrmx(3,s1,resreg)); // Sxx resreg,CX
 
-                if (!I16 && sz == 2 && (oper == OProl || oper == OPror))
+                if (!I16 && sz == 2)
                     cdb.last().Iflags |= CF.opsize;
 
                 // Note that a shift by CL does not set the flags if

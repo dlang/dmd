@@ -91,6 +91,10 @@ void test24306()
     assert(f_24306(-5) == 0xFFFF_FFFB);
 }
 
+}
+/**************************************************/
+// https://github.com/dlang/dmd/issues/24305
+
 short f_24307(int n)
 {
     short v = 0;
@@ -105,6 +109,9 @@ void test24307()
     assert(f_24307(1) == 0x7FFF);
 }
 
+/**************************************************/
+static if (0)
+{
 long f_24308(int p)
 {
     long v = -1;
@@ -860,9 +867,9 @@ void main()
     //test24113();
     test24304();
     test24305();
-/*
-    test24306();
+//    test24306();
     test24307();
+/*
     test24308();
     test24309a();
     test24309b();
