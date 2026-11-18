@@ -139,7 +139,7 @@ extern (C++) final class EnumMember : VarDeclaration
 
     extern (D) this(Loc loc, Identifier id, Expression value, Type origType)
     {
-        super(loc, null, id ? id : Id.empty, new ExpInitializer(loc, value));
+        super(loc, null, id ? id : Id.empty, expInitializer(loc, value));
         this.origValue = value;
         this.origType = origType;
         this.dsym = DSYM.enumMember;
