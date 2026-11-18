@@ -168,6 +168,15 @@ jobs:
         shell: pwsh
         run: ./.github/scripts/setup_msvc.ps1 -Arch ${{ env.MODEL == '64' && 'x64' || 'x86' }}
 
+      - name: Build with dub
+        if: always() && steps.build.outcome == 'success' && matrix.dub
+        run: |
+          ${{ matrix.vm && 'source ~/dlang/*/activate' || '' }}
+          dub run dmd:compiler -- --version
+          dub build dmd:frontend
+          dub --single compiler/test/dub_package/frontend_subpackage.d
+          DFLAGS="-m$MODEL -de" dub --single --compiler="$PWD/generated/$OS_NAME/release/$MODEL/dmd" compiler/test/dub_package/frontend_subpackage.d
+
       - name: 'Alpine: Skip gdb test (no TLS support in gdb)'
         if: matrix.container
         run: rm compiler/test/runnable/gdb4181.d
@@ -219,15 +228,6 @@ jobs:
       - name: Check for leftover files
         if: always() && steps.build.outcome == 'success' && matrix.extra_checks
         run: make check-clean-git HOST_DMD=dummy
-
-      - name: Build with dub
-        if: always() && steps.build.outcome == 'success' && matrix.dub
-        run: |
-          ${{ matrix.vm && 'source ~/dlang/*/activate' || '' }}
-          dub run dmd:compiler -- --version
-          dub build dmd:frontend
-          dub --single compiler/test/dub_package/frontend_subpackage.d
-          DFLAGS="-m$MODEL -de" dub --single --compiler="$PWD/generated/$OS_NAME/release/$MODEL/dmd" compiler/test/dub_package/frontend_subpackage.d
 
       - name: Self-compile dmd
         if: always() && steps.build.outcome == 'success'
