@@ -1113,6 +1113,7 @@ struct Glue
 
     const(char)* lastmname;
     Dsymbols obj_symbols_towrite;
+    Array!Module coverageSources; // modules with counters in the current object
 }
 
 private __gshared Glue glue;
@@ -1317,6 +1318,31 @@ private void obj_end(ref OutBuffer objbuf, Library library, const(char)[] objfil
     }
 }
 
+package(dmd) void createCoverageCounters(Module m, dt_t* data = null)
+{
+    glue.coverageSources.push(m);
+    // Each object owns its counters, including those for imported source lines.
+    auto mcov = symbol_generate(SC.static_, type_fake(TYint));
+    m.cov = mcov;
+    mcov.Stype.Tmangle = Mangle.d;
+    mcov.Sfl = FL.data;
+
+    if (!data)
+    {
+        auto dtb = DtBuilder(0);
+        dtb.nzeros(4 * m.numlines);
+        data = dtb.finish();
+    }
+    mcov.Sdt = data;
+
+    outdata(mcov);
+
+    // Druntime reads the bitmap in target size_t words.
+    size_t n = 2 * (size_t(m.numlines) / 64 + 1);
+    auto bitmap = cast(uint*)Mem.check(calloc(n, uint.sizeof));
+    m.covb = bitmap[0 .. n];
+}
+
 /**************************************
  * Generate .obj file for Module.
  */
@@ -1376,18 +1402,8 @@ private void genObjFile(Module m, bool multiobj, bool doppelganger)
         }
     }
 
-    Symbol* mcov;
-    if (global.params.cov)
+    if (global.params.cov && !doppelganger)
     {
-        /* Create coverage identifier:
-         *  uint[numlines] __coverage;
-         */
-        mcov = toSymbolX(m, "__coverage", SC.static_, type_fake(TYint), "Z");
-        m.cov = mcov;
-        mcov.Sflags |= SFLhidden;
-        mcov.Stype.Tmangle = Mangle.d;
-        mcov.Sfl = FL.data;
-
         auto dtb = DtBuilder(0);
 
         if (m.ctfe_cov)
@@ -1416,18 +1432,7 @@ private void genObjFile(Module m, bool multiobj, bool doppelganger)
             if (m.numlines > lastLine)
                 dtb.nzeros((m.numlines - lastLine) * 4);
         }
-        else
-        {
-            dtb.nzeros(4 * m.numlines);
-        }
-        mcov.Sdt = dtb.finish();
-
-        outdata(mcov);
-
-        size_t sz = m.covb[0].sizeof;
-        size_t n = (m.numlines + sz * 8) / (sz * 8);
-        uint* p =  cast(uint*)Mem.check(calloc(n, sz));
-        m.covb = p[0 .. n];
+        createCoverageCounters(m, dtb.finish());
     }
 
     for (int i = 0; i < m.members.length; i++)
@@ -1438,26 +1443,8 @@ private void genObjFile(Module m, bool multiobj, bool doppelganger)
     }
 
     Symbol* msictor;
-    if (global.params.cov)
+    if (glue.coverageSources.length)
     {
-        /* Generate
-         *  private bit[numlines] __bcoverage;
-         */
-        Symbol* bcov = symbol_calloc("__bcoverage");
-        bcov.Stype = type_fake(TYuint);
-        bcov.Stype.Tcount++;
-        bcov.Sclass = SC.static_;
-        bcov.Sfl = FL.data;
-
-        auto dtb = DtBuilder(0);
-        dtb.nbytes(cast(const(ubyte)[]) m.covb);
-        bcov.Sdt = dtb.finish();
-
-        outdata(bcov);
-
-        free(m.covb.ptr);
-        m.covb = null;
-
         /* Generate:
          *  _d_cover_register(uint[] __coverage, BitArray __bcoverage, string filename);
          * and prepend it to the static constructor.
@@ -1474,27 +1461,50 @@ private void genObjFile(Module m, bool multiobj, bool doppelganger)
         cstate.CSpsymtab = &msictor.Sfunc.Flocsym;
         localgot = glue.ictorlocalgot;
 
-        elem* ecov  = el_pair(TYdarray, el_long(TYsize_t, m.numlines), el_ptr(mcov));
-        elem* ebcov = el_pair(TYdarray, el_long(TYsize_t, m.numlines), el_ptr(bcov));
-
-        if (target.os == Target.OS.Windows && target.isX86_64)
+        foreach (source; glue.coverageSources[])
         {
-            ecov  = addressElem(ecov,  Type.tvoid.arrayOf(), false);
-            ebcov = addressElem(ebcov, Type.tvoid.arrayOf(), false);
+            /* Generate
+             *  private bit[numlines] __bcoverage;
+             */
+            Symbol* bcov = symbol_calloc("__bcoverage");
+            bcov.Stype = type_fake(TYuint);
+            bcov.Stype.Tcount++;
+            bcov.Sclass = SC.static_;
+            bcov.Sfl = FL.data;
+
+            auto dtb = DtBuilder(0);
+            dtb.nbytes(cast(const(ubyte)[]) source.covb);
+            bcov.Sdt = dtb.finish();
+
+            outdata(bcov);
+
+            free(source.covb.ptr);
+            source.covb = null;
+
+            elem* ecov  = el_pair(TYdarray, el_long(TYsize_t, source.numlines), el_ptr(cast(Symbol*)source.cov));
+            elem* ebcov = el_pair(TYdarray, el_long(TYsize_t, source.numlines), el_ptr(bcov));
+
+            if (target.os == Target.OS.Windows && target.isX86_64)
+            {
+                ecov  = addressElem(ecov,  Type.tvoid.arrayOf(), false);
+                ebcov = addressElem(ebcov, Type.tvoid.arrayOf(), false);
+            }
+
+            elem* efilename = toEfilename(source);
+            if (target.os == Target.OS.Windows && target.isX86_64)
+                efilename = addressElem(efilename, Type.tstring, true);
+
+            elem* e = el_params(
+                          el_long(TYuchar, source is m ? global.params.covPercent : 0),
+                          ecov,
+                          ebcov,
+                          efilename,
+                          null);
+            e = el_bin(OPcall, TYvoid, el_var(getRtlsym(RTLSYM.DCOVER2)), e);
+            glue.eictor = el_combine(e, glue.eictor);
+            source.cov = null;
         }
-
-        elem* efilename = toEfilename(m);
-        if (target.os == Target.OS.Windows && target.isX86_64)
-            efilename = addressElem(efilename, Type.tstring, true);
-
-        elem* e = el_params(
-                      el_long(TYuchar, global.params.covPercent),
-                      ecov,
-                      ebcov,
-                      efilename,
-                      null);
-        e = el_bin(OPcall, TYvoid, el_var(getRtlsym(RTLSYM.DCOVER2)), e);
-        glue.eictor = el_combine(e, glue.eictor);
+        glue.coverageSources.setDim(0);
         glue.ictorlocalgot = localgot;
     }
 
@@ -1831,13 +1841,7 @@ private elem* toEfilename(Module m)
     const(char)* id = m.srcfile.toChars();
     size_t len = strlen(id);
 
-    Symbol* msfilename;
-    if (!m.sfilename)
-    {
-        // Put out as a static array
-        msfilename = toStringSymbol(id, len, 1);
-        m.sfilename = msfilename;
-    }
+    auto msfilename = toStringSymbol(id, len, 1);
 
     // Turn static array into dynamic array
     return el_pair(TYdarray, el_long(TYsize_t, len), el_ptr(msfilename));
