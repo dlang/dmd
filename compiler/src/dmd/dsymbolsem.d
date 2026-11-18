@@ -2667,7 +2667,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                         dsym.semanticRun = PASS.semanticdone;
                         return;
                     }
-                    if (auto ale = ie.isArrayLiteralExp())
+                    auto ale = ie.isArrayLiteralExp();
+                    if (ale && !dsym._init.isArrayInitializer())
                     {
                         // Fill null gaps left by sparse auto[$] inference,
                         // now that dimensions are fully resolved.
