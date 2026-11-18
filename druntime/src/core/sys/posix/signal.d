@@ -1035,11 +1035,18 @@ version (linux)
 {
     enum SIG_HOLD = cast(sigfn_t2) 2;
 
-    private enum _SIGSET_NWORDS = 1024 / (8 * c_ulong.sizeof);
-
-    struct sigset_t
+    version (CRuntime_Bionic)
     {
-        c_ulong[_SIGSET_NWORDS] __val;
+        alias sigset_t = c_ulong;
+    }
+    else
+    {
+        private enum _SIGSET_NWORDS = 1024 / (8 * c_ulong.sizeof);
+
+        struct sigset_t
+        {
+            c_ulong[_SIGSET_NWORDS] __val;
+        }
     }
 
     enum SA_NOCLDSTOP   = 1; // (CX|XSI)
@@ -1824,51 +1831,13 @@ else version (Solaris)
 }
 else version (CRuntime_Bionic)
 {
-    public import core.sys.posix.time: timer_t;
-    import core.stdc.string : memset;
-
-    version (X86)
-        enum int LONG_BIT = 32;
-    else version (ARM)
-        enum int LONG_BIT = 32;
-    else version (AArch64)
-        enum int LONG_BIT = 64;
-    else version (X86_64)
-        enum int LONG_BIT = 64;
-    else
-        static assert(false, "Architecture not supported.");
-
     int kill(pid_t, int);
     int sigaction(int, const scope sigaction_t*, sigaction_t*);
-
-    // These functions are defined inline in bionic.
-    int sigaddset(sigset_t* set, int signum)
-    {
-        c_ulong* local_set = cast(c_ulong*) set;
-        signum--;
-        local_set[signum/LONG_BIT] |= 1UL << (signum%LONG_BIT);
-        return 0;
-    }
-
-    int sigdelset(sigset_t* set, int signum)
-    {
-        c_ulong* local_set = cast(c_ulong*) set;
-        signum--;
-        local_set[signum/LONG_BIT] &= ~(1UL << (signum%LONG_BIT));
-        return 0;
-    }
-
-    int sigemptyset(sigset_t* set) { memset(set, 0, (*set).sizeof); return 0; }
-
-    int sigfillset(sigset_t* set) { memset(set, ~0, (*set).sizeof); return 0; }
-
-    int sigismember(sigset_t* set, int signum)
-    {
-        c_ulong* local_set = cast(c_ulong*) set;
-        signum--;
-        return cast(int) ((local_set[signum/LONG_BIT] >> (signum%LONG_BIT)) & 1);
-    }
-
+    int sigaddset(sigset_t* set, int signum);
+    int sigdelset(sigset_t* set, int signum);
+    int sigemptyset(sigset_t* set);
+    int sigfillset(sigset_t* set);
+    int sigismember(sigset_t* set, int signum);
     int sigpending(sigset_t*);
     int sigprocmask(int, const scope sigset_t*, sigset_t*);
     int sigsuspend(const scope sigset_t*);
@@ -3172,8 +3141,16 @@ else version (CRuntime_Bionic)
 {
     enum SS_ONSTACK     = 1;
     enum SS_DISABLE     = 2;
-    enum MINSIGSTKSZ    = 2048;
-    enum SIGSTKSZ       = 8192;
+    version (AArch64)
+    {
+        enum MINSIGSTKSZ    = 5120;
+        enum SIGSTKSZ       = 16384;
+    }
+    else
+    {
+        enum MINSIGSTKSZ    = 2048;
+        enum SIGSTKSZ       = 8192;
+    }
 
     struct stack_t
     {
@@ -3558,8 +3535,11 @@ else version (Solaris)
     int sigtimedwait(const scope sigset_t*, siginfo_t*, const scope timespec*);
     int sigwaitinfo(const scope sigset_t*, siginfo_t*);
 }
-else version (CRuntime_Bionic)
+else version (CRuntime_Bionic) // since API level 23
 {
+    int sigqueue(pid_t, int, const sigval);
+    int sigtimedwait(const scope sigset_t*, siginfo_t*, const scope timespec*);
+    int sigwaitinfo(const scope sigset_t*, siginfo_t*);
 }
 else version (CRuntime_Musl)
 {
