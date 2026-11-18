@@ -4333,7 +4333,7 @@ private void initializerToBuffer(Initializer inx, ref OutBuffer buf, ref HdrGenS
 {
     void visitError(ErrorInitializer iz)
     {
-        buf.put("__error__");
+        buf.put("__error");
     }
 
     void visitVoid(VoidInitializer iz)
