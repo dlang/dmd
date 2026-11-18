@@ -23,7 +23,7 @@ jobs:
             os: ubuntu-22.04
             host: dmd
             dub: true
-            check_clean_git: true
+            extra_checks: true # build.d, run.d and leftover-file checks
           - name: Ubuntu 22.04 x64, DMD (bootstrap)
             os: ubuntu-22.04
             host: dmd-2.079.0
@@ -209,8 +209,15 @@ jobs:
           ${{ matrix.vm && 'source ~/dlang/*/activate' || '' }}
           make -j$N -C ../phobos MODEL=$MODEL betterc
 
+      - name: Run build.d and individual tests directly
+        if: always() && steps.build.outcome == 'success' && matrix.extra_checks
+        run: |
+          ./compiler/src/build.d dmd
+          [[ $(generated/linux/release/64/dmd --version) != *dirty* ]]
+          generated/run MODEL=64 HOST_DMD=generated/linux/release/64/dmd compiler/test/runnable/template2962.d compiler/test/compilable/test14275.d
+
       - name: Check for leftover files
-        if: always() && steps.build.outcome == 'success' && matrix.check_clean_git
+        if: always() && steps.build.outcome == 'success' && matrix.extra_checks
         run: make check-clean-git HOST_DMD=dummy
 
       - name: Build with dub
