@@ -96,10 +96,12 @@ all: $(ROOT)/long_report.done
 long_component := aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 long_report_dir := $(ROOT)/coverage reports/$(long_component)/$(long_component)/$(long_component)
 $(ROOT)/long_report.done: $(ROOT)/basic$(DOTEXE)
-	@mkdir -p "$(long_report_dir)"
-	@$(RM) "$(long_report_dir)/src-basic.lst"
-	$< "$(long_report_dir)"
-	$(SED) 's@^src.@src/@' < "$(long_report_dir)/src-basic.lst" > $(ROOT)/long-report.lst
+	@set -e; \
+	trap '$(RM) -r "$(ROOT)/coverage reports"' EXIT; \
+	mkdir -p "$(long_report_dir)"; \
+	$(RM) "$(long_report_dir)/src-basic.lst"; \
+	$< "$(long_report_dir)"; \
+	$(SED) 's@^src.@src/@' < "$(long_report_dir)/src-basic.lst" > $(ROOT)/long-report.lst; \
 	$(DIFF) src-basic.lst.exp $(ROOT)/long-report.lst
 	@touch $@
 endif
