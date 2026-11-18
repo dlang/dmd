@@ -27,19 +27,19 @@ import dmd.dclass;
 import dmd.declaration;
 import dmd.dstruct;
 import dmd.dsymbol;
-import dmd.dsymbolsem;
+import dmd.dsymbolsem : ctfeSemantic, isOverlappedWith, toAlias;
 import dmd.dtemplate;
 import dmd.errorsink;
 import dmd.expression;
 import dmd.expressionsem;
 import dmd.func;
-import dmd.funcsem;
+import dmd.funcsem : isVirtual;
 import dmd.globals;
 import dmd.hdrgen;
 import dmd.id;
 import dmd.identifier;
 import dmd.init;
-import dmd.initsem;
+import dmd.initsem : initializerToExpression;
 import dmd.location;
 import dmd.mtype;
 import dmd.root.rmem;
@@ -480,7 +480,7 @@ private Expression interpretFunction(UnionExp* pue, FuncDeclaration fd, InterSta
         fdError("circular dependency. Functions cannot be interpreted while being compiled");
         return CTFEExp.cantexp;
     }
-    if (!functionSemantic3(fd))
+    if (!ctfeSemantic(fd))
         return CTFEExp.cantexp;
     if (fd.semanticRun < PASS.semantic3done)
     {
@@ -2125,8 +2125,7 @@ public:
 
             if (!v.originalType && v.semanticRun < PASS.semanticdone) // semantic() not yet run
             {
-                v.dsymbolSemantic(null);
-                if (v.type.ty == Terror)
+                if (!ctfeSemantic(v))
                     return CTFEExp.cantexp;
             }
 
@@ -2138,11 +2137,7 @@ public:
                     return CTFEExp.cantexp;
                 }
                 if (v._scope)
-                {
-                    v.inuse++;
-                    v._init = v._init.initializerSemantic(v._scope, v.type, INITinterpret, global.errorSink); // might not be run on aggregate members
-                    v.inuse--;
-                }
+                    ctfeSemantic(v);
                 if (v._init.isVoidInitializer())
                 {
                     eSink.error(loc, "cannot read uninitialized variable `%s` in CTFE", v.toErrMsg());
