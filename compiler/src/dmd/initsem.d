@@ -1588,7 +1588,12 @@ Expression initializerToExpression(Initializer init, Scope* sc, Type itype, Erro
 
         // https://github.com/dlang/dmd/issues/23900
         if (!t && itype)
-            t = itype.toBasetype();
+        {
+            auto tsa = itype.toBasetype().isTypeSArray();
+            auto ide = tsa ? tsa.dim.isIdentifierExp() : null;
+            if (!ide || ide.ident != Id.dollar)
+                t = itype.toBasetype();
+        }
 
         auto elements = new Expressions(edim);
         elements.zero();
