@@ -41,10 +41,13 @@ struct CodeBuilder
     @trusted
     debug static void chkIop(uint op)
     {
-        static if (1) if (op == 0x1240_1C25)
+        static if (0) if (op == 0xB940_03A1 &&
+            strcmp(funcsym_p.Sident.ptr, "_D4core8internal2gc4impl12conservativeQw3Gcx10smallAllocMFNbmKmkxC8TypeInfoZPv") == 0)
         {
-            printf("%s\n", funcsym_p.Sident.ptr);
-	    assert(0);
+            static int x;
+            printf("XXXXX %d %s\n", x + 1, funcsym_p.Sident.ptr);
+            if (++x == 24)
+                assert(0);
         }
     }
 

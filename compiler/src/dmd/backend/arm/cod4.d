@@ -1751,7 +1751,7 @@ void cdshtlng(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             Extend extend = e1.Eoper == OPu8_16 ? Extend.UXTB : Extend.UXTH;
             cs.Sextend = cast(ubyte)((cs.Sextend & 8) | extend);  // preserve S bit
             reg_t reg = allocreg(cdb,retregs,TYint);
-            loadFromEA(cs,reg,8,tysize(e1.Ety));
+            loadFromEA(cs,reg,8,tysize(e1.E1.Ety));
             cdb.gen(&cs);
             freenode(e1.E1);
             freenode(e1);
