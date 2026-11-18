@@ -2780,8 +2780,6 @@ extern (C++) final class ArrayExp : UnaExp
 {
     Expressions* arguments;     // Array of Expression's a0..an
 
-    size_t currentDimension;    // for opDollar
-    VarDeclaration lengthVar;
     bool modifiable = false;    // is this expected to be an lvalue in an AssignExp? propagate to IndexExp
 
     extern (D) this(Loc loc, Expression e1, Expression index = null)
@@ -2800,9 +2798,7 @@ extern (C++) final class ArrayExp : UnaExp
 
     override ArrayExp syntaxCopy()
     {
-        auto ae = new ArrayExp(loc, e1.syntaxCopy(), arraySyntaxCopy(arguments));
-        ae.lengthVar = this.lengthVar; // bug7871
-        return ae;
+        return new ArrayExp(loc, e1.syntaxCopy(), arraySyntaxCopy(arguments));
     }
 
     override void accept(Visitor v)

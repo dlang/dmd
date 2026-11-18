@@ -353,6 +353,8 @@ class ArrayScopeSymbol final : public ScopeDsymbol
 {
 public:
     RootObject *arrayContent;
+    VarDeclaration *dollarVar;
+    size_t dollarDim;
 
     void accept(Visitor *v) override { v->visit(this); }
 };

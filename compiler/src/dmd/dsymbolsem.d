@@ -8094,7 +8094,7 @@ private extern(C++) class SearchVisitor : Visitor
             /* array[e0, e1, e2, e3] where e0, e1, e2 are some function of $
              * $ is a opDollar!(dim)() where dim is the dimension(0,1,2,...)
              */
-            pvar = &ae.lengthVar;
+            pvar = &ass.dollarVar;
             ce = ae.e1;
         }
         else
@@ -8146,9 +8146,9 @@ private extern(C++) class SearchVisitor : Visitor
                 if (TemplateDeclaration td = s.isTemplateDeclaration())
                 {
                     dinteger_t dim = 0;
-                    if (auto ae = exp.isArrayExp())
+                    if (exp.isArrayExp())
                     {
-                        dim = ae.currentDimension;
+                        dim = ass.dollarDim;
                     }
                     else if (exp.isSliceExp())
                     {

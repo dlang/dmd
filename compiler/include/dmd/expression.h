@@ -925,8 +925,6 @@ class ArrayExp final : public UnaExp
 {
 public:
     Expressions *arguments;             // Array of Expression's
-    size_t currentDimension;            // for opDollar
-    VarDeclaration *lengthVar;
     d_bool modifiable;
 
     ArrayExp *syntaxCopy() override;

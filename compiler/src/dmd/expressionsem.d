@@ -1869,6 +1869,37 @@ Expression getField(StructLiteralExp sle, Type type, uint offset)
 }
 
 
+/**************************************
+ * Runs semantic on dimension `dim` of `ae` with `$` in scope.
+ * Params:
+ *      sc = scope
+ *      ae = array expression `e` is an argument of
+ *      e = argument expression, or `null`
+ *      dim = dimension of `e` in `ae`
+ *      pe0 = gets the `$` variable declaration appended, if `$` was used
+ * Returns:
+ *      `e` after semantic, `ae` if `e` is `null`, or ErrorExp
+ */
+Expression dollarSemantic(Scope* sc, ArrayExp ae, Expression e, size_t dim, ref Expression pe0)
+{
+    if (!e)
+        return ae;
+
+    // Create scope for '$' variable for this dimension
+    auto sym = new ArrayScopeSymbol(sc, ae);
+    sym.parent = sc.scopesym;
+    sym.dollarDim = dim;
+    sc = sc.push(sym);
+
+    e = e.expressionSemantic(sc);
+    e = resolveProperties(sc, e);
+
+    if (sym.dollarVar && sc.func)
+        pe0 = Expression.combine(pe0, new DeclarationExp(ae.loc, sym.dollarVar).expressionSemantic(sc));
+    sc.pop();
+
+    return e.checkValue() ? ErrorExp.get() : e;
+}
 
 /**************************************
  * Runs semantic on ae.arguments. Declares temporary variables
@@ -1877,10 +1908,8 @@ Expression getField(StructLiteralExp sle, Type type, uint offset)
 Expression resolveOpDollar(Scope* sc, ArrayExp ae, out Expression pe0)
 {
     auto eSink = global.errorSink;
-    assert(!ae.lengthVar);
     AggregateDeclaration ad = isAggregate(ae.e1.type);
     Dsymbol slice = search_function(ad, Id.opSlice);
-    //printf("slice = %s %s\n", slice.kind(), slice.toChars());
     Expression fallback()
     {
         if (ae.arguments.length == 1)
@@ -1894,29 +1923,9 @@ Expression resolveOpDollar(Scope* sc, ArrayExp ae, out Expression pe0)
             pe0 = extractOpDollarSideEffect(sc, ae);
 
         if (e.op == EXP.interval && !(slice && slice.isTemplateDeclaration()))
-        {
             return fallback();
-        }
-        //printf("[%d] e = %s\n", i, e.toChars());
 
-        // Create scope for '$' variable for this dimension
-        auto sym = new ArrayScopeSymbol(sc, ae);
-        sym.parent = sc.scopesym;
-        sc = sc.push(sym);
-        ae.lengthVar = null; // Create it only if required
-        ae.currentDimension = i; // Dimension for $, if required
-
-        e = e.expressionSemantic(sc);
-        e = resolveProperties(sc, e);
-
-        if (ae.lengthVar && sc.func)
-        {
-            // If $ was used, declare it now
-            Expression de = new DeclarationExp(ae.loc, ae.lengthVar);
-            de = de.expressionSemantic(sc);
-            pe0 = Expression.combine(pe0, de);
-        }
-        sc = sc.pop();
+        e = dollarSemantic(sc, ae, e, i, pe0);
 
         if (auto ie = e.isIntervalExp())
         {
@@ -1938,70 +1947,12 @@ Expression resolveOpDollar(Scope* sc, ArrayExp ae, out Expression pe0)
             e = new CallExp(ae.loc, e, fargs);
             e = e.expressionSemantic(sc);
         }
-
-        if (!e.type)
-        {
-            eSink.error(ae.loc, "`%s` has no value", e.toErrMsg());
-            e = ErrorExp.get();
-        }
         if (e.op == EXP.error)
             return e;
 
         (*ae.arguments)[i] = e;
     }
     return ae;
-}
-
-/**************************************
- * Runs semantic on se.lwr and se.upr. Declares a temporary variable
- * if '$' was used.
- * Returns:
- *      ae, or ErrorExp if errors occurred
- */
-Expression resolveOpDollar(Scope* sc, ArrayExp ae, IntervalExp ie, ref Expression pe0)
-{
-    //assert(!ae.lengthVar);
-    if (!ie)
-        return ae;
-
-    VarDeclaration lengthVar = ae.lengthVar;
-    bool errors = false;
-
-    // create scope for '$'
-    auto sym = new ArrayScopeSymbol(sc, ae);
-    sym.parent = sc.scopesym;
-    sc = sc.push(sym);
-
-    Expression sem(Expression e)
-    {
-        e = e.expressionSemantic(sc);
-        e = resolveProperties(sc, e);
-        if (!e.type)
-        {
-            auto eSink = global.errorSink;
-            eSink.error(ae.loc, "`%s` has no value", e.toErrMsg());
-            errors = true;
-        }
-        return e;
-    }
-
-    ie.lwr = sem(ie.lwr);
-    ie.upr = sem(ie.upr);
-
-    if (ie.lwr.isErrorExp() || ie.upr.isErrorExp())
-        errors = true;
-
-    if (lengthVar != ae.lengthVar && sc.func)
-    {
-        // If $ was used, declare it now
-        Expression de = new DeclarationExp(ae.loc, ae.lengthVar);
-        de = de.expressionSemantic(sc);
-        pe0 = Expression.combine(pe0, de);
-    }
-
-    sc = sc.pop();
-
-    return errors ? ErrorExp.get() : ae;
 }
 
 /******************************
@@ -12393,7 +12344,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
                 Expression e0 = null;
                 Expression ae1save = ae.e1;
-                ae.lengthVar = null;
 
                 Type t1b = ae.e1.type.toBasetype();
                 AggregateDeclaration ad = isAggregate(t1b);
@@ -12434,7 +12384,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 if (maybeSlice && search_function(ad, Id.opSliceAssign))
                 {
                     // Deal with $
-                    res = resolveOpDollar(sc, ae, ie, e0);
+                    res = dollarSemantic(sc, ae, ie, 0, e0);
                     if (res.op == EXP.error)
                         return setResult(res);
 
@@ -12473,7 +12423,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 break;
             }
             ae.e1 = ae1old; // recovery
-            ae.lengthVar = null;
         }
 
         /* Run this.e1 semantic.
@@ -17154,6 +17103,9 @@ bool checkValue(Expression e)
         eSink.error(e.loc, "%s `%s` has no value", dte.td.kind(), e.toErrMsg());
         return true;
     }
+
+    if (auto ie = e.isIntervalExp())
+        return ie.lwr.checkValue() | ie.upr.checkValue();
 
     if (e.type && e.type.toBasetype().ty == Tvoid)
     {
