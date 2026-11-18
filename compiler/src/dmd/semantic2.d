@@ -249,7 +249,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
             // https://issues.dlang.org/show_bug.cgi?id=14166
             // https://issues.dlang.org/show_bug.cgi?id=20417
             // Don't run CTFE for the temporary variables inside typeof or __traits(compiles)
-            vd._init = vd._init.initializerSemantic(sc, vd.type, sc.intypeof == 1 || sc.traitsCompiles ? INITnointerpret : INITinterpret, global.errorSink);
+            vd.initializerSemantic(sc, sc.intypeof == 1 || sc.traitsCompiles ? INITnointerpret : INITinterpret);
             vd.inuse--;
         }
         if (vd._init && vd.storage_class & STC.manifest)
@@ -257,7 +257,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
             /* Cannot initializer enums with CTFE classreferences and addresses of struct literals.
              * Scan initializer looking for them. Issue error if found.
              */
-            if (ExpInitializer ei = vd._init.isExpInitializer())
+            if (!vd._init.isVoidInitializer())
             {
                 static bool hasInvalidEnumInitializer(Expression e)
                 {
@@ -288,7 +288,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
                     return false;
                 }
 
-                if (hasInvalidEnumInitializer(ei.exp))
+                if (hasInvalidEnumInitializer(vd._init))
                 {
                     eSink.error(vd.loc, "%s `%s` cannot be initialized with class or pointer to struct", vd.kind, vd.toPrettyChars);
                     eSink.errorSupplemental(vd.loc, "use `static immutable` variable instead");
@@ -301,8 +301,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
             // that itself is a thread-local reference and would need dynamic initialization also.
             if (vd.type.ty == Tclass && vd.type.isMutable() && !vd.type.isShared())
             {
-                ExpInitializer ei = vd._init.isExpInitializer();
-                if (ei && ei.exp.op == EXP.classReference)
+                if (vd._init.op == EXP.classReference)
                 {
                     eSink.error(vd.loc, "%s `%s` is a thread-local class and cannot have a static initializer", vd.kind, vd.toPrettyChars);
                     eSink.errorSupplemental(vd.loc, "use `static this()` to initialize instead");
@@ -310,8 +309,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
             }
             else if (vd.type.ty == Tpointer && vd.type.nextOf().ty == Tstruct && vd.type.nextOf().isMutable() && !vd.type.nextOf().isShared())
             {
-                ExpInitializer ei = vd._init.isExpInitializer();
-                if (ei && ei.exp.op == EXP.address && (cast(AddrExp)ei.exp).e1.op == EXP.structLiteral)
+                if (vd._init.op == EXP.address && (cast(AddrExp)vd._init).e1.op == EXP.structLiteral)
                 {
                     eSink.error(vd.loc, "%s `%s` is a thread-local pointer to struct and cannot have a static initializer", vd.kind, vd.toPrettyChars);
                     eSink.errorSupplemental(vd.loc, "use `static this()` to initialize instead");
@@ -334,15 +332,11 @@ private extern(C++) final class Semantic2Visitor : Visitor
         if (!bfd._init)
             return;
 
-        auto ei = bfd._init.isExpInitializer();
-        if (!ei)
-            return;
-
-        if (!ei.exp.isIntegerExp())
+        if (!bfd._init.isIntegerExp())
             return;
 
         import dmd.intrange;
-        auto value = getIntRange(ei.exp);
+        auto value = getIntRange(bfd._init);
 
         const bool isUnsigned = bfd.type.isUnsigned();
         auto bounds = IntRange(
@@ -353,8 +347,8 @@ private extern(C++) final class Semantic2Visitor : Visitor
         if (!bounds.contains(value))
         {
             const uwidth = bfd.fieldWidth;
-            eSink.error(ei.loc, "default initializer `%s` is not representable as bitfield type `%s:%lld`",
-                  ei.exp.toErrMsg(), bfd.type.toBasetype().toErrMsg(), cast(long)uwidth);
+            eSink.error(bfd._init.loc, "default initializer `%s` is not representable as bitfield type `%s:%lld`",
+                  bfd._init.toErrMsg(), bfd.type.toBasetype().toErrMsg(), cast(long)uwidth);
             if (isUnsigned)
                 eSink.errorSupplemental(bfd.loc, "bitfield `%s` default initializer must be a value between `%llu..%llu`",
                                   bfd.toChars(), bounds.imin.value, bounds.imax.value);

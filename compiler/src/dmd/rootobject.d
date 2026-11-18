@@ -26,7 +26,6 @@ enum DYNCAST : int
     statement,
     condition,
     templateparameter,
-    initializer,
 }
 
 /***********************************************************

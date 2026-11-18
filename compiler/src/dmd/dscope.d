@@ -30,6 +30,7 @@ import dmd.func;
 import dmd.globals : FeatureState, Param;
 import dmd.identifier;
 import dmd.location : Loc;
+import dmd.mtype : Type;
 import dmd.root.rmem;
 import dmd.statement;
 
@@ -207,6 +208,8 @@ extern (C++) struct Scope
     uint[void*] anchorCounts;  /// lookup duplicate anchor name count
     Identifier prevAnchor;     /// qualified symbol name of last doc anchor
 
+    Type expectedType;              /// In `int[3] a = [1, 2];` `[1, 2]` is analyzed with expectedType `int[3]`
+
     extern (D) __gshared Scope* freelist;
 
     extern (D) static Scope* alloc()
@@ -268,6 +271,7 @@ extern (C++) struct Scope
         s.ctfeBlock = this.ctfeBlock;
         s.previews = this.previews;
         s.lastdc = null;
+        s.expectedType = null;
         s.knownACompileTimeOnlyContext = this.knownACompileTimeOnlyContext;
         s.inIsDisabledTrait = this.inIsDisabledTrait;
         s.deferSemantic3InCompilerHook = this.deferSemantic3InCompilerHook;

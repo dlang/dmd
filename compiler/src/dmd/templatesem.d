@@ -40,8 +40,6 @@ import dmd.hdrgen;
 import dmd.id;
 import dmd.identifier;
 import dmd.impcnvtab;
-import dmd.init;
-import dmd.initsem;
 import dmd.location;
 import dmd.mtype;
 import dmd.opover;
@@ -2743,7 +2741,7 @@ private MATCH matchArg(TemplateParameter tp, Scope* sc, RootObject oarg, size_t 
 
         if (psparam)
         {
-            Initializer _init = new ExpInitializer(tvp.loc, ei);
+            Expression _init = ei;
             Declaration sparam = new VarDeclaration(tvp.loc, vt, tvp.ident, _init);
             sparam.storage_class = STC.manifest;
             *psparam = sparam;
@@ -2907,7 +2905,7 @@ private MATCH matchArg(TemplateParameter tp, Scope* sc, RootObject oarg, size_t 
                 assert(ea);
 
                 // Declare manifest constant
-                Initializer _init = new ExpInitializer(tap.loc, ea);
+                Expression _init = ea;
                 auto v = new VarDeclaration(tap.loc, null, tap.ident, _init);
                 v.storage_class = STC.manifest;
                 v.dsymbolSemantic(sc);
@@ -5371,7 +5369,7 @@ private RootObject declareParameter(TemplateDeclaration td, Scope* sc, TemplateP
     else if (ea)
     {
         // tdtypes.data[i] always matches ea here
-        Initializer _init = new ExpInitializer(td.loc, ea);
+        Expression _init = ea;
         TemplateValueParameter tvp = tp.isTemplateValueParameter();
         Type t = tvp ? tvp.valType : null;
         v = new VarDeclaration(td.loc, t, tp.ident, _init);
@@ -5420,7 +5418,7 @@ private RootObject declareParameter(TemplateDeclaration td, Scope* sc, TemplateP
     /* So the caller's o gets updated with the result of semantic() being run on o
      */
     if (v)
-        o = v._init.initializerToExpression(sc, null, global.errorSink);
+        o = v._init;
     return o;
 }
 
@@ -7991,7 +7989,6 @@ private bool rootObjectsEqual(RootObject o1, RootObject o2)
         case statement:
         case condition:
         case templateparameter:
-        case initializer:
             return o1 is o2;
     }
 }

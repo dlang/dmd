@@ -29,7 +29,6 @@ import dmd.expression;
 import dmd.func;
 import dmd.id;
 import dmd.identifier;
-import dmd.init;
 import dmd.mtype;
 import dmd.typesem;
 import dmd.opover;
@@ -457,10 +456,8 @@ public:
             // Scan initializer (vd.init)
             if (vd._init)
             {
-                if (auto ie = vd._init.isExpInitializer())
-                {
-                    expressionInlineCost(ie.exp);
-                }
+                if (!vd._init.isVoidInitializer())
+                    expressionInlineCost(vd._init);
             }
             ++cost;
         }
