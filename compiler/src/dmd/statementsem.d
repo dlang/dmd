@@ -4651,7 +4651,7 @@ public auto makeTupleForeach(Scope* sc, bool isStatic, bool isDecl, ForeachState
                          p.type.toErrMsg(), cast(ulong)length);
                 return returnEarly();
             }
-            Initializer ie = new ExpInitializer(Loc.initial, new IntegerExp(k));
+            Expression ie = new IntegerExp(k);
             auto var = new VarDeclaration(loc, p.type, p.ident, ie);
             var.storage_class |= STC.foreach_ | STC.manifest;
             if (isStatic)

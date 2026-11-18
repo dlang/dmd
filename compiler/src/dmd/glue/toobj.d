@@ -868,7 +868,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
     private:
         static void initializerToDt(VarDeclaration vd, ref DtBuilder dtb, bool isCfile)
         {
-            Initializer_toDt(vd._init, dtb, isCfile);
+            Initializer_toDt(vd._init, vd.type, dtb);
 
             // Look for static array that is block initialized
             ExpInitializer ie = vd._init.isExpInitializer();

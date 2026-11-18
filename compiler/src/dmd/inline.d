@@ -566,8 +566,8 @@ public:
                 vd._linkage = tf.linkage;
                 vd.parent = ids.parent;
 
-                ei.exp = new ConstructExp(s.loc, vd, exp);
-                ei.exp.type = vd.type;
+                vd._init = new ConstructExp(s.loc, vd, exp);
+                vd._init.type = vd.type;
 
                 auto de = new DeclarationExp(s.loc, vd);
                 de.type = Type.tvoid;
@@ -1449,10 +1449,8 @@ public:
     {
         if (s.wthis && s.wthis._init)
         {
-            if (auto ie = s.wthis._init.isExpInitializer())
-            {
-                inlineScan(ie.exp);
-            }
+            if (!s.wthis._init.isVoidInitializer())
+                inlineScan(s.wthis._init);
         }
         inlineScan(s._body);
     }
@@ -1536,10 +1534,8 @@ public:
             }
             else if (vd._init)
             {
-                if (ExpInitializer ie = vd._init.isExpInitializer())
-                {
-                    inlineScan(ie.exp);
-                }
+                if (!vd._init.isVoidInitializer())
+                    inlineScan(vd._init);
             }
         }
     }

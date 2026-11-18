@@ -1156,9 +1156,9 @@ private extern(C++) final class Semantic3Visitor : Visitor
                                 // construction occurred in parameter processing
                                 auto ec = new AssignExp(iec.loc, iec.e1, iec.e2);
                                 ec.type = iec.type;
-                                ie.exp = ec;
+                                v._init = ec;
                             }
-                            a.push(new ExpStatement(Loc.initial, ie.exp));
+                            a.push(new ExpStatement(Loc.initial, v._init));
                         }
                     }
                 }

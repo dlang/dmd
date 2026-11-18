@@ -222,8 +222,7 @@ void addDefaultCInitializer(VarDeclaration dsym)
     if (t.isMutable())
         return;
 
-    auto e = dsym.type.defaultInit(dsym.loc, true);
-    dsym._init = new ExpInitializer(dsym.loc, e);
+    dsym._init = dsym.type.defaultInit(dsym.loc, true);
 }
 
 /********************************************
@@ -516,8 +515,8 @@ Dsymbol handleSymbolRedeclarations(ref Scope sc, Dsymbol s, Dsymbol s2, ScopeDsy
         if ((vd.storage_class ^ vd2.storage_class) & STC.static_)
             return collision();
 
-        const i1 =  vd._init && ! vd._init.isVoidInitializer();
-        const i2 = vd2._init && !vd2._init.isVoidInitializer();
+        const i1 =  vd.isEnumMember() || ( vd._init && ! vd._init.isVoidInitializer());
+        const i2 = vd2.isEnumMember() || (vd2._init && !vd2._init.isVoidInitializer());
 
         if (i1 && i2)
             return collision();         // can't both have initializers

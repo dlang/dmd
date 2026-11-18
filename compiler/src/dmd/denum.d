@@ -126,7 +126,7 @@ extern (C++) final class EnumMember : VarDeclaration
      *  2. id = value
      *  3. type id = value
      */
-    @property ref value() { return (cast(ExpInitializer)_init).exp; }
+    @property ref value() { return _init; }
 
     // A cast() is injected to 'value' after dsymbolSemantic(),
     // but 'origValue' will preserve the original value,

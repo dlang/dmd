@@ -23,7 +23,6 @@ public:
     void visit(AST.Expression) { assert(0); }
     void visit(AST.TemplateParameter) { assert(0); }
     void visit(AST.Condition) { assert(0); }
-    void visit(AST.Initializer) { assert(0); }
 
     //=======================================================================================
     // Dsymbols
@@ -189,6 +188,8 @@ public:
     void visit(AST.NewExp e) { visit(cast(AST.Expression)e); }
     void visit(AST.AssocArrayLiteralExp e) { visit(cast(AST.Expression)e); }
     void visit(AST.ArrayLiteralExp e) { visit(cast(AST.Expression)e); }
+    void visit(AST.StructInitExp e) { visit(cast(AST.Expression)e); }
+    void visit(AST.CInitExp e) { visit(cast(AST.Expression)e); }
     void visit(AST.MixinExp e) { visit(cast(AST.Expression)e); }
     void visit(AST.FuncExp e) { visit(cast(AST.Expression)e); }
     void visit(AST.IntervalExp e) { visit(cast(AST.Expression)e); }
@@ -289,13 +290,4 @@ public:
     void visit(AST.DVCondition c) { visit(cast(AST.Condition)c); }
     void visit(AST.DebugCondition c) { visit(cast(AST.DVCondition)c); }
     void visit(AST.VersionCondition c) { visit(cast(AST.DVCondition)c); }
-
-    //===============================================================================
-    // Initializer
-    void visit(AST.ExpInitializer i) { visit(cast(AST.Initializer)i); }
-    void visit(AST.StructInitializer i) { visit(cast(AST.Initializer)i); }
-    void visit(AST.ArrayInitializer i) { visit(cast(AST.Initializer)i); }
-    void visit(AST.VoidInitializer i) { visit(cast(AST.Initializer)i); }
-    void visit(AST.DefaultInitializer i) { visit(cast(AST.Initializer)i); }
-    void visit(AST.CInitializer i) { visit(cast(AST.CInitializer)i); }
 }

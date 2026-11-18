@@ -2743,7 +2743,7 @@ private MATCH matchArg(TemplateParameter tp, Scope* sc, RootObject oarg, size_t 
 
         if (psparam)
         {
-            Initializer _init = new ExpInitializer(tvp.loc, ei);
+            Expression _init = ei;
             Declaration sparam = new VarDeclaration(tvp.loc, vt, tvp.ident, _init);
             sparam.storage_class = STC.manifest;
             *psparam = sparam;
@@ -2907,7 +2907,7 @@ private MATCH matchArg(TemplateParameter tp, Scope* sc, RootObject oarg, size_t 
                 assert(ea);
 
                 // Declare manifest constant
-                Initializer _init = new ExpInitializer(tap.loc, ea);
+                Expression _init = ea;
                 auto v = new VarDeclaration(tap.loc, null, tap.ident, _init);
                 v.storage_class = STC.manifest;
                 v.dsymbolSemantic(sc);
@@ -5371,7 +5371,7 @@ private RootObject declareParameter(TemplateDeclaration td, Scope* sc, TemplateP
     else if (ea)
     {
         // tdtypes.data[i] always matches ea here
-        Initializer _init = new ExpInitializer(td.loc, ea);
+        Expression _init = ea;
         TemplateValueParameter tvp = tp.isTemplateValueParameter();
         Type t = tvp ? tvp.valType : null;
         v = new VarDeclaration(td.loc, t, tp.ident, _init);
