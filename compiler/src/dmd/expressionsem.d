@@ -1888,16 +1888,14 @@ Expression dollarSemantic(Scope* sc, ArrayExp ae, Expression e, size_t dim, ref 
     // Create scope for '$' variable for this dimension
     auto sym = new ArrayScopeSymbol(sc, ae);
     sym.parent = sc.scopesym;
+    sym.dollarDim = dim;
     sc = sc.push(sym);
-    sym._scope = sc;
-    sc.dollarVar = null; // Create it only if required
-    sc.dollarDim = dim; // Dimension for $, if required
 
     e = e.expressionSemantic(sc);
     e = resolveProperties(sc, e);
 
-    if (sc.dollarVar && sc.func)
-        pe0 = Expression.combine(pe0, new DeclarationExp(ae.loc, sc.dollarVar).expressionSemantic(sc));
+    if (sym.dollarVar && sc.func)
+        pe0 = Expression.combine(pe0, new DeclarationExp(ae.loc, sym.dollarVar).expressionSemantic(sc));
     sc.pop();
 
     return e.checkValue() ? ErrorExp.get() : e;

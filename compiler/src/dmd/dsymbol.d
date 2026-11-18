@@ -1324,6 +1324,8 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
     // either a SliceExp, an IndexExp, an ArrayExp, a TypeTuple or a TupleDeclaration.
     // Discriminated using DYNCAST and, for expressions, also EXP
     RootObject arrayContent;
+    VarDeclaration dollarVar;
+    size_t dollarDim;
 
     extern (D) this(Scope* sc, Expression exp) nothrow @safe
     {
