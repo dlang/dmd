@@ -6,13 +6,13 @@ on:
   pull_request:
     branches:
       - master
-      - stable
+      - 'v2.*'
     paths-ignore:
       - 'spec/**'
   push:
     branches:
       - master
-      - stable
+      - 'v2.*'
     paths-ignore:
       - 'spec/**'
 

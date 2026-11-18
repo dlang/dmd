@@ -4,13 +4,13 @@ name: Bootstrap
 on:
   pull_request:
     branches:
-      - stable
+      - 'v2.*'
     paths-ignore:
       - 'spec/**'
   push:
     branches:
       - master
-      - stable
+      - 'v2.*'
     paths-ignore:
       - 'spec/**'
 

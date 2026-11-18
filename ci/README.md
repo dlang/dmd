@@ -27,7 +27,7 @@ If you don't have an `upstream` remote, you can add it with:
 git remote add upstream git@github.com:dlang/dmd.git
 ```
 
-Then, pull the latest changes from the branch that your PR is targeting (`master` or `stable`) and rebase your branch.
+Then, pull the latest changes and rebase your branch.
 ```
 git checkout master
 git pull --ff-only upstream master
@@ -71,7 +71,7 @@ Each job's steps are plain `make` and `run.d` commands, so you can run the same 
 | `buildkite/dmd` | [dlang/ci](https://github.com/dlang/ci/tree/master/buildkite) | Builds and tests popular D projects from the dub registry with the new compiler. |
 | `CyberShadow/DAutoTest` | [DAutoTest](https://github.com/CyberShadow/DAutoTest) | Builds the dlang.org documentation (catches bad DDoc in changelog entries) and shows a diff of the generated HTML. |
 
-On pushes to master and stable, [bootstrap.yml](../.github/workflows/bootstrap.yml) also checks that dmd builds with every host compiler release since 2.076.
+On pushes to master and release branches (`v2.*`), and PRs to release branches, [bootstrap.yml](../.github/workflows/bootstrap.yml) also checks that dmd builds with every host compiler release since 2.076.
 
 ### pre-commit
 
