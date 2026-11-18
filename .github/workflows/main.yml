@@ -278,6 +278,7 @@ jobs:
         run: git clone --depth 1 --branch "${{ github.base_ref || github.ref_name }}" https://github.com/dlang/phobos ../phobos || git clone --depth 1 https://github.com/dlang/phobos ../phobos
 
       - name: Build
+        id: build
         run: |
           dmd=$(cygpath -m "$PWD/generated/Windows/$CONFIGURATION/$PLATFORM/dmd.exe")
           echo "DMD_EXE=$dmd" >> $GITHUB_ENV
@@ -306,10 +307,11 @@ jobs:
           rm compiler/test/runnable/testpdb.d
 
       - name: Test druntime
+        if: always() && steps.build.outcome == 'success'
         run: make -j$N -C druntime MODEL=$MODEL "DMD=$DMD_EXE" ${{ matrix.mingw && 'unittest-debug' || 'unittest' }}
 
       - name: Test dmd
-        if: always()
+        if: always() && steps.build.outcome == 'success'
         run: |
           cd compiler/test
           # MinGW: runnable_cxx needs the same MSVC runtime as cl.exe
@@ -317,7 +319,7 @@ jobs:
 
       - name: Test Phobos
         # MinGW: lld-link fails to link the Phobos unittests
-        if: always() && !matrix.mingw
+        if: always() && steps.build.outcome == 'success' && !matrix.mingw
         run: |
           cp "$(dirname "$DC")/../lib$MODEL/libcurl.dll" ../phobos/
           make -j$N -C ../phobos MODEL=$MODEL "DMD=$DMD_EXE" "DMD_DIR=$(cygpath -m "$PWD")" unittest
