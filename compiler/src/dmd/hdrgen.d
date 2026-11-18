@@ -4157,7 +4157,7 @@ private void objectToBuffer(RootObject oarg, ref OutBuffer buf, ref HdrGenState 
     }
     else if (auto e = isExpression(oarg))
     {
-        if (e.op == EXP.variable)
+        if (e.op == EXP.variable && !e.isVarExp().var.inuse)
             e = e.optimize(WANTvalue); // added to fix https://issues.dlang.org/show_bug.cgi?id=7375
         expToBuffer(e, PREC.assign, buf, hgs);
     }
