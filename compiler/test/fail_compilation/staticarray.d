@@ -9,8 +9,6 @@ fail_compilation\staticarray.d(39): Error: cannot infer static array length from
 fail_compilation\staticarray.d(40): Error: cannot infer static array length from `$`, provide an initializer
 fail_compilation\staticarray.d(44): Error: cannot infer static array length from `$`, provide an initializer
 fail_compilation\staticarray.d(42): Error: struct `staticarray.ForwardRef1` circular or forward reference
-fail_compilation\staticarray.d(48): Error: struct `staticarray.ForwardRef2` no size because of forward reference
-fail_compilation\staticarray.d(48): Error: cannot infer static array length from `$`, provide an initializer
 fail_compilation\staticarray.d(53): Error: cannot infer static array length from `$`, provide an initializer
 fail_compilation\staticarray.d(51): Error: struct `staticarray.ForwardRef3` circular or forward reference
 fail_compilation\staticarray.d(58): Error: cannot infer static array length from `$`, provide an initializer
@@ -21,17 +19,17 @@ fail_compilation\staticarray.d(70): Error: cannot infer static array length from
 fail_compilation\staticarray.d(68): Error: struct `staticarray.ForwardRef6` circular or forward reference
 fail_compilation\staticarray.d(75): Error: cannot infer static array length from `$`, provide an initializer
 fail_compilation\staticarray.d(73): Error: struct `staticarray.ForwardRef7` circular or forward reference
-fail_compilation\staticarray.d(81): Error: struct `staticarray.ForwardRef8` no size because of forward reference
-fail_compilation\staticarray.d(81): Error: cannot infer static array length from `$`, provide an initializer
+fail_compilation\staticarray.d(81): Error: struct `staticarray.ForwardRef8` cannot have field `arr` with static array of same struct type
 fail_compilation\staticarray.d(84): Error: array index 3 initialized twice
 fail_compilation\staticarray.d(84): Error: cannot infer static array element type for `auto[$]`, provide an array initializer
 fail_compilation\staticarray.d(85): Error: array index 4294901760 not supported
 fail_compilation\staticarray.d(85): Error: cannot infer static array element type for `auto[$]`, provide an array initializer
+fail_compilation\staticarray.d(48): Error: variable `staticarray.ForwardRef2.arr` recursive initialization of field
 fail_compilation\staticarray.d(86): Error: array initializer has 4 elements, but array length is 3
 ---
 */
 
-
+#line 35
 int[$] arr1;
 int[$] arr2 = void;
 int[$][1] arr3 = 1;
