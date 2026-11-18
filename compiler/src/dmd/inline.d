@@ -142,7 +142,7 @@ private final class InlineDoState
 
         auto ce = new ConstructExp(fd.loc, vd, new AddrExp(fd.loc, e, vd.type));
         ce.type = vd.type;
-        vd._init = new ExpInitializer(e.loc, ce);
+        vd._init = expInitializer(e.loc, ce);
 
         auto de = new DeclarationExp(fd.loc, vd);
         de.type = Type.tvoid;
@@ -173,7 +173,7 @@ private final class InlineDoState
             Expression ae = new ArrayLiteralExp(vthis2.loc, vthis2.type, elements);
             Expression ce = new ConstructExp(vthis2.loc, vthis2, ae);
             ce.type = vthis2.type;
-            vthis2._init = new ExpInitializer(vthis2.loc, ce);
+            vthis2._init = expInitializer(vthis2.loc, ce);
             esetup = Expression.combine(esetup, e0);
             vthis = vthis2;
             return;
@@ -211,7 +211,7 @@ private final class InlineDoState
 
         auto ce = new ConstructExp(fd.loc, vthis, e);
         ce.type = vthis.type;
-        vthis._init = new ExpInitializer(fd.loc, ce);
+        vthis._init = expInitializer(fd.loc, ce);
 
         auto de = new DeclarationExp(fd.loc, vthis);
         de.type = Type.tvoid;
@@ -252,7 +252,7 @@ private final class InlineDoState
             // Even if vto is STC.lazy_, `vto = arg` is handled correctly in glue layer.
             auto be = new BlitExp(vto.loc, vto, arg);
             be.type = vto.type;
-            vto._init = new ExpInitializer(vfrom.loc, be);
+            vto._init = expInitializer(vfrom.loc, be);
 
             from.push(vfrom);
             to.push(vto);
@@ -559,15 +559,15 @@ public:
                  * inlined body of the function:
                  *   tret __inlineretval = e;
                  */
-                auto ei = new ExpInitializer(s.loc, exp);
+                auto ei = expInitializer(s.loc, exp);
                 auto tmp = Identifier.generateId("__inlineretval");
                 auto vd = new VarDeclaration(s.loc, tf.next, tmp, ei);
                 vd.storage_class = STC.temp | (tf.isRef ? STC.ref_ : STC.rvalue);
                 vd._linkage = tf.linkage;
                 vd.parent = ids.parent;
 
-                ei.exp = new ConstructExp(s.loc, vd, exp);
-                ei.exp.type = vd.type;
+                vd._init = new ConstructExp(s.loc, vd, exp);
+                vd._init.type = vd.type;
 
                 auto de = new DeclarationExp(s.loc, vd);
                 de.type = Type.tvoid;
@@ -907,13 +907,13 @@ public:
                 {
                     if (vd._init.isVoidInitializer())
                     {
-                        vto._init = new VoidInitializer(vd._init.loc);
+                        vto._init = voidInitializer(vd._init.loc);
                     }
                     else
                     {
                         auto ei = vd._init.initializerToExpression(null, null, global.errorSink);
                         assert(ei);
-                        vto._init = new ExpInitializer(ei.loc, doInlineAs!Expression(ei, ids));
+                        vto._init = expInitializer(ei.loc, doInlineAs!Expression(ei, ids));
                     }
                 }
                 if (vd.edtor)
@@ -1095,7 +1095,7 @@ public:
                 {
                     auto ie = vd._init.isExpInitializer();
                     assert(ie);
-                    vto._init = new ExpInitializer(ie.loc, doInlineAs!Expression(ie.exp, ids));
+                    vto._init = expInitializer(ie.loc, doInlineAs!Expression(ie.exp, ids));
                 }
                 are.lengthVar = vto;
             }
@@ -1123,7 +1123,7 @@ public:
                 {
                     auto ie = vd._init.isExpInitializer();
                     assert(ie);
-                    vto._init = new ExpInitializer(ie.loc, doInlineAs!Expression(ie.exp, ids));
+                    vto._init = expInitializer(ie.loc, doInlineAs!Expression(ie.exp, ids));
                 }
 
                 are.lengthVar = vto;
@@ -1449,10 +1449,8 @@ public:
     {
         if (s.wthis && s.wthis._init)
         {
-            if (auto ie = s.wthis._init.isExpInitializer())
-            {
-                inlineScan(ie.exp);
-            }
+            if (!s.wthis._init.isVoidInitializer())
+                inlineScan(s.wthis._init);
         }
         inlineScan(s._body);
     }
@@ -1536,10 +1534,8 @@ public:
             }
             else if (vd._init)
             {
-                if (ExpInitializer ie = vd._init.isExpInitializer())
-                {
-                    inlineScan(ie.exp);
-                }
+                if (!vd._init.isVoidInitializer())
+                    inlineScan(vd._init);
             }
         }
     }

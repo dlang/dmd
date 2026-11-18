@@ -3877,7 +3877,7 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
                 e = inferExpType(e, fparam.type);
                 Scope* sc2 = sc.push();
                 sc2.inDefaultArg = true;
-                Initializer iz = new ExpInitializer(e.loc, e);
+                Initializer iz = expInitializer(e.loc, e);
                 iz = iz.initializerSemantic(sc2, fparam.type, INITnointerpret, eSink);
                 e = iz.initializerToExpression(sc2, null, eSink);
                 sc2.pop();

@@ -399,6 +399,18 @@ Expression expressionSemantic(Expression e, Scope* sc)
     return dmd.expressionsem.expressionSemantic(e, sc);
 }
 
+Expression voidInitializer(Loc loc)
+{
+    import dmd.expression;
+    return dmd.expression.voidInitializer(loc);
+}
+
+bool isVoidInitializer(const Expression e)
+{
+    import dmd.expression;
+    return dmd.expression.isVoidInitializer(e);
+}
+
 bool fill(StructDeclaration sd, Loc loc,
           ref Expressions elements, bool ctorinit)
 {
@@ -568,12 +580,6 @@ const(char)* toChars(const Expression e)
     return dmd.hdrgen.toChars(e);
 }
 
-const(char)* toChars(const Initializer i)
-{
-    import dmd.hdrgen;
-    return dmd.hdrgen.toChars(i);
-}
-
 const(char)* toChars(const Type t)
 {
     import dmd.hdrgen;
@@ -616,12 +622,6 @@ Statement gccAsmSemantic(GccAsmStatement s, Scope* sc)
     return dmd.iasm.gcc.gccAsmSemantic(s, sc);
 }
 
-void gccAsmSemantic(CAsmDeclaration d, Scope* sc)
-{
-    import dmd.iasm.gcc;
-    return dmd.iasm.gcc.gccAsmSemantic(d, sc);
-}
-
 /***********************************************************
  * initsem.d
  */
@@ -640,6 +640,12 @@ Expression initializerToExpression(Initializer init, Scope* sc, Type itype)
     import dmd.globals : global;
     auto eSink = global.errorSink;
     return dmd.initsem.initializerToExpression(init, sc, itype, eSink);
+}
+
+void gccAsmSemantic(CAsmDeclaration d, Scope* sc)
+{
+    import dmd.iasm.gcc;
+    return dmd.iasm.gcc.gccAsmSemantic(d, sc);
 }
 
 /***********************************************************

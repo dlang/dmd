@@ -2444,17 +2444,6 @@ public:
                     setValue(v, result);
                     return;
                 }
-                else if (v._init.isArrayInitializer())
-                {
-                    result = interpretInitializerExpression(v);
-                    if (result !is null)
-                    {
-                        if (v.ctfeAdrOnStack != VarDeclaration.AdrOnStackNone)
-                            if (!getValue(v))
-                                setValueWithoutChecking(v, result); // a temporary from extractSideEffects can be a ref
-                        return;
-                    }
-                }
                 eSink.error(e.loc, "declaration `%s` is not yet implemented in CTFE", e.toErrMsg());
                 result = CTFEExp.cantexp;
             }

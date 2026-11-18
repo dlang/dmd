@@ -461,7 +461,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     // Declare _argptr
                     Type t = target.va_listType(funcdecl.loc, sc);
                     // Init is handled in FuncDeclaration_toObjFile
-                    funcdecl.v_argptr = new VarDeclaration(funcdecl.loc, t, Id._argptr, new VoidInitializer(funcdecl.loc));
+                    funcdecl.v_argptr = new VarDeclaration(funcdecl.loc, t, Id._argptr, voidInitializer(funcdecl.loc));
                     funcdecl.v_argptr.storage_class |= STC.temp;
                     funcdecl.v_argptr.dsymbolSemantic(sc2);
                     sc2.insert(funcdecl.v_argptr);
@@ -1156,9 +1156,9 @@ private extern(C++) final class Semantic3Visitor : Visitor
                                 // construction occurred in parameter processing
                                 auto ec = new AssignExp(iec.loc, iec.e1, iec.e2);
                                 ec.type = iec.type;
-                                ie.exp = ec;
+                                v._init = ec;
                             }
-                            a.push(new ExpStatement(Loc.initial, ie.exp));
+                            a.push(new ExpStatement(Loc.initial, v._init));
                         }
                     }
                 }
@@ -1173,7 +1173,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     e = new ConstructExp(Loc.initial, _arguments, e);
                     e = e.expressionSemantic(sc2);
 
-                    _arguments._init = new ExpInitializer(Loc.initial, e);
+                    _arguments._init = expInitializer(Loc.initial, e);
                     auto de = new DeclarationExp(Loc.initial, _arguments);
                     a.push(new ExpStatement(Loc.initial, de));
                 }

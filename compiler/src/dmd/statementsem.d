@@ -1228,7 +1228,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                  *   { T value = tmp[k]; body }
                  */
                 auto id = Identifier.generateId("__r");
-                auto ie = new ExpInitializer(loc, new SliceExp(loc, fs.aggr, null, null));
+                auto ie = expInitializer(loc, new SliceExp(loc, fs.aggr, null, null));
                 const valueIsRef = (*fs.parameters)[$ - 1].isReference();
                 VarDeclaration tmp;
                 if (fs.aggr.isArrayLiteralExp() && !valueIsRef)
@@ -1268,9 +1268,9 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                     tmp_length = new CastExp(loc, tmp_length, fs.key.type);
                 }
                 if (fs.op == TOK.foreach_reverse_)
-                    fs.key._init = new ExpInitializer(loc, tmp_length);
+                    fs.key._init = expInitializer(loc, tmp_length);
                 else
-                    fs.key._init = new ExpInitializer(loc, new IntegerExp(loc, 0, fs.key.type));
+                    fs.key._init = expInitializer(loc, new IntegerExp(loc, 0, fs.key.type));
 
                 auto cs = Statements();
                 if (vinit)
@@ -1301,7 +1301,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                 // T value = tmp[key];
                 IndexExp indexExp = new IndexExp(loc, new VarExp(loc, tmp), new VarExp(loc, fs.key));
                 indexExp.indexIsInBounds = true; // disabling bounds checking in foreach statements.
-                fs.value._init = new ExpInitializer(loc, indexExp);
+                fs.value._init = expInitializer(loc, indexExp);
                 Statement ds = new ExpStatement(loc, fs.value);
 
                 fs._body = unpackVariables(fs._body);
@@ -1317,7 +1317,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                     }
                     else
                     {
-                        auto ei = new ExpInitializer(loc, new IdentifierExp(loc, fs.key.ident));
+                        auto ei = expInitializer(loc, new IdentifierExp(loc, fs.key.ident));
                         auto v = new VarDeclaration(loc, p.type, p.ident, ei);
                         v.storage_class |= STC.foreach_ | (p.storageClass & STC.ref_);
                         fs._body = new CompoundStatement(loc, new ExpStatement(loc, v), fs._body);
@@ -1457,7 +1457,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                 if (dim == 1)
                 {
                     auto p = (*fs.parameters)[0];
-                    auto ve = new VarDeclaration(loc, p.type, p.ident, new ExpInitializer(loc, einit));
+                    auto ve = new VarDeclaration(loc, p.type, p.ident, expInitializer(loc, einit));
                     ve.storage_class |= STC.foreach_;
                     ve.storage_class |= p.storageClass & (STC.scope_ | STC.IOR | STC.TYPECTOR);
 
@@ -1517,7 +1517,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                             return retError();
                         }
 
-                        auto var = new VarDeclaration(loc, p.type, p.ident, new ExpInitializer(loc, exp));
+                        auto var = new VarDeclaration(loc, p.type, p.ident, expInitializer(loc, exp));
                         var.storage_class |= STC.ctfe | STC.ref_ | STC.foreach_;
                         makeargs = new CompoundStatement(loc, makeargs, new ExpStatement(loc, var));
                     }
@@ -1648,7 +1648,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
          *  foreach_reverse (key; lwr .. upr) =>
          *  for (auto tmp = lwr, auto key = upr; key-- > tmp;)
          */
-        auto ie = new ExpInitializer(loc, (fs.op == TOK.foreach_) ? fs.lwr : fs.upr);
+        auto ie = expInitializer(loc, (fs.op == TOK.foreach_) ? fs.lwr : fs.upr);
         fs.key = new VarDeclaration(loc, fs.upr.type.mutableOf(), Identifier.generateId("__key"), ie);
         fs.key.storage_class |= STC.temp;
         SignExtendedNumber lower = getIntRange(fs.lwr).imin;
@@ -1659,7 +1659,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
         }
 
         Identifier id = Identifier.generateId("__limit");
-        ie = new ExpInitializer(loc, (fs.op == TOK.foreach_) ? fs.upr : fs.lwr);
+        ie = expInitializer(loc, (fs.op == TOK.foreach_) ? fs.upr : fs.lwr);
         auto tmp = new VarDeclaration(loc, fs.upr.type, id, ie);
         tmp.storage_class |= STC.temp;
 
@@ -1728,7 +1728,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
         }
         else
         {
-            ie = new ExpInitializer(loc, new CastExp(loc, new VarExp(loc, fs.key), fs.param.type));
+            ie = expInitializer(loc, new CastExp(loc, new VarExp(loc, fs.key), fs.param.type));
             auto v = new VarDeclaration(loc, fs.param.type, fs.param.ident, ie);
             v.storage_class |= STC.temp | STC.foreach_ | (fs.param.storageClass & STC.ref_);
             fs._body = new CompoundStatement(loc, new ExpStatement(loc, v), fs._body);
@@ -1773,7 +1773,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
              * result of condition.
              */
             // Make sure the location of the initializer reflects the condition, not the if statement.
-            auto ei = new ExpInitializer(ifs.condition.loc, ifs.condition);
+            auto ei = expInitializer(ifs.condition.loc, ifs.condition);
             auto v = new VarDeclaration(ifs.loc, ifs.param.type, ifs.param.ident, ei);
             v.parent = scd.func;
             v.storage_class |= ifs.param.storageClass;
@@ -1951,7 +1951,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
             auto vardecl = new VarDeclaration(ss.param.loc,
                 ss.param.type,
                 ss.param.ident,
-                new ExpInitializer(ss.condition.loc, ss.condition),
+                expInitializer(ss.condition.loc, ss.condition),
                 ss.param.storageClass);
 
             statements.push(new ExpStatement(ss.param.loc, vardecl));
@@ -3385,7 +3385,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
              *   }
              * }
              */
-            auto tmp_init = new ExpInitializer(ws.loc, ws.exp);
+            auto tmp_init = expInitializer(ws.loc, ws.exp);
             auto tmp = new VarDeclaration(ws.loc, ws.prm.type, ws.prm.ident, tmp_init);
             // tmp.storage_class |= STC.temp; //NOTE(mojo): idk
             tmp.dsymbolSemantic(sc);
@@ -3418,7 +3418,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
             t = t.toBasetype();
             if (t.isClassHandle())
             {
-                _init = new ExpInitializer(ws.loc, ws.exp);
+                _init = expInitializer(ws.loc, ws.exp);
                 ws.wthis = new VarDeclaration(ws.loc, ws.exp.type, Id.withSym, _init);
                 ws.wthis.storage_class |= STC.temp;
                 ws.wthis.dsymbolSemantic(sc);
@@ -3447,7 +3447,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                     return;
                 }
                 Expression e = ws.exp.addressOf();
-                _init = new ExpInitializer(ws.loc, e);
+                _init = expInitializer(ws.loc, e);
                 ws.wthis = new VarDeclaration(ws.loc, e.type, Id.withSym, _init);
                 ws.wthis.storage_class |= STC.temp;
                 ws.wthis.dsymbolSemantic(sc);
@@ -4249,7 +4249,7 @@ private FuncExp foreachBodyToFunction(Scope* sc, ForeachStatement fs, TypeFuncti
                     initExp = new CastExp(fs.loc, initExp, userType);
             }
 
-            Initializer initializer = new ExpInitializer(fs.loc, initExp);
+            Initializer initializer = expInitializer(fs.loc, initExp);
             auto v = new VarDeclaration(fs.loc, userType, p.ident, initializer);
             v.storage_class |= STC.temp | (stc & STC.scope_);
             Statement s = new ExpStatement(fs.loc, v);
@@ -4651,7 +4651,7 @@ public auto makeTupleForeach(Scope* sc, bool isStatic, bool isDecl, ForeachState
                          p.type.toErrMsg(), cast(ulong)length);
                 return returnEarly();
             }
-            Initializer ie = new ExpInitializer(Loc.initial, new IntegerExp(k));
+            Expression ie = new IntegerExp(k);
             auto var = new VarDeclaration(loc, p.type, p.ident, ie);
             var.storage_class |= STC.foreach_ | STC.manifest;
             if (isStatic)
@@ -4742,7 +4742,7 @@ public auto makeTupleForeach(Scope* sc, bool isStatic, bool isDecl, ForeachState
                 else
                 {
                     e = resolveProperties(sc, e);
-                    Initializer ie = new ExpInitializer(Loc.initial, e);
+                    Initializer ie = expInitializer(Loc.initial, e);
                     auto v = new VarDeclaration(loc, type, ident, ie, storageClass);
                     v.storage_class |= STC.foreach_;
                     if (storageClass & STC.ref_)

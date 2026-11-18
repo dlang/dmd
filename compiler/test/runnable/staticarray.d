@@ -1,3 +1,6 @@
+immutable int[2][$] broadcastDollar = [1, 2];
+static assert(broadcastDollar == [[1, 1], [2, 2]]);
+
 void main()
 {
 	int[3] arr1 = [1,2,3];

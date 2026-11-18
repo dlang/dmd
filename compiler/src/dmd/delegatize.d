@@ -151,35 +151,8 @@ private void lambdaSetParent(Expression e, FuncDeclaration fd)
 
         override void visit(VarDeclaration v)
         {
-            if (v._init)
-                v._init.accept(this);
-        }
-
-        override void visit(Initializer)
-        {
-        }
-
-        override void visit(ExpInitializer ei)
-        {
-            walkPostorder(ei.exp ,this);
-        }
-
-        override void visit(StructInitializer si)
-        {
-            foreach (i, const id; si.field)
-                if (Initializer iz = si.value[i])
-                    iz.accept(this);
-        }
-
-        override void visit(ArrayInitializer ai)
-        {
-            foreach (i, ex; ai.index)
-            {
-                if (ex)
-                    ex.accept(this);
-                if (Initializer iz = ai.value[i])
-                    iz.accept(this);
-            }
+            if (v._init && !v._init.isVoidInitializer())
+                walkPostorder(v._init, this);
         }
         override void visit(AssocArrayLiteralExp e)
         {

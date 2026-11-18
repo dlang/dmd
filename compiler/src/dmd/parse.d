@@ -29,6 +29,7 @@ import dmd.rootobject;
 import dmd.root.string;
 import dmd.tokens;
 import dmd.expression;
+import dmd.init;
 
 alias CompileEnv = dmd.lexer.CompileEnv;
 
@@ -7138,7 +7139,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
     private  AST.ExpInitializer parseExpInitializer(Loc loc)
     {
         auto ae = parseAssignExp();
-        return new AST.ExpInitializer(loc, ae);
+        return ae;
     }
 
     private AST.Initializer parseStructInitializer(Loc loc)
@@ -7295,7 +7296,9 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
     }
 
     /*****************************************
-     * Parse initializer for variable declaration.
+     * int[3] a = [1: 2, 3];
+     * S s = { a: 1 };
+     * int x = void;
      */
     private AST.Initializer parseInitializer()
     {
@@ -7339,7 +7342,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 break;
             }
 
-            auto ia = new AST.ArrayInitializer(loc);
+            ArrayBuilder!AST ia;
             bool commaExpected = false;
 
             nextToken();
@@ -7358,7 +7361,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     if (!e)
                         break;
 
-                    AST.Initializer value = new AST.ExpInitializer(e.loc, e);
+                    AST.Initializer value = e;
                     AST.Initializer index;
                     if (token.value == TOK.colon)
                     {
@@ -7404,14 +7407,14 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 }
                 break;
             }
-            return ia;
+            return ia.finish(loc);
 
         case TOK.void_:
             const tv = peekNext();
             if (tv == TOK.semicolon || tv == TOK.comma)
             {
                 nextToken();
-                return new AST.VoidInitializer(loc);
+                return new AST.TypeExp(loc, AST.Type.tvoid);
             }
             return parseExpInitializer(loc);
 
@@ -10131,6 +10134,8 @@ immutable PREC[EXP.max + 1] precedence =
     EXP.symbolOffset : PREC.primary,
     EXP.structLiteral : PREC.primary,
     EXP.compoundLiteral : PREC.primary,
+    EXP.structInit : PREC.primary,
+    EXP.cInit : PREC.primary,
     EXP.arrayLength : PREC.primary,
     EXP.delegatePointer : PREC.primary,
     EXP.delegateFunctionPointer : PREC.primary,

@@ -139,4 +139,5 @@ struct Scope final
     void *lastdc;               // documentation comment for last symbol at this scope (DocComment*)
     AA *anchorCounts;           // lookup duplicate anchor name count
     Identifier *prevAnchor;     // qualified symbol name of last doc anchor
+    Type *expectedType;
 };
