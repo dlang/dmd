@@ -6733,6 +6733,8 @@ bool test9245()
         assert(postblits == 2);
         arr2 = arr;
         assert(postblits == 4);
+        arr2[] = arr[];
+        assert(postblits == 6);
         postblits = 0;
 
         const S[2] constArr = s;
@@ -6754,6 +6756,8 @@ bool test9245()
         assert(postblits == 4);
         arr2 = arr;
         assert(postblits == 8);
+        arr2[] = arr[];
+        assert(postblits == 12);
         postblits = 0;
 
         const S[2][2] constArr = s;
