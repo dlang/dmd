@@ -109,8 +109,8 @@ void test24307()
 }
 
 /**************************************************/
-static if (0)
-{
+// https://github.com/dlang/dmd/issues/24308
+
 long f_24308(int p)
 {
     long v = -1;
@@ -123,6 +123,11 @@ void test24308()
     assert(f_24308(0) == 0xFFFF_FFFF);
 }
 
+/**************************************************/
+// https://github.com/dlang/dmd/issues/24309a
+
+static if (0)
+{
 __gshared long g_24309a = 1;
 
 int nz_24309a(int x) { return x == 0 ? 1 : x; }
@@ -139,6 +144,9 @@ void test24309a()
     assert(f_24309a(g_24309a) == 0);
 }
 
+/**************************************************/
+// https://github.com/dlang/dmd/issues/24309b
+
 pragma(inline, true) ulong nz_24309b(ulong x) { return x == 0 ? 1 : x; }
 
 ulong f_24309b(int p) { return 1 / nz_24309b(cast(ubyte)(0 < p)); }
@@ -148,12 +156,18 @@ void test24309b()
     assert(f_24309b(-5) == 1);
 }
 
+/**************************************************/
+// https://github.com/dlang/dmd/issues/243010
+
 bool f_24310(ulong z) { return cast(long)(z % 3) > -1; }
 
 void test24310()
 {
     assert(f_24310(0));
 }
+
+/**************************************************/
+// https://github.com/dlang/dmd/issues/243011
 
 pragma(inline, true) ulong id_24311(ulong x) { return x; }
 
@@ -170,6 +184,10 @@ void test24311()
     assert(f_24311(0) == 0);
 }
 
+/**************************************************/
+// https://github.com/dlang/dmd/issues/243012
+
+
 long f_24312(ulong a, long b)
 {
     ubyte x = cast(ubyte)(2 + b);
@@ -182,6 +200,9 @@ void test24312()
 {
     assert(f_24312(0, 0) == 1);
 }
+
+/**************************************************/
+// https://github.com/dlang/dmd/issues/243013
 
 long f_24313(ulong a, ulong b)
 {
@@ -198,12 +219,18 @@ void test24313()
     assert(f_24313(0, 0xFFFF_FFFF_FFFF_FFFC) == -4);
 }
 
+/**************************************************/
+// https://github.com/dlang/dmd/issues/243014
+
 bool f_24314(int a, int b) { return cast(ubyte)(a & b) != 0; }
 
 void test24314()
 {
     assert(!f_24314(0x100, 0x100));
 }
+
+/**************************************************/
+// https://github.com/dlang/dmd/issues/243015
 
 bool f_24315(long x) { return x > 0xFFFF_FFFF; }
 
@@ -868,8 +895,8 @@ void main()
     test24305();
     test24306();
     test24307();
-/*
     test24308();
+/*
     test24309a();
     test24309b();
     test24310();

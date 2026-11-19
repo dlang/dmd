@@ -2380,9 +2380,11 @@ void cdcond(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
                 retregs = BYTEREGS;
         }
 
-        cg.cmp_flag = 1 | rex;
         v1 = cast(targ_size_t)e21.Vllong;
         v2 = cast(targ_size_t)e22.Vllong;
+        cg.cmp_flag = 1;
+        if (rex && v1 != 0xFFFF_FFFF && v2 != 0xFFFF_FFFF) // if not zero-extending the results
+            cg.cmp_flag |= rex;
         if (jop == JNC)
         {   v1 = v2;
             v2 = cast(targ_size_t)e21.Vllong;
@@ -2438,7 +2440,8 @@ void cdcond(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
                 else if (v2 == -1L && !I64)
                     cdb.gen1(0x48 + reg);                     // DEC reg
                 else
-                {   cdb.genc2(opcode,grex | modregrmx(3,0,reg),v2);   // ADD reg,v2
+                {
+                    cdb.genc2(opcode,grex | modregrmx(3,0,reg),v2);   // ADD reg,v2
                     if (I64 && sz2 == 1 && reg >= 4)
                         code_orrex(cdb.last(), REX);
                 }
