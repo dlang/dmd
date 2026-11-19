@@ -5250,7 +5250,7 @@ public:
             // Pointer to a non-array variable
             if (agg.op == EXP.symbolOffset)
             {
-                eSink.error(e.loc, "mutable variable `%s` cannot be %s at compile time, even through a pointer", cast(char*)(modify ? "modified" : "read"), agg.isSymOffExp().var.toErrMsg());
+                eSink.error(e.loc, "mutable variable `%s` cannot be %s at compile time, even through a pointer", agg.isSymOffExp().var.toErrMsg(), cast(char*)(modify ? "modified" : "read"));
                 return false;
             }
 
