@@ -1678,11 +1678,6 @@ private extern(C++) final class Semantic3Visitor : Visitor
         auto e = expressionSemantic(tempinst, sc2);
         assert(e.type);
         ti.entry = e.type;
-        if (auto ts = ti.entry.isTypeStruct())
-        {
-            if (auto tmpl = ts.sym.isInstantiated())
-                tmpl.minst = sc2._module.importedFrom; // ensure it gets emitted
-        }
         semanticTypeInfo(sc2, ti.entry); // might get deferred
 
         // generate ti.xtoHash
@@ -1694,11 +1689,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
             if (!e.isVarExp() || !e.type.isTypeFunction())
                 notTemplateFunction(e.loc, aaGetHash);
             else
-            {
                 ti.xtoHash = e.isVarExp().var;
-                if (auto tmpl = ti.xtoHash.parent.isTemplateInstance())
-                    tmpl.minst = sc2._module.importedFrom; // ensure it gets emitted
-            }
         }
 
         // generate ti.xopEqual
@@ -1710,11 +1701,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
             if (!e.isVarExp() || !e.type.isTypeFunction())
                 notTemplateFunction(e.loc, aaOpEqual);
             else
-            {
                 ti.xopEqual = e.isVarExp().var;
-                if (auto tmpl = ti.xopEqual.parent.isTemplateInstance())
-                    tmpl.minst = sc2._module.importedFrom; // ensure it gets emitted
-            }
         }
         visit(cast(ASTCodegen.TypeInfoDeclaration)ti);
     }
@@ -1866,12 +1853,6 @@ void semanticRTInfo(AggregateDeclaration ad)
     auto sc = ad.rtInfoScope;
     Scope* sc3 = ti.tempdecl._scope.startCTFE();
     sc3.tinst = sc.tinst;
-    // Use the root module so nested RTInfoImpl instances get codegen'd.
-    // If rtInfoScope comes from a non-root ImportC module whose minst is that
-    // module itself (see scopeCreateGlobal), so needsCodegen() would skip
-    // RTInfoImpl even though TypeInfo references it at link time.
-    // See https://github.com/dlang/dmd/issues/23166.
-    sc3.minst = sc._module.importedFrom;
     if (ad.isDeprecated())
         sc3.stc |= STC.deprecated_;
 

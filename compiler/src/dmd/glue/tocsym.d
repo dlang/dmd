@@ -643,6 +643,11 @@ Symbol* toSymbol(Dsymbol s)
     s.accept(v);
     s.csym = v.result;
 
+    auto vd = s.isVarDeclaration();
+    if (s.isFuncDeclaration() || s.isClassDeclaration() ||
+        (vd && vd.isDataseg() && !(vd.storage_class & STC.extern_) && !vd.isTypeInfoDeclaration()))
+        linkonceCodegen(s);
+
     if (isDllImported(s))
     {
         auto csym = cast(Symbol*) s.csym;
@@ -838,6 +843,7 @@ Symbol* toInitializer(AggregateDeclaration ad)
             if (isDllImported(ad))
                 s.Sisym = createImport(s, ad.loc);
             ad.sinit = s;
+            linkonceCodegen(ad);
         }
     }
     return cast(Symbol*)ad.sinit;

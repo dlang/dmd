@@ -1197,11 +1197,12 @@ bool needsCodegen(TemplateInstance ti)
     return dmd.templatesem.needsCodegen(ti);
 }
 
-bool isDiscardable(TemplateInstance ti)
+bool needsLinkonceCodegen(Dsymbol s)
 {
     import dmd.templatesem;
-    return dmd.templatesem.isDiscardable(ti);
+    return dmd.templatesem.needsLinkonceCodegen(s);
 }
+
 version (IN_LLVM)
 {
     /***********************************************************

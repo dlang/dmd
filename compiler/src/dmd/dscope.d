@@ -330,30 +330,8 @@ extern (C++) struct Scope
         Scope* sc = this.push();
         sc.copyFlagsFrom(&this);
         sc.ctfe = true;
-        version (none)
-        {
-            /* TODO: Currently this is not possible, because we need to
-             * unspeculative some types and symbols if they are necessary for the
-             * final executable. Consider:
-             *
-             * struct S(T) {
-             *   string toString() const { return "instantiated"; }
-             * }
-             * enum x = S!int();
-             * void main() {
-             *   // To call x.toString in runtime, compiler should unspeculative S!int.
-             *   assert(x.toString() == "instantiated");
-             * }
-             *
-             * This results in an undefined reference to `RTInfoImpl`:
-             *  class C {  int a,b,c;   int* p,q; }
-             *  void test() {    C c = new C(); }
-             */
-            // If a template is instantiated from CT evaluated expression,
-            // compiler can elide its code generation.
-            sc.tinst = null;
-            sc.minst = null;
-        }
+        // Prevents templates from being emitted in CTFE scope
+        sc.minst = null;
         return sc;
     }
 
@@ -361,6 +339,23 @@ extern (C++) struct Scope
     {
         assert(this.ctfe);
         return pop();
+    }
+
+    /***************************
+     * Make template instances created in this scope speculative.
+     *
+     * A speculative instance has no owning module, so no compilation promises
+     * to emit it. Instead, every module that uses symbols inside this emit them to COMDAT
+     *
+     * Use this for analysis that may be discarded, or whose outcome depends on compiler flags
+     *
+     * Returns: this scope modified as speculative scope
+     */
+    extern (D) Scope* makeSpeculative() return
+    {
+        tinst = null;
+        minst = null;
+        return &this;
     }
 
     /***************************
@@ -469,6 +464,14 @@ extern (C++) struct Scope
         }
     }
 
+    /// Returns: the module instantiating templates in this scope, `null` if speculative.
+    /// Inside a template instance, `minst` can change after this scope was made
+    /// (see https://issues.dlang.org/show_bug.cgi?id=21299)
+    extern (D) Module instantiatingModule()
+    {
+        return minst && tinst && tinst.minst ? tinst.minst : minst;
+    }
+
     @safe @nogc pure nothrow const:
     /**********************************
     * Checks whether the current scope (or any of its parents) is deprecated.
@@ -509,7 +512,6 @@ extern (C++) struct Scope
     {
         return this.intypeof || this.traitsCompiles;
     }
-
 
     /**
      * Returns: true if the code needs to go all the way through to code generation.

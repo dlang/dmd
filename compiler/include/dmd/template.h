@@ -31,8 +31,8 @@ class Parameter;
 
 namespace dmd
 {
-    bool isDiscardable(TemplateInstance*);
     bool needsCodegen(TemplateInstance*);
+    bool needsLinkonceCodegen(Dsymbol*);
 }
 
 class Tuple final : public RootObject

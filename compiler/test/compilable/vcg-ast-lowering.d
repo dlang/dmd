@@ -35,11 +35,6 @@ auto @system void test()
 	Object o = core.lifetime._d_newclassT!(C)();
 	C c = core.internal.cast_._d_cast!(C, Object)(o);
 }
-RTInfo!(C)
-{
-	enum immutable(void)* RTInfo = null;
-
-}
 func!long
 {
 	pure nothrow @nogc @safe long func(int x)
@@ -133,11 +128,6 @@ _d_newclassT!(C)
 		p[0..init.length] = init[];
 		return cast(C)p;
 	}
-
-}
-hasIndirections!(C)
-{
-	enum bool hasIndirections = true;
 
 }
 _d_cast!(C, Object)

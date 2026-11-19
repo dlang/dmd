@@ -932,8 +932,8 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, ArgumentList
         () => tempinst.toPrettyChars().toDString());
     // Get the enclosing template instance from the scope tinst
     tempinst.tinst = sc.tinst;
-    // Get the instantiating module from the scope minst
-    tempinst.minst = sc.minst;
+    // Get the instantiating module from the scope
+    tempinst.minst = sc.instantiatingModule();
     // https://issues.dlang.org/show_bug.cgi?id=10920
     // If the enclosing function is non-root symbol,
     // this instance should be speculative.
@@ -943,6 +943,7 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, ArgumentList
     }
 
     tempinst.gagged = (global.gag > 0);
+    tempinst.ctfe = sc.ctfe;
 
     tempinst.semanticRun = PASS.semantic;
 
@@ -1094,62 +1095,9 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, ArgumentList
             tempinst.tinst = tempinst.inst.tinst;
             tempinst.inst.minst = mi;
             tempinst.inst.tinst = ti;
-
-            /* https://issues.dlang.org/show_bug.cgi?id=21299
-               `minst` has been updated on the primary instance `inst` so it is
-               now coming from a root module, however all Dsymbol `inst.members`
-               of the instance still have their `_scope.minst` pointing at the
-               original non-root module. We must now propagate `minst` to all
-               members so that forward referenced dependencies that get
-               instantiated will also be appended to the root module, otherwise
-               there will be undefined references at link-time.  */
-            extern (C++) final class InstMemberWalker : Visitor
-            {
-                alias visit = Visitor.visit;
-                TemplateInstance inst;
-
-                extern (D) this(TemplateInstance inst) scope @safe
-                {
-                    this.inst = inst;
-                }
-
-                override void visit(Dsymbol d)
-                {
-                    if (d._scope)
-                        d._scope.minst = inst.minst;
-                }
-
-                override void visit(ScopeDsymbol sds)
-                {
-                    sds.members.foreachDsymbol( s => s.accept(this) );
-                    visit(cast(Dsymbol)sds);
-                }
-
-                override void visit(StructDeclaration sd)
-                {
-                    // need to visit auto-generated methods as well
-                    if (sd.xeq) visit(sd.xeq);
-                    if (sd.xcmp) visit(sd.xcmp);
-                    if (sd.xhash) visit(sd.xhash);
-                    visit(cast(ScopeDsymbol)sd);
-                }
-
-                override void visit(AttribDeclaration ad)
-                {
-                    ad.include(null).foreachDsymbol( s => s.accept(this) );
-                    visit(cast(Dsymbol)ad);
-                }
-
-                override void visit(ConditionalDeclaration cd)
-                {
-                    if (cd.condition.inc)
-                        visit(cast(AttribDeclaration)cd);
-                    else
-                        visit(cast(Dsymbol)cd);
-                }
-            }
-            scope v = new InstMemberWalker(tempinst.inst);
-            tempinst.inst.accept(v);
+            const ctfe = tempinst.ctfe;
+            tempinst.ctfe = tempinst.inst.ctfe;
+            tempinst.inst.ctfe = ctfe;
 
             if (!global.params.allInst &&
                 tempinst.minst) // if inst was not speculative...
@@ -3267,68 +3215,6 @@ MATCH matchWithInstance(Scope* sc, TemplateDeclaration td, TemplateInstance ti, 
     return m;
 }
 
-/**
-    Returns: true if the instances' innards are discardable.
-
-    The idea of this function is to see if the template instantiation
-    can be 100% replaced with its eponymous member. All other members
-    can be discarded, even in the compiler to free memory (for example,
-    the template could be expanded in a region allocator, deemed trivial,
-    the end result copied back out independently and the entire region freed),
-    and can be elided entirely from the binary.
-
-    The current implementation affects code that generally looks like:
-
-    ---
-    template foo(args...) {
-        some_basic_type_or_string helper() { .... }
-        enum foo = helper();
-    }
-    ---
-
-    since it was the easiest starting point of implementation but it can and
-    should be expanded more later.
-*/
-bool isDiscardable(TemplateInstance ti)
-{
-    if (ti.aliasdecl is null)
-        return false;
-
-    auto v = ti.aliasdecl.isVarDeclaration();
-    if (v is null)
-        return false;
-
-    if (!(v.storage_class & STC.manifest))
-        return false;
-
-    // Currently only doing basic types here because it is the easiest proof-of-concept
-    // implementation with minimal risk of side effects, but it could likely be
-    // expanded to any type that already exists outside this particular instance.
-    if (!(v.type.equals(Type.tstring) || (v.type.isTypeBasic() !is null)))
-        return false;
-
-    // Static ctors and dtors, even in an eponymous enum template, are still run,
-    // so if any of them are in here, we'd better not assume it is trivial lest
-    // we break useful code
-    foreach(member; *ti.members)
-    {
-        if(member.hasStaticCtorOrDtor())
-            return false;
-        if(member.isStaticDtorDeclaration())
-            return false;
-        if(member.isStaticCtorDeclaration())
-            return false;
-    }
-
-    // but if it passes through this gauntlet... it should be fine. D code will
-    // see only the eponymous member, outside stuff can never access it, even through
-    // reflection; the outside world ought to be none the wiser. Even dmd should be
-    // able to simply free the memory of everything except the final result.
-
-    return true;
-}
-
-
 /***********************************************
  * Returns true if this is not instantiated in non-root module, and
  * is a part of non-speculative instantiatiation.
@@ -3338,6 +3224,14 @@ bool isDiscardable(TemplateInstance ti)
  */
 bool needsCodegen(TemplateInstance ti)
 {
+    static bool claimByMemberModule(TemplateInstance ti)
+    {
+        if (!ti.memberOf || !ti.memberOf.isRoot() || !dmd.dsymbolsem.runsWithoutBeingCalled(ti))
+            return false;
+        ti.minst = ti.memberOf;
+        return true;
+    }
+
     //printf("needsCodegen() %s\n", toChars());
 
     // minst is finalized after the 1st invocation.
@@ -3348,9 +3242,8 @@ bool needsCodegen(TemplateInstance ti)
     ti.tnext = null;
 
     // Don't do codegen if the instance has errors,
-    // is a dummy instance (see evaluateConstraint),
-    // or is determined to be discardable.
-    if (ti.errors || ti.inst is null || ti.inst.isDiscardable())
+    // or is a dummy instance (see evaluateConstraint).
+    if (ti.errors || ti.inst is null)
     {
         ti.minst = null; // mark as speculative
         return false;
@@ -3358,23 +3251,6 @@ bool needsCodegen(TemplateInstance ti)
 
     // This should only be called on the primary instantiation.
     assert(ti is ti.inst);
-
-    /* Hack for suppressing linking errors against template instances
-    * of `_d_arrayliteralTX` (e.g. `_d_arrayliteralTX!(int[])`).
-    *
-    * This happens, for example, when a lib module is compiled with `preview=dip1000` and
-    * the array literal is placed on stack instead of using the lowering. In this case,
-    * if the root module is compiled without `preview=dip1000`, the compiler will consider
-    * the template already instantiated within the lib module, and thus skip the codegen for it
-    * in the root module object file, thinking that the linker will find the instance in the lib module.
-    *
-    * To bypass this edge case, we always do codegen for `_d_arrayliteralTX` template instances,
-    * even if an instance already exists in non-root module.
-    */
-    if (ti.inst && ti.inst.name == Id._d_arrayliteralTX)
-    {
-        return true;
-    }
 
     if (global.params.allInst)
     {
@@ -3386,7 +3262,7 @@ bool needsCodegen(TemplateInstance ti)
                 return ThreeState.yes;
 
             // Do codegen if the ancestor needs it.
-            if (tinst && tinst.inst && tinst.inst.needsCodegen())
+            if (tinst && tinst.inst && !tithis.ctfe && tinst.inst.needsCodegen())
             {
                 tithis.minst = tinst.inst.minst; // cache result
                 assert(tithis.minst);
@@ -3420,7 +3296,7 @@ bool needsCodegen(TemplateInstance ti)
         }
 
         // Elide codegen because there's no instantiation from any root modules.
-        return false;
+        return !ti.minst && claimByMemberModule(ti);
     }
 
     // Prefer instantiations from non-root modules, to minimize object code size.
@@ -3445,7 +3321,7 @@ bool needsCodegen(TemplateInstance ti)
         // If the ancestor isn't speculative,
         // 1. do codegen if the ancestor needs it
         // 2. elide codegen if the ancestor doesn't need it (non-root instantiation of ancestor incl. subtree)
-        if (tinst && tinst.inst)
+        if (tinst && tinst.inst && !tithis.ctfe)
         {
             tinst = tinst.inst;
             const needsCodegen = tinst.needsCodegen(); // sets tinst.minst
@@ -3490,7 +3366,37 @@ bool needsCodegen(TemplateInstance ti)
 
     // Unless `this` is still speculative (=> all further siblings speculative too),
     // do codegen because we found no guaranteed-codegen'd non-root instantiation.
-    return ti.minst !is null;
+    return ti.minst !is null || claimByMemberModule(ti);
+}
+
+/**************************************
+ * Determine whether `s` needs codegen in every separately compiled object.
+ *
+ * Regular (global) symbols are tied to the module they are declared in, but in nested scopes
+ * and template declarations ownership gets tricky. Such symbols are emitted by every compilation
+ * that uses them in a COMDAT section, so the linker strips duplicates.
+ *
+ * Returns: true if symbol `s` should be codegen'd on every use, instead of only if its parent module is included
+ */
+bool needsLinkonceCodegen(Dsymbol s)
+{
+    for (; s; s = s.parent)
+    {
+        if (auto fd = s.isFuncDeclaration())
+        {
+            if (fd.isFuncLiteralDeclaration() || fd.skipCodegen)
+                return true;
+        }
+        else if (auto ti = s.isTemplateInstance())
+        {
+            if (ti.isTemplateMixin() || !ti.inst)
+                continue;
+            return !ti.inst.needsCodegen() && !ti.inst.minst;
+        }
+        else if (s.isModule())
+            return false;
+    }
+    return false;
 }
 
 /****************************
@@ -3539,10 +3445,8 @@ private bool evaluateConstraint(TemplateDeclaration td, TemplateInstance ti, Sco
     pr.dedargs = dedargs;
     td.previous = &pr; // add this to threaded list
 
-    Scope* scx = paramscope.push(ti);
+    Scope* scx = paramscope.push(ti).makeSpeculative();
     scx.parent = ti;
-    scx.tinst = null;
-    scx.minst = null;
     // Set SCOPE.constraint before declaring function parameters for the static condition
     // (previously, this was immediately before calling evalStaticCondition), so the
     // semantic pass knows not to issue deprecation warnings for these throw-away decls.

@@ -42,7 +42,7 @@ import dmd.dmodule;
 import dmd.dscope;
 import dmd.dstruct;
 import dmd.dsymbol;
-import dmd.dsymbolsem : hasPointers, hasStaticCtorOrDtor, include, isFuncHidden,
+import dmd.dsymbolsem : hasPointers, include, isFuncHidden, runsWithoutBeingCalled,
                         isAbstract, toAlias, fillVtbl, size;
 import dmd.dtemplate;
 import dmd.errorsink;
@@ -232,11 +232,15 @@ void toObjFile(Dsymbol ds, bool multiobj)
             if (!cd.members)
                 return;
 
-            if (multiobj && !cd.hasStaticCtorOrDtor())
+            if (multiobj && !cd.runsWithoutBeingCalled())
             {
                 obj_append(cd);
                 return;
             }
+
+            if (cd.semanticRun >= PASS.obj)
+                return;
+            cd.semanticRun = PASS.obj;
 
             if (driverParams.symdebugref)
                 Type_toCtype(cd.type); // calls toDebug() only once
@@ -391,11 +395,15 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 return;
             }
 
-            if (multiobj && !sd.hasStaticCtorOrDtor())
+            if (multiobj && !sd.runsWithoutBeingCalled())
             {
                 obj_append(sd);
                 return;
             }
+
+            if (sd.semanticRun >= PASS.obj)
+                return;
+            sd.semanticRun = PASS.obj;
 
             // Anonymous structs/unions only exist as part of others,
             // do not output forward referenced structs's
@@ -413,7 +421,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 if (sinit.Sclass == SC.extern_ &&
                     strcmp(sinit.Sident.ptr, "__bzeroBytes") != 0) // might be from another object file
                 {
-                    sinit.Sclass = sd.isInstantiated() ? SC.comdat : SC.global;
+                    sinit.Sclass = (sd.isInstantiated() || needsLinkonceCodegen(sd)) ? SC.comdat : SC.global;
                     sinit.Sfl = FL.data;
                     auto dtb = DtBuilder(0);
                     StructDeclaration_toDt(sd, dtb);
@@ -487,6 +495,10 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
             if (!vd.isDataseg() || vd.storage_class & STC.extern_)
                 return;
+
+            if (vd.semanticRun >= PASS.obj)
+                return;
+            vd.semanticRun = PASS.obj;
 
             Symbol* s = toSymbol(vd);
             const sz64 = vd.type.size(vd.loc);
@@ -618,6 +630,8 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 }
                 parent = parent.parent;
             } while (parent);
+            if (needsLinkonceCodegen(vd))
+                s.Sclass = SC.comdat;
             s.Sfl = FL.data;
 
             auto dtb = DtBuilder(0);

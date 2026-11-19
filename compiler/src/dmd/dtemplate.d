@@ -806,7 +806,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
     TemplateInstance tnext;     // non-first instantiated instances
     Module minst;               // the top module that instantiated this instance
 
-    private ushort _nest;       // for recursive pretty printing detection, 3 MSBs reserved for flags (below)
+    private ushort _nest;       // for recursive pretty printing detection, 4 MSBs reserved for flags (below)
     ubyte inuse;                // for recursive expansion detection
 
     private enum Flag : uint
@@ -814,7 +814,8 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         semantictiargsdone = 1u << (_nest.sizeof * 8 - 1), // MSB of _nest
         havetempdecl = semantictiargsdone >> 1,
         gagged = semantictiargsdone >> 2,
-        available = gagged - 1 // always last flag minus one, 1s for all available bits
+        ctfe = semantictiargsdone >> 3,
+        available = ctfe - 1 // always last flag minus one, 1s for all available bits
     }
 
     extern(D) final @safe @property pure nothrow @nogc
@@ -842,6 +843,14 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         {
             if (x) _nest |= Flag.gagged;
             else _nest &= ~Flag.gagged;
+        }
+        /// if instantiated in a compile-time-only context,
+        /// so `tinst` is only there for error messages and doesn't promise codegen
+        bool ctfe() const { return (_nest & Flag.ctfe) != 0; }
+        void ctfe(bool x)
+        {
+            if (x) _nest |= Flag.ctfe;
+            else _nest &= ~Flag.ctfe;
         }
     }
 
