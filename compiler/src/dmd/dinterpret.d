@@ -4227,7 +4227,7 @@ public:
                     // https://issues.dlang.org/show_bug.cgi?id=14024
 
                     Type elemtype = aggregate.type.nextOf();
-                    bool needsPostblit = e.e2.isLvalue();
+                    bool needsPostblit = e.e2.isLvalue() || e.e2.isSliceExp();
 
                     if (aggregate == ale2 && srclower < lowerbound && lowerbound < srcupper)
                     {
