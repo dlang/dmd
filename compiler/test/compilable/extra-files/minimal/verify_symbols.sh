@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+if [[ $OS = "wasm" ]]; then
+    exit 0
+fi
+
 if [[ $OS = "win"* ]]; then
     for tool in nm objdump; do
         if ! which -s $tool; then

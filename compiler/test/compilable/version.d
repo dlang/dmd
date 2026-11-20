@@ -1,6 +1,3 @@
-/* REQUIRED_ARGS:
-*/
-
 version (D_ModuleInfo)
 { }
 else

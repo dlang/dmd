@@ -16,3 +16,4 @@ class Logger
     import Tid;
     Tid threadId;
 }
+// DISABLED: wasm

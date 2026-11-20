@@ -63,7 +63,9 @@ void backend_init(const ref Param params, const ref DMDparams driverParams, cons
     //printf("backend_init()\n");
     exefmt_t exfmt;
     bool is64 = target.isX86_64 || target.isAArch64;
-    switch (target.os)
+    if (target.isWasm)
+        exfmt = EX_WASM;
+    else switch (target.os)
     {
         case Target.OS.Windows: exfmt = is64 ? EX_WIN64     : EX_WIN32;   break;
         case Target.OS.linux:   exfmt = is64 ? EX_LINUX64   : EX_LINUX;   break;

@@ -9,3 +9,4 @@ fail_compilation/imports/test18938b/file.d(20): Error: undefined identifier `No`
 */
 
 void main() {}
+// DISABLED: wasm

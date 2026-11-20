@@ -304,7 +304,7 @@ bool parseConfFile(ref StringTable!(char*) environment, const(char)[] filename, 
             // look for [Environment]
             p = skipspace(p + 1);
             char* pn;
-            for (pn = p; isalnum(*pn); pn++)
+            for (pn = p; isalnum(*pn) || *pn == '-'; pn++)
             {
             }
             if (*skipspace(pn) != ']')

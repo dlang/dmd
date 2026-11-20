@@ -127,6 +127,10 @@ else version (CRuntime_WASI)
         FOPEN_MAX    = 1000,
         ///
         FILENAME_MAX = 4096,
+        ///
+        TMP_MAX      = 10000,
+        ///
+        L_tmpnam     = 20
     }
 }
 else version (Darwin)

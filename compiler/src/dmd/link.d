@@ -138,6 +138,62 @@ version (Posix)
         }
         return true;
     }
+
+    /*****************************
+     * Run the linker as a child process, piping its stderr into `outputBuf`.
+     *
+     * Params:
+     *      argv = linker command line, null terminated
+     *      outputBuf = receives the linker's stderr
+     *      eSink = message sink
+     * Returns:
+     *      the exit status, or -1 if the process could not be run
+     */
+    private int spawnLinker(ref Strings argv, ref OutBuffer outputBuf, ErrorSink eSink)
+    {
+        int[2] fds;
+        if (pipe(fds.ptr) == -1)
+        {
+            perror("unable to create pipe to linker");
+            return -1;
+        }
+        // vfork instead of fork to avoid https://issues.dlang.org/show_bug.cgi?id=21089
+        pid_t childpid = vfork();
+        if (childpid == 0)
+        {
+            // pipe linker stderr to fds[0]
+            dup2(fds[1], STDERR_FILENO);
+            close(fds[0]);
+            execvp(argv[0], argv.tdata());
+            perror(argv[0]); // failed to execute
+            _exit(-1);
+        }
+        else if (childpid == -1)
+        {
+            perror("unable to fork");
+            return STATUS_FAILED;
+        }
+        close(fds[1]);
+        const pipeSuccess = pipeProcessOutput(fds[0], outputBuf);
+
+        int status;
+        waitpid(childpid, &status, 0);
+        if (WIFEXITED(status))
+        {
+            status = WEXITSTATUS(status);
+            if (status && !pipeSuccess)
+            {
+                perror("error with the linker pipe");
+                return -1;
+            }
+        }
+        else if (WIFSIGNALED(status))
+        {
+            eSink.error(Loc.initial, "linker killed by signal %d", WTERMSIG(status));
+            status = 1;
+        }
+        return status;
+    }
 }
 
 version (Windows)
@@ -191,6 +247,220 @@ version (Windows)
 
 enum STATUS_FAILED = -1;
 
+// Push a `-<prefix><arg>` flag (e.g. "-Ldir", "-lfoo") onto argv.
+private void pushFlag(ref Strings argv, string prefix, const(char)[] arg) nothrow
+{
+    if (!arg.length) return;
+    char* s = cast(char*) mem.xmalloc(prefix.length + arg.length + 1);
+    memcpy(s, prefix.ptr, prefix.length);
+    memcpy(s + prefix.length, arg.ptr, arg.length);
+    s[prefix.length + arg.length] = 0;
+    argv.push(s);
+}
+
+private void splitWords(ref Strings argv, const(char)* cmd) nothrow
+{
+    const(char)[] s = cmd.toDString();
+    while (s.length)
+    {
+        while (s.length && (s[0] == ' ' || s[0] == '\t'))
+            s = s[1 .. $];
+        size_t i = 0;
+        while (i < s.length && s[i] != ' ' && s[i] != '\t')
+            i++;
+        if (i)
+            argv.push(s[0 .. i].xarraydup.ptr);
+        s = s[i .. $];
+    }
+}
+
+/***********************************
+ * Link WebAssembly object files.
+ *
+ * By default wasm-ld is invoked directly with the WASI libc from the dmd
+ * installation. When `WASM_CC` is set, or when targeting Emscripten (`emcc`),
+ * a C compiler driver is used instead, which supplies libc and startup code
+ * itself, and linker switches are passed as `-Wl,`.
+ *
+ * Params:
+ *   verbose = print the command before executing
+ *   params  = compiler parameters (objfiles, exefile, link switches, ...)
+ *   eSink   = sink for error messages
+ * Returns: 0 on success, non-zero on failure
+ */
+private int runWasmLINK(bool verbose, ref Param params, ErrorSink eSink)
+{
+    if (target.os == Target.OS.WASI && target.osMajor == 2)
+    {
+        eSink.error(Loc.initial, "linking for WASI preview 2 is not supported yet");
+        return STATUS_FAILED;
+    }
+
+    // dmd -defaultlib= main.d     // program supplies its own runtime and `_start`
+    // finalDefaultlibname() is always null under betterC, so read driverParams
+    const(char)[] defaultlib = driverParams.symdebug ? driverParams.debuglibname : driverParams.defaultlibname;
+    const bool customRuntime = !params.betterC && defaultlib is null;
+    const bool noAutoLibs = params.betterC && defaultlib is null;
+    const bool hasDruntime = !params.betterC && !customRuntime;
+    const bool emscripten = target.os == Target.OS.Emscripten;
+
+    const(char)* cc = getenv("WASM_CC");
+    if (!cc && emscripten)
+        cc = "emcc";
+    const bool driver = cc !is null;
+
+    Strings argv;
+    if (driver)
+        splitWords(argv, cc);
+    else
+    {
+        const(char)* wasmld = getenv("WASM_LD");
+        argv.push(wasmld ? wasmld : "wasm-ld");
+    }
+
+    void ld(const(char)* flag)
+    {
+        if (driver)
+            pushFlag(argv, "-Wl,", flag.toDString());
+        else
+            argv.push(flag);
+    }
+
+    argv.append(&params.objfiles);
+
+    argv.push("-o");
+    if (!params.exefile)
+    {
+        const(char)[] n = FileName.name(params.objfiles[0].toDString);
+        params.exefile = FileName.forceExt(n, emscripten ? "js" : target.dll_ext);
+    }
+    argv.push(params.exefile.xarraydup.ptr);
+    if (!ensurePathToNameExists(Loc.initial, params.exefile))
+        return STATUS_FAILED;
+
+    // dmd -L-z -Lstack-size=65536   // otherwise default to 1 MiB, not wasm-ld's 64 KiB
+    bool userStackSize = false;
+    foreach (pi, p; params.linkswitches)
+        if (p && startsWith(p[0 .. strlen(p)], params.linkswitchIsForCC[pi] ? "-sSTACK_SIZE=" : "stack-size="))
+            userStackSize = true;
+
+    if (emscripten)
+    {
+        argv.push("-fwasm-exceptions");
+        argv.push("-sWASM_LEGACY_EXCEPTIONS=0");
+        argv.push("-sALLOW_MEMORY_GROWTH");
+        if (!userStackSize)
+            argv.push("-sSTACK_SIZE=1048576");
+    }
+    else
+    {
+        if (hasDruntime && !driver)
+            argv.push("--export=_start"); // WASI entry from the default library
+        ld("--import-undefined");         // undefined data is an error, not address 0
+        ld("--gc-sections");
+        if (!userStackSize)
+            ld(driver ? "-z,stack-size=1048576" : "-z");
+        if (!userStackSize && !driver)
+            argv.push("stack-size=1048576");
+    }
+
+    const(char)* pendingZ = null;
+    foreach (pi, p; params.linkswitches)
+    {
+        if (!p || !p[0])
+            continue;
+        if (params.linkswitchIsForCC[pi])
+        {
+            if (driver)
+                argv.push(p);
+            continue;
+        }
+        const sw = p[0 .. strlen(p)];
+        if (startsWith(sw, "-rpath") || startsWith(sw, "--rpath") ||
+            startsWith(sw, "-Wl,-rpath") || startsWith(sw, "-soname") ||
+            startsWith(sw, "-dynamic"))
+            continue;
+        if (!driver)
+            argv.push(p);
+        else if (startsWith(sw, "-L") || startsWith(sw, "-l"))
+            argv.push(p);
+        else if (sw == "-z")
+            pendingZ = p;
+        else if (pendingZ)
+        {
+            pushFlag(argv, "-Wl,-z,", sw);
+            pendingZ = null;
+        }
+        else
+            pushFlag(argv, "-Wl,", sw);
+    }
+
+    // .a archives pass through, shared libraries don't exist for wasm,
+    // everything else becomes -l<name>
+    foreach (p; params.libfiles)
+        if (FileName.equalsExt(p, "a"))
+            argv.push(p);
+    foreach (p; params.libfiles)
+    {
+        if (FileName.equalsExt(p, "a") || FileName.equalsExt(p, "so") ||
+            FileName.equalsExt(p, "dylib") || FileName.equalsExt(p, "dll"))
+            continue;
+        pushFlag(argv, "-l", p[0 .. strlen(p)]);
+    }
+
+    // libphobos2-wasm.a contains druntime, like the native libphobos2.a.
+    // libc is linked in betterC too, since betterC routinely calls printf/memcmp.
+    // wasi-libc's `_start` is in an archive so a program can define its own.
+    if (!noAutoLibs)
+    {
+        if (hasDruntime)
+            pushFlag(argv, FileName.equalsExt(defaultlib, "a") ? "-l:" : "-l", defaultlib);
+        else if (!driver)
+            argv.push("-l:libcrt1_betterc.a");
+        if (!driver)
+            argv.push("-l:libc.a");
+    }
+    else if (driver && !emscripten)
+        argv.push("-nostdlib");
+
+    foreach (p; params.dllfiles)
+        argv.push(p);
+
+    OutBuffer cmdbuf;
+    foreach (i; 0 .. argv.length)
+    {
+        cmdbuf.writestring(argv[i]);
+        cmdbuf.writeByte(' ');
+    }
+    const(char)* linkerCommand = cmdbuf.peekChars();
+    if (verbose)
+        eSink.message(Loc.initial, "%s", linkerCommand);
+    argv.push(null);
+
+    version (Posix)
+    {
+        OutBuffer outputBuf;
+        const status = spawnLinker(argv, outputBuf, eSink);
+    }
+    else version (Windows)
+    {
+        const int status = spawnvp(_P_WAIT, argv[0], argv.tdata());
+        if (status == -1)
+            eSink.error(Loc.initial, "can't run '%s', check PATH", argv[0]);
+    }
+    else
+    {
+        eSink.error(Loc.initial, "WASM linking not supported on this platform");
+        const int status = -1;
+    }
+    if (status > 0)
+    {
+        eSink.error(Loc.initial, "linker exited with status %d", status);
+        eSink.errorSupplemental(Loc.initial, "%s", linkerCommand);
+    }
+    return status;
+}
+
 /*****************************
  * Run the linker.
  * Params:
@@ -200,6 +470,9 @@ enum STATUS_FAILED = -1;
  */
 public int runLINK(bool verbose, ErrorSink eSink)
 {
+    if (target.isWasm)
+        return runWasmLINK(verbose, global.params, eSink);
+
     const phobosLibname = finalDefaultlibname();
 
     void setExeFile()
@@ -366,7 +639,6 @@ public int runLINK(bool verbose, ErrorSink eSink)
     }
     else version (Posix)
     {
-        pid_t childpid;
         int status;
         // Build argv[]
         Strings argv;
@@ -676,57 +948,13 @@ public int runLINK(bool verbose, ErrorSink eSink)
             eSink.message(Loc.initial, "%s", linkerCommand);
 
         argv.push(null);
-        // set up pipes
-        int[2] fds;
-        if (pipe(fds.ptr) == -1)
-        {
-            perror("unable to create pipe to linker");
-            return -1;
-        }
-        // vfork instead of fork to avoid https://issues.dlang.org/show_bug.cgi?id=21089
-        childpid = vfork();
-        if (childpid == 0)
-        {
-            // pipe linker stderr to fds[0]
-            dup2(fds[1], STDERR_FILENO);
-            close(fds[0]);
-            execvp(argv[0], argv.tdata());
-            perror(argv[0]); // failed to execute
-            _exit(-1);
-        }
-        else if (childpid == -1)
-        {
-            perror("unable to fork");
-            return STATUS_FAILED;
-        }
-        close(fds[1]);
         OutBuffer outputBuf;
-        const pipeSuccess = pipeProcessOutput(fds[0], outputBuf);
-
-        ///
-        waitpid(childpid, &status, 0);
-        if (WIFEXITED(status))
+        status = spawnLinker(argv, outputBuf, eSink);
+        if (status > 0)
         {
-            status = WEXITSTATUS(status);
-            if (status)
-            {
-                if (!pipeSuccess)
-                {
-                    perror("error with the linker pipe");
-                    return -1;
-                }
-                else
-                {
-                    parseLinkerOutput(cast(const(char)[]) outputBuf.peekSlice(), new ErrorSinkCompiler(), global.params.betterC, includeImports);
-                    eSink.error(Loc.initial, "linker exited with status %d", status);
-                    eSink.errorSupplemental(Loc.initial, "%s", linkerCommand);
-                }
-            }
-        }
-        else if (WIFSIGNALED(status))
-        {
-            eSink.error(Loc.initial, "linker killed by signal %d", WTERMSIG(status));
-            status = 1;
+            parseLinkerOutput(cast(const(char)[]) outputBuf.peekSlice(), new ErrorSinkCompiler(), global.params.betterC, includeImports);
+            eSink.error(Loc.initial, "linker exited with status %d", status);
+            eSink.errorSupplemental(Loc.initial, "%s", linkerCommand);
         }
         return status;
     }
@@ -885,10 +1113,30 @@ public int runProgram(const char[] exefile, const char*[] runargs, bool verbose,
 {
     //printf("runProgram()\n");
 
+    Strings launcher;
+    if (target.os == Target.OS.Emscripten)
+    {
+        const(char)* node = getenv("NODE");
+        launcher.push(node ? node : "node");
+    }
+    else if (target.isWasm)
+    {
+        const(char)* wasmtime = getenv("WASMTIME");
+        launcher.push(wasmtime ? wasmtime : "wasmtime");
+        launcher.push("run");
+        launcher.push("-W");
+        launcher.push("exceptions=y");
+    }
+
     // print command line to user
     if (verbose)
     {
         OutBuffer buf;
+        foreach (l; launcher)
+        {
+            buf.writestring(l);
+            buf.writeByte(' ');
+        }
         buf.writestring(exefile);
         foreach (arg; runargs)
         {
@@ -900,6 +1148,7 @@ public int runProgram(const char[] exefile, const char*[] runargs, bool verbose,
 
     // Build argv[]
     Strings argv;
+    argv.append(&launcher);
     argv.push(exefile.xarraydup.ptr);
     foreach (arg; runargs)
     {
@@ -938,12 +1187,13 @@ public int runProgram(const char[] exefile, const char*[] runargs, bool verbose,
         if (childpid == 0)
         {
             const(char)[] fn = argv[0].toDString();
-            // Make it "./fn" if needed
-            if (!FileName.absolute(fn))
+            // Make it "./fn" if needed, except for the wasmtime launcher in PATH
+            if (!target.isWasm && !FileName.absolute(fn))
                 fn = FileName.combine(".", fn);
             fn.toCStringThen!((fnp) {
-                    execv(fnp.ptr, argv.tdata());
-                    // If execv returns, it failed to execute
+                    import core.sys.posix.unistd : execvp;
+                    execvp(fnp.ptr, argv.tdata());
+                    // If execvp returns, it failed to execute
                     perror(fnp.ptr);
                 });
             _exit(-1);
@@ -1191,9 +1441,18 @@ public int runPreprocessor(Loc loc, const(char)[] cpp, const(char)[] filename, c
     {
         // Build argv[]
         Strings argv;
-        argv.push(cpp.xarraydup.ptr);       // null terminated copy
+        if (target.isWasm)
+            splitWords(argv, cpp.xarraydup.ptr);
+        else
+            argv.push(cpp.xarraydup.ptr);       // null terminated copy
 
         argv.push("-std=c11");
+        if (target.isWasm)
+        {
+            if (target.os == Target.OS.WASI)
+                argv.push(target.osMajor == 2 ? "--target=wasm32-wasip2" : "--target=wasm32-wasip1");
+            argv.push("-E");
+        }
 
         foreach (p; cppswitches)
         {
@@ -1202,7 +1461,8 @@ public int runPreprocessor(Loc loc, const(char)[] cpp, const(char)[] filename, c
         }
 
         // Set memory model
-        argv.push(target.isX86_64 || target.isAArch64 ? "-m64" : "-m32");
+        if (!target.isWasm)
+            argv.push(target.isX86_64 || target.isAArch64 ? "-m64" : "-m32");
 
         // merge #define's with output
         argv.push("-dD");       // https://gcc.gnu.org/onlinedocs/cpp/Invocation.html#index-dD

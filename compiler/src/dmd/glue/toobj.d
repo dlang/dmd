@@ -391,6 +391,9 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 return;
             }
 
+            foreach (vd; sd.fields)
+                checkWasmComplex(vd.loc, vd.type);
+
             if (multiobj && !sd.hasStaticCtorOrDtor())
             {
                 obj_append(sd);

@@ -1,7 +1,7 @@
 // REQUIRED_ARGS: -g
 // REQUIRED_ARGS(linux freebsd openbsd dragonflybsd): -L-export-dynamic
 // PERMUTE_ARGS:
-// DISABLED: osx
+// DISABLED: osx wasm
 
 import core.stdc.stdio;
 

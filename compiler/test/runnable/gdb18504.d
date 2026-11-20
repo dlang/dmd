@@ -9,3 +9,5 @@ p $_exitcode
 GDB_MATCH: \$1 = 1
 */
 void main() { synchronized assert(0); }
+
+// DISABLED: wasm
