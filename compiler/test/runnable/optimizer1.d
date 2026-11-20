@@ -155,6 +155,7 @@ void test24309b()
 {
     assert(f_24309b(-5) == 1);
 }
+}
 
 /**************************************************/
 // https://github.com/dlang/dmd/issues/24310
@@ -169,6 +170,8 @@ void test24310()
 /**************************************************/
 // https://github.com/dlang/dmd/issues/24311
 
+static if (0)
+{
 pragma(inline, true) ulong id_24311(ulong x) { return x; }
 
 short f_24311(ulong p)
@@ -901,58 +904,56 @@ void main()
     test24308();
     //test24309a();
     //test24309b();
-    //test24310();
+    test24310();
     //test24311();
     //test24312();
     //test24313();
     test24314();
-/*
-    test24315();
-    test24316();
-    test24317();
-    test24318();
-    test24319();
-    version (D_SIMD) test24320();
-    test24321();
-    test24323();
-    test24309d();
-    test24325a();
-    test24327();
-    test24328();
-    test24325b();
-    test24329();
-    test24330();
-    test24331a();
-    test24332();
-    test24333();
-    test24309c();
-    test24325c();
-    version (D_SIMD) test24334();
-    version (D_AVX2) test24335a();
-    version (D_AVX2) test24335b();
-    test24309e();
-    test24351d();
-    test24351e();
-    test24339();
-    test24340();
-    test24341();
-    test24331b();
-    test24331c();
-    test24342a();
-    test24342b();
-    version (D_AVX2) test24343a();
-    version (D_SIMD) test24343b();
-    version (D_AVX) test24343c();
-    test24351a();
-    test24351g();
-    test24351b();
-    test24351f();
-    version (D_SIMD) test24351c();
-    test24351h();
-    test24351i();
-    test24351k();
-    assert(test24354() == 0);
-    test24351j();
-    test24351l();
-*/
+    //test24315();
+    //test24316();
+    //test24317();
+    //test24318();
+    //test24319();
+    //version (D_SIMD) test24320();
+    //test24321();
+    //test24323();
+    //test24309d();
+    //test24325a();
+    //test24327();
+    //test24328();
+    //test24325b();
+    //test24329();
+    //test24330();
+    //test24331a();
+    //test24332();
+    //test24333();
+    //test24309c();
+    //test24325c();
+    //version (D_SIMD) test24334();
+    //version (D_AVX2) test24335a();
+    //version (D_AVX2) test24335b();
+    //test24309e();
+    //test24351d();
+    //test24351e();
+    //test24339();
+    //test24340();
+    //test24341();
+    //test24331b();
+    //test24331c();
+    //test24342a();
+    //test24342b();
+    //version (D_AVX2) test24343a();
+    //version (D_SIMD) test24343b();
+    //version (D_AVX) test24343c();
+    //test24351a();
+    //test24351g();
+    //test24351b();
+    //test24351f();
+    //version (D_SIMD) test24351c();
+    //test24351h();
+    //test24351i();
+    //test24351k();
+    //assert(test24354() == 0);
+    //test24351j();
+    //test24351l();
 }

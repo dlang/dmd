@@ -2762,7 +2762,7 @@ private elem* eldiv(elem* e, Goal goal)
                         op = (sz == 2) ? OP32_16 : (sz == 4) ? OP64_32 : OP128_64;
                     }
                     e.Eoper = OPremquo;
-                    e = el_una(op, tym, e);
+                    e = el_una(op, e.Ety, e);
                     e.E1.Ety = (sz == 2) ? TYlong : (sz == 4) ? TYllong : TYcent;
                     return e;
                 }
