@@ -63,6 +63,7 @@ private
         string      filename;
         BitArray    valid;      // bit array of which source lines are executable code lines
         uint[]      data;       // array of line execution counts
+        bool        booleanHits; // data records whether each line ran
         ubyte       minPercent; // minimum percentage coverage required
     }
 
@@ -133,8 +134,8 @@ extern (C) void dmd_coverDestPath( string pathname )
  * Set merge mode.
  *
  * Params:
- *      flag = true means new data is summed with existing data in the listing
- *         file; false means a new listing file is always created.
+ *      flag = true combines this run with the saved listing, adding counts
+ *         and preserving hit/miss values for Boolean lines in this run.
  */
 extern (C) void dmd_coverSetMerge( bool flag )
 {
@@ -153,6 +154,17 @@ extern (C) void dmd_coverSetMerge( bool flag )
  */
 extern (C) void _d_cover_register2(string filename, size_t[] valid, uint[] data, ubyte minPercent)
 {
+    registerCoverage(filename, valid, data, minPercent, false);
+}
+
+/// Register Boolean line hits using the same argument layout as _d_cover_register2.
+extern (C) void _d_cover_register_boolean(string filename, size_t[] valid, uint[] data, ubyte minPercent)
+{
+    registerCoverage(filename, valid, data, minPercent, true);
+}
+
+private void registerCoverage(string filename, size_t[] valid, uint[] data, ubyte minPercent, bool booleanHits)
+{
     assert(minPercent <= 100);
 
     Cover c;
@@ -162,6 +174,7 @@ extern (C) void _d_cover_register2(string filename, size_t[] valid, uint[] data,
     c.valid.len = valid.length;
     c.data      = data;
     c.minPercent = minPercent;
+    c.booleanHits = booleanHits;
     gdata      ~= c;
 }
 
@@ -284,7 +297,8 @@ shared static ~this()
     reports: foreach (parts; bySource)
     {
         auto c = parts[0];
-        if (parts.length > 1)
+        bool[] hitOnly;
+        if (parts.length > 1 || c.booleanHits)
         {
             enum bits = size_t.sizeof * 8;
             c.data = null;
@@ -310,9 +324,21 @@ shared static ~this()
                     inconsistent = true;
                     continue reports;
                 }
+                if (part.booleanHits)
+                {
+                    if (!hitOnly.length)
+                        hitOnly = new bool[part.data.length];
+                    foreach (i, count; part.data)
+                        if (part.valid[i] || count != 0)
+                            hitOnly[i] = true;
+                }
+            }
+            // Determine each line's mode before summing any counts for it.
+            foreach (part; parts)
+            {
                 foreach (i, count; part.data)
                 {
-                    c.data[i] += count;
+                    c.data[i] = combineHits(c.data[i], count, hitOnly.length && hitOnly[i]);
                     if (part.valid[i])
                         c.valid.ptr[i / bits] |= size_t(1) << (i % bits);
                 }
@@ -343,7 +369,7 @@ shared static ~this()
             // check if source is the same before merge
             if (lstEquals(lines, lstLines))
                 foreach (i, line; lstLines[0 .. min($, c.data.length)])
-                    c.data[i] += parseNum(line);
+                    c.data[i] = combineHits(c.data[i], parseNum(line), hitOnly.length && hitOnly[i]);
         }
 
         // Calculate the maximum number of digits in the line with the greatest
@@ -409,6 +435,11 @@ shared static ~this()
     }
     if (inconsistent)
         exit(EXIT_FAILURE);
+}
+
+uint combineHits(uint a, uint b, bool hitOnly)
+{
+    return hitOnly ? (a != 0 || b != 0) : a + b;
 }
 
 uint digits(uint number)

@@ -1,6 +1,6 @@
 normal := basic
 merge := merge merge_true
-TESTS := $(normal) $(merge) no_code merge_override report_open duplicate
+TESTS := $(normal) $(merge) no_code merge_override report_open duplicate boolean
 include ../common.mak
 
 normal_tests := $(normal:%=$(ROOT)/%.done)
@@ -123,4 +123,21 @@ $(ROOT)/duplicate.done: $(ROOT)/duplicate$(DOTEXE) $(SRC)/duplicate-lines.txt
 	grep -F 'different source lengths' $(ROOT)/duplicate.err
 	test ! -f $(ROOT)/src-duplicate-lines.lst
 	test -s $(ROOT)/src-duplicate.lst
+	@touch $@
+
+$(ROOT)/boolean.done: $(ROOT)/boolean$(DOTEXE) $(SRC)/boolean-lines.txt
+	@set -e; for order in forward reverse single; do \
+		report=$(ROOT)/src-boolean-lines.lst; $(RM) "$$report"; \
+		for mode in fresh merge; do \
+			$< $(ROOT) $$order $$mode; \
+			grep -Eq '^[[:space:]]*1\|Boolean overlap' "$$report"; \
+			grep -Eq '^0000000\|unhit' "$$report"; \
+			grep -Eq '^[[:space:]]*1\|saved hit' "$$report"; \
+			if test $$order != single; then \
+				count=3; if test $$mode = merge; then count=6; fi; \
+				grep -Eq "^[[:space:]]*$$count\|count only" "$$report"; \
+				grep -Eq '^[[:space:]]*1\|mixed' "$$report"; \
+			fi; \
+		done; \
+	done
 	@touch $@
