@@ -2429,7 +2429,7 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
             buf.put('x');
             buf.put('"');
             foreach (i; 0 .. e.length)
-                buf.printf("%0*llX", e.sz, e.getIndex(i));
+                buf.printf("%0*llX", e.sz * 2, e.getIndex(i));
             buf.put('"');
             if (e.postfix)
                 buf.put(e.postfix);
