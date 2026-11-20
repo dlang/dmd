@@ -329,7 +329,7 @@ void cdorth(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
                 cs.IEV2.Vint = cast(targ_int)value;
                 cs.IFL2 = FL.const_;
             }
-            cs.Iop = op1 ^ isbyte;
+            cs.Iop = op1;
             cs.Iflags |= word | CF.psw;
             freenode(e1);
             freenode(e2);
@@ -349,7 +349,7 @@ void cdorth(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             code_newreg(&cs, reg);
             if (I64 && isbyte && reg >= 4)
                 cs.Irex |= REX;
-            cs.Iop = op1 ^ isbyte;
+            cs.Iop = op1;
             cs.Iflags |= word | CF.psw;
             freenode(e1);
             freenode(e2);
