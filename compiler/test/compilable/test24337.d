@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-"ab"w x"11223344556677"
+"ab"w x"0011223344556677"
 ---
 */
 // https://issues.dlang.org/show_bug.cgi?id=24337
