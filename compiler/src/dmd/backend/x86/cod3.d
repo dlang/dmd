@@ -3420,7 +3420,11 @@ void movregconst(ref CGstate cg,ref CodeBuilder cdb,reg_t reg,targ_size_t value,
                 regv = 0;
             }
             else
+            {
                 genregs(cdb,0x30,reg,reg);      // XOR regL,regL
+                if (reg >= 4 && I64)
+                    code_orrex(cdb.last(), REX);
+            }
             flags &= ~mPSW;                     // flags already set by XOR
         }
         else

@@ -186,6 +186,7 @@ void test24311()
 {
     assert(f_24311(0) == 0);
 }
+}
 
 /**************************************************/
 // https://github.com/dlang/dmd/issues/24312
@@ -207,6 +208,8 @@ void test24312()
 /**************************************************/
 // https://github.com/dlang/dmd/issues/24313
 
+static if (0)
+{
 long f_24313(ulong a, ulong b)
 {
     short v = 0;
@@ -906,7 +909,7 @@ void main()
     //test24309b();
     test24310();
     //test24311();
-    //test24312();
+    test24312();
     //test24313();
     test24314();
     //test24315();
