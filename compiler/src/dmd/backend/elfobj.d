@@ -1597,7 +1597,7 @@ else
 
         // Create a weak symbol for the comdat
         const namidxcd = ElfObj_addstr(&elfobj.symtab_strings, p);
-        s.Sxtrnnum = elf_addsym(namidxcd, 0, 0, STT_FUNC, STB_WEAK, MAP_SEG2SECIDX(s.Sseg), definedVisibility());
+        s.Sxtrnnum = elf_addsym(namidxcd, 0, 0, STT_FUNC, STB_WEAK, MAP_SEG2SECIDX(s.Sseg), STV_HIDDEN);
 
         if (added)
         {
@@ -2104,25 +2104,11 @@ debug
 void ElfObj_export_symbol(Symbol* s,uint argsize)
 {
     //dbg_printf("ElfObj_export_symbol(%s,%d)\n",s.Sident.ptr,argsize);
-    if (!s.Sxtrnnum)
-        return;
+    // Defined symbols are hidden until exported
     if (I64)
-    {
-        if (s.Sxtrnnum < elfobj.SymbolTable64.length)
-            elfobj.SymbolTable64[s.Sxtrnnum].st_other = STV_DEFAULT;
-    }
+        elfobj.SymbolTable64[s.Sxtrnnum].st_other = STV_DEFAULT;
     else
-    {
-        if (s.Sxtrnnum < elfobj.SymbolTable.length)
-            elfobj.SymbolTable[s.Sxtrnnum].st_other = STV_DEFAULT;
-    }
-}
-
-/// Visibility for a newly defined global/weak symbol: hidden until
-/// export_symbol() is called for it (`export`, or `-visibility=public`)
-private ubyte definedVisibility()
-{
-    return STV_HIDDEN;
+        elfobj.SymbolTable[s.Sxtrnnum].st_other = STV_DEFAULT;
 }
 
 /*******************************
@@ -2252,12 +2238,12 @@ void ElfObj_pubdefsize(int seg, Symbol* s, targ_size_t offset, targ_size_t symsi
         case SC.global:
         case SC.inline:
             bind = STB_GLOBAL;
-            visibility = definedVisibility();
+            visibility = STV_HIDDEN;
             break;
         case SC.comdat:
         case SC.comdef:
             bind = STB_WEAK;
-            visibility = definedVisibility();
+            visibility = STV_HIDDEN;
             break;
         case SC.static_:
             if (s.Sflags & SFLhidden)
