@@ -171,3 +171,18 @@ void opaqueProperties()
     int min = Foo.min;
     int max = Foo.max;
 }
+
+/*
+TEST_OUTPUT:
+---
+fail_compilation/enum_init.d(905): Error: enum `enum_init.nonIntegralProperties.Foo` has no `.max` property because base type `string` is not an integral type
+---
+*/
+#line 900
+
+void nonIntegralProperties()
+{
+    enum Foo : string { a = "a" }
+
+    auto max = Foo.max;
+}
