@@ -1542,6 +1542,10 @@ Expression initializerToExpression(Initializer init, Scope* sc, Type itype, Erro
                 assert(0);
             }
         }
+        else if (init.isAssociativeArray())
+        {
+            return init.toAssocArrayLiteral();
+        }
         else
         {
             /* Calculate the length of the array literal
