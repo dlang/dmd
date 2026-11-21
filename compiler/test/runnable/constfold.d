@@ -148,13 +148,6 @@ static assert((7.2 != 6.2) == 1);
 static assert((7.2 == 7.2) == 1);
 static assert((7.2 != 7.2) == 0);
 
-static assert((7.2 == double.nan) == 0);
-static assert((7.2 != double.nan) == 1);
-static assert((double.nan == double.nan) == 0);
-static assert((double.nan != double.nan) == 1);
-static assert((double.nan == 7.2) == 0);
-static assert((double.nan != 7.2) == 1);
-
 static assert((5 is 5) == 1);
 static assert((5 is 4) == 0);
 static assert((5 !is 5) == 0);
@@ -226,6 +219,17 @@ void test3()
 
      assert(signbit(n) != 0);
      assert(signbit(m) != 0);
+}
+
+void testNaN()
+{
+    double nan = double.nan;
+    assert((7.2 == nan) == 0);
+    assert((7.2 != nan) == 1);
+    assert((nan == nan) == 0);
+    assert((nan != nan) == 1);
+    assert((nan == 7.2) == 0);
+    assert((nan != 7.2) == 1);
 }
 
 /************************************/
@@ -587,6 +591,7 @@ int main()
     test1();
     test2();
     test3();
+    testNaN();
     test3697and();
     test3697or();
     test6077();
