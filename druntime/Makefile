@@ -113,7 +113,7 @@ else
 	DFLAGS:=$(UDFLAGS) -inline # unittests don't compile with -inline
 endif
 
-SHAREDFLAGS:=$(if $(findstring $(OS),windows),-visibility=public -mscrtlib=msvcrt,-fPIC)
+SHAREDFLAGS:=-visibility=public $(if $(findstring $(OS),windows),-mscrtlib=msvcrt,-fPIC)
 SOLIBS:=$(if $(findstring $(OS),windows),msvcrt.lib legacy_stdio_definitions.lib,-L-lpthread -L-lm)
 
 UTFLAGS:=-version=CoreUnittest -unittest -checkaction=context
