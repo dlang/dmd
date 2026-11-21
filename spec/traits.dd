@@ -32,6 +32,7 @@ $(GNAME TraitsKeyword):
     $(RELATIVE_LINK2 isFloating, $(D isFloating))
     $(RELATIVE_LINK2 isIntegral, $(D isIntegral))
     $(RELATIVE_LINK2 isScalar, $(D isScalar))
+    $(RELATIVE_LINK2 isDynamicArray, $(D isDynamicArray))
     $(RELATIVE_LINK2 isStaticArray, $(D isStaticArray))
     $(RELATIVE_LINK2 isUnsigned, $(D isUnsigned))
     $(RELATIVE_LINK2 isDisabled, $(D isDisabled))
@@ -292,6 +293,26 @@ static assert(!__traits(isUnsigned, float));
 static assert(!__traits(isUnsigned, SignedEnum));
 static assert(!__traits(isUnsigned, uint[4]));
 static assert(!__traits(isUnsigned, void*));
+---
+)
+
+$(H3 $(GNAME isDynamicArray))
+
+        $(P Works like $(D isArithmetic), except it's for dynamic array
+        types.)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+enum E : int[] { a = [1, 2, 3, 4] }
+
+static array = [1, 2, 3]; // The type is inferred as int[] (dynamic array), not int[3].
+
+static assert(__traits(isDynamicArray, void[]));
+static assert(__traits(isDynamicArray, array));
+static assert(__traits(isDynamicArray, E));
+static assert(!__traits(isDynamicArray, void[3]));
+static assert(!__traits(isDynamicArray, int[char]));
+static assert(!__traits(isDynamicArray, void*));
 ---
 )
 

@@ -1,0 +1,5 @@
+Add __trait `isDynamicArray`
+
+Add a new unary builtin trait `isDynamicArray` that evalutes to true
+iff its single type argument is a D (fat-pointer) array (slice) of any
+type.
