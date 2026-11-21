@@ -24,12 +24,6 @@ else:
 
 version (ARM)     version = ARM_Any;
 version (AArch64) version = ARM_Any;
-version (MIPS32)  version = MIPS_Any;
-version (MIPS64)  version = MIPS_Any;
-version (PPC)     version = PPC_Any;
-version (PPC64)   version = PPC_Any;
-version (RISCV32) version = RISCV_Any;
-version (RISCV64) version = RISCV_Any;
 
 version (ARM_Any)
 {
@@ -67,25 +61,31 @@ void va_arg()(ref va_list ap, TypeInfo ti, void* parmn)
     }
     else version (Win64)
     {
-        version (LDC) enum isLDC = true;
-        else          enum isLDC = false;
-
         // Wait until everyone updates to get TypeInfo.talign
         //auto talign = ti.talign;
         //auto p = cast(void*)(cast(size_t)ap + talign - 1) & ~(talign - 1);
         auto p = ap;
         auto tsize = ti.tsize;
         void* q;
-        if (isLDC && tsize == 16 && cast(TypeInfo_Array) ti)
+        version (LDC)
         {
-            q = p;
-            ap = cast(va_list) (p + tsize);
+            if (tsize == 16 && cast(TypeInfo_Array) ti)
+            {
+                q = p;
+                ap = cast(va_list) (p + tsize);
+            }
+            else
+            {
+                q = (tsize > size_t.sizeof || (tsize & (tsize - 1)) != 0) ? *cast(void**) p : p;
+                ap = cast(va_list) (p + size_t.sizeof);
+            }
         }
         else
         {
             q = (tsize > size_t.sizeof || (tsize & (tsize - 1)) != 0) ? *cast(void**) p : p;
             ap = cast(va_list) (p + size_t.sizeof);
         }
+
         parmn[0..tsize] = q[0..tsize];
     }
     else version (X86_64)
@@ -118,7 +118,18 @@ void va_arg()(ref va_list ap, TypeInfo ti, void* parmn)
         ap += tsize.alignUp;
         parmn[0..tsize] = p[0..tsize];
     }
-    else version (PPC_Any)
+    else version (PPC)
+    {
+        if (ti.talign >= 8)
+            ap = ap.alignUp!8;
+        const tsize = ti.tsize;
+        auto p = cast(void*) ap;
+        version (BigEndian)
+            p = adjustForBigEndian(p, tsize);
+        ap += tsize.alignUp;
+        parmn[0..tsize] = p[0..tsize];
+    }
+    else version (PPC64)
     {
         if (ti.talign >= 8)
             ap = ap.alignUp!8;
@@ -136,7 +147,7 @@ void va_arg()(ref va_list ap, TypeInfo ti, void* parmn)
         ap += tsize.alignUp;
         parmn[0..tsize] = p[0..tsize];
     }
-    else version (MIPS_Any)
+    else version (MIPS32)
     {
         const tsize = ti.tsize;
         auto p = cast(void*) ap;
@@ -145,7 +156,31 @@ void va_arg()(ref va_list ap, TypeInfo ti, void* parmn)
         ap += tsize.alignUp;
         parmn[0..tsize] = p[0..tsize];
     }
-    else version (RISCV_Any)
+    else version (MIPS64)
+    {
+        const tsize = ti.tsize;
+        auto p = cast(void*) ap;
+        version (BigEndian)
+            p = adjustForBigEndian(p, tsize);
+        ap += tsize.alignUp;
+        parmn[0..tsize] = p[0..tsize];
+    }
+    else version (RISCV32)
+    {
+        const tsize = ti.tsize;
+        void* p;
+        if (tsize > (size_t.sizeof << 1))
+            p = *cast(void**) ap;
+        else
+        {
+            if (tsize == (size_t.sizeof << 1))
+                ap = ap.alignUp!(size_t.sizeof << 1);
+            p = cast(void*) ap;
+        }
+        ap += tsize.alignUp;
+        parmn[0..tsize] = p[0..tsize];
+    }
+    else version (RISCV64)
     {
         const tsize = ti.tsize;
         void* p;
