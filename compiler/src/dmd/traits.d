@@ -2071,10 +2071,57 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         if (!ad || ad.isInterfaceDeclaration())
             return badArgument();
 
-        Declaration d = new SymbolDeclaration(ad.loc, ad);
-        d.type = Type.tvoid.arrayOf().constOf();
-        d.storage_class |= STC.rvalue;
-        return new VarExp(e.loc, d);
+        const size = ad.size(e.loc);
+        if (size == SIZE_INVALID || !verifyHookExist(e.loc, *sc, Id.SymbolSlice, "__traits(initSymbol)"))
+            return ErrorExp.get();
+        const isNull = ad.isStructDeclaration() && ad.type.isZeroInit(e.loc);
+        return symbolSlice(e.loc, sc, ad, SymbolDeclaration.Kind.initializer, Type.tvoid.constOf(), size, isNull);
+    }
+    if (e.ident == Id.vtblSymbol)
+    {
+        // https://dlang.org/spec/traits.html#vtblSymbol
+        if (dim != 1)
+            return dimError(1);
+        auto o = (*e.args)[0];
+        Type t = isType(o);
+        auto tc = t ? t.toBasetype().isTypeClass() : null;
+        if (!tc || tc.sym.isInterfaceDeclaration())
+        {
+            eSink.error(e.loc, "class type expected as argument to __traits(vtblSymbol) instead of `%s`", o.toErrMsg());
+            return ErrorExp.get();
+        }
+        auto cd = tc.sym;
+        if (!determineVtbl(cd, e.loc) || !verifyHookExist(e.loc, *sc, Id.SymbolSlice, "__traits(vtblSymbol)"))
+            return ErrorExp.get();
+        return symbolSlice(e.loc, sc, cd, SymbolDeclaration.Kind.vtbl, Type.tvoidptr.constOf(), cd.vtbl.length, false);
+    }
+    if (e.ident == Id.interfaceSymbol)
+    {
+        // https://dlang.org/spec/traits.html#interfaceSymbol
+        if (dim != 1)
+            return dimError(1);
+        auto o = (*e.args)[0];
+        Type t = isType(o);
+        auto tc = t ? t.toBasetype().isTypeClass() : null;
+        if (!tc)
+        {
+            eSink.error(e.loc, "class or interface type expected as argument to __traits(interfaceSymbol) instead of `%s`", o.toErrMsg());
+            return ErrorExp.get();
+        }
+        auto cd = tc.sym;
+        if (cd.size(e.loc) == SIZE_INVALID || !verifyHookExist(e.loc, *sc, Id.SymbolSlice, "__traits(interfaceSymbol)"))
+            return ErrorExp.get();
+        Type tinterface;
+        if (auto s = ClassDeclaration.object ? ClassDeclaration.object.getModule().search(e.loc, Identifier.idPool("Interface")) : null)
+            if (auto sd = s.isStructDeclaration())
+                tinterface = sd.type;
+        if (!tinterface)
+        {
+            eSink.error(e.loc, "`object.Interface` not found, but is needed for __traits(interfaceSymbol)");
+            return ErrorExp.get();
+        }
+        const n = cd.vtblInterfaces.length;
+        return symbolSlice(e.loc, sc, cd, SymbolDeclaration.Kind.interfaces, tinterface.constOf(), n, n == 0);
     }
     if (e.ident == Id.isZeroInit)
     {
@@ -2508,4 +2555,37 @@ private void traitNotFound(TraitsExp e)
         eSink.error(e.loc, "unrecognized trait `%s`, did you mean `%.*s`?", e.ident.toErrMsg(), cast(int) sub.length, sub.ptr);
     else
         eSink.error(e.loc, "unrecognized trait `%s`", e.ident.toErrMsg());
+}
+
+/*********************************
+ * Build `object.SymbolSlice!elem(length, ptr)`, where `ptr` is the address of
+ * the `kind` symbol of `ad`, or null.
+ */
+private Expression symbolSlice(Loc loc, Scope* sc, AggregateDeclaration ad, SymbolDeclaration.Kind kind,
+    Type elem, ulong length, bool isNull)
+{
+    Expression ptr;
+    if (isNull)
+        ptr = new NullExp(loc, elem.pointerTo());
+    else
+    {
+        // one declaration per symbol, so that addresses of the same symbol compare equal
+        __gshared SymbolDeclaration[void*][3] declarations;
+        auto p = cast(void*) ad in declarations[kind];
+        auto d = p ? *p : null;
+        if (!d)
+        {
+            d = new SymbolDeclaration(ad.loc, ad);
+            d.kind = kind;
+            d.type = elem;
+            declarations[kind][cast(void*) ad] = d;
+        }
+        ptr = new SymOffExp(loc, d, 0, false);
+        ptr.type = elem.pointerTo();
+    }
+    Expression e = new IdentifierExp(loc, Id.empty);
+    e = new DotIdExp(loc, e, Id.object);
+    e = new DotTemplateInstanceExp(loc, e, Id.SymbolSlice, new Objects(elem));
+    e = new CallExp(loc, e, new Expressions(new IntegerExp(loc, length, Type.tsize_t), ptr));
+    return e.expressionSemantic(sc);
 }
