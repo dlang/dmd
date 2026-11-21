@@ -8,7 +8,6 @@ import core.math : fabs;
 import core.simd;
 
 /****************************************************/
-
 // https://github.com/dlang/dmd/issues/24111
 
 long f_24111(ulong a, long b) { return (a & 0xFFFF_FFFF) + (b <= 0); }
@@ -19,7 +18,6 @@ void test24111()
 }
 
 /****************************************************/
-
 // https://github.com/dlang/dmd/issues/24112
 
 uint f_24112(uint x) { return x / 0xFFFF_FFFF; }
@@ -347,6 +345,10 @@ void test24321()
 {
     assert(f_24321(-3) == 0xFFFF_FFFF);
 }
+}
+
+/************************************************/
+// https://github.com/dlang/dmd/issues/24323
 
 __gshared byte c_24323 = -6;
 __gshared int k_24323 = 1;
@@ -360,12 +362,17 @@ void test24323()
     assert(f_24323() == -6);
 }
 
+/*************************************************/
+static if (0)
+{
 long f_24309d(uint p1, byte p2) { return (p2 == 7 ? 5L : cast(long)cast(byte)(p1 <= 15)) != 0; }
 
 void test24309d()
 {
     assert(f_24309d(100, 0) == 0);
 }
+
+/*************************************************/
 
 __gshared int sink_24325a;
 
@@ -916,7 +923,7 @@ void main()
     //test24319();
     //version (D_SIMD) test24320();
     //test24321();
-    //test24323();
+    test24323();
     //test24309d();
     //test24325a();
     //test24327();
