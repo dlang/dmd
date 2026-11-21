@@ -3820,9 +3820,9 @@ void cdshtlng(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
                     goto L1;
                 }
             }
-            if (op == OPs16_32 && retregs == mAX)
+            if (op == OPs16_32 && (retregs & ~mPSW) == mAX)
                 cdb.gen1(0x98);         // CWDE
-            else if (op == OPs32_64 && retregs == mAX)
+            else if (op == OPs32_64 && (retregs & ~mPSW) == mAX)
             {
                 cdb.gen1(0x98);         // CDQE
                 code_orrex(cdb.last(), REX_W);
