@@ -36,11 +36,11 @@ bool putenvRestorable(const(char)[] name, const(char)[] value) nothrow
     const nameValue = allocNameValue(name, value);
     const result = putenv(cast(char*)nameValue.ptr);
     version (Windows)
-        mem.xfree(cast(void*)nameValue.ptr);
+        mem.xfree(cast(void*)nameValue.ptr, nameValue.length + 1);
     else
     {
         if (result)
-            mem.xfree(cast(void*)nameValue.ptr);
+            mem.xfree(cast(void*)nameValue.ptr, nameValue.length + 1);
     }
     return result ? true : false;
 }

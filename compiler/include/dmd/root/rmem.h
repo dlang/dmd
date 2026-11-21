@@ -16,10 +16,10 @@ struct Mem
     Mem() { }
 
     static char *xstrdup(const char *s);
-    static void xfree(void *p);
+    static void xfree(void *p, d_size_t size);
     static void *xmalloc(d_size_t size);
     static void *xcalloc(d_size_t size, d_size_t n);
-    static void *xrealloc(void *p, d_size_t size);
+    static void *xrealloc(void *p, d_size_t size, d_size_t oldsize);
     static void error();
 
     static bool _isGCEnabled;

@@ -36,7 +36,7 @@ struct BitArray
         immutable nchunks = chunks(nlen);
         if (ochunks != nchunks)
         {
-            ptr = cast(size_t*)mem.xrealloc_noscan(ptr, nchunks * ChunkSize);
+            ptr = cast(size_t*)mem.xrealloc_noscan(ptr, nchunks * ChunkSize, ochunks * ChunkSize);
         }
         if (nchunks > ochunks)
            ptr[ochunks .. nchunks] = 0;
@@ -121,16 +121,16 @@ struct BitArray
 
     ~this() nothrow pure
     {
+        const nchunks = chunks(len);
         debug
         {
             // Stomp the allocated memory
-            const nchunks = chunks(len);
             foreach (i; 0 .. nchunks)
             {
                 ptr[i] = cast(Chunk_t)0xFEFEFEFE_FEFEFEFE;
             }
         }
-        mem.xfree(ptr);
+        mem.xfree(ptr, nchunks * ChunkSize);
         debug
         {
             // Set to implausible values

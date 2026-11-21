@@ -1158,7 +1158,8 @@ public:
                 }
             }
             importedScopes.push(s);
-            visibilities = cast(Visibility.Kind*)mem.xrealloc(visibilities, importedScopes.length * (visibilities[0]).sizeof);
+            size_t memsize = importedScopes.length * (visibilities[0]).sizeof;
+            visibilities = cast(Visibility.Kind*)mem.xrealloc(visibilities, memsize, memsize - (visibilities[0]).sizeof);
             visibilities[importedScopes.length - 1] = visibility.kind;
         }
     }
