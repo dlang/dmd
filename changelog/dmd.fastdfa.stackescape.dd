@@ -1,0 +1,17 @@
+``-preview=fastdfa`` detects more escaping references to local variables
+
+With ``-preview=fastdfa``, more cases of returning references to local variables
+from ``@safe`` functions are now rejected. For example, returning a slice of a
+local static array through another variable is diagnosed
+($(LINK2 https://github.com/dlang/dmd/issues/20508, #20508)):
+
+-------
+int[] viaVariable() @safe
+{
+    int[3] a;
+    int[] s = a[];
+    return s;
+} // error: Stack variable exceeds its lifetime by being returned
+-------
+
+Behavior without ``-preview=fastdfa`` is unchanged.
