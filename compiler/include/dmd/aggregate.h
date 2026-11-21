@@ -24,6 +24,7 @@ class DtorDeclaration;
 class InterfaceDeclaration;
 class TypeInfoClassDeclaration;
 class VarDeclaration;
+class SymbolDeclaration;
 
 enum class Sizeok : uint8_t
 {
@@ -135,6 +136,8 @@ public:
 
     // Back end
     void *sinit;
+
+    SymbolDeclaration *symbolDecls[3];
 
     void accept(Visitor *v) override { v->visit(this); }
 };

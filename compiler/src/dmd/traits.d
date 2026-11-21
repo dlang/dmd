@@ -2071,10 +2071,48 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         if (!ad || ad.isInterfaceDeclaration())
             return badArgument();
 
-        Declaration d = new SymbolDeclaration(ad.loc, ad);
-        d.type = Type.tvoid.arrayOf().constOf();
-        d.storage_class |= STC.rvalue;
-        return new VarExp(e.loc, d);
+        const size = ad.size(e.loc);
+        if (size == SIZE_INVALID)
+            return ErrorExp.get();
+        const isNull = ad.isStructDeclaration() && ad.type.isZeroInit(e.loc);
+        return symbolSlice(e.loc, sc, ad, SymbolDeclaration.Kind.initializer, Type.tvoid, size, isNull);
+    }
+    if (e.ident == Id.vtblSymbol || e.ident == Id.interfaceSymbol)
+    {
+        if (dim != 1)
+            return dimError(1);
+        auto o = (*e.args)[0];
+        Type t = isType(o);
+        auto tc = t ? t.toBasetype().isTypeClass() : null;
+        const vtbl = e.ident == Id.vtblSymbol;
+        if (!tc || vtbl && tc.sym.isInterfaceDeclaration())
+        {
+            eSink.error(e.loc, "%s type expected as argument to __traits(%s) instead of `%s`",
+                vtbl ? "class".ptr : "class or interface".ptr, e.ident.toChars(), o.toErrMsg());
+            return ErrorExp.get();
+        }
+        auto cd = tc.sym;
+        if (cd._scope)
+            dsymbolSemantic(cd, null);
+        if (cd.errors)
+            return ErrorExp.get();
+        if (cd.semanticRun < PASS.semanticdone || !cd.members)
+        {
+            eSink.error(e.loc, "%s `%s` must be completely defined before __traits(%s)", cd.kind, cd.toPrettyChars, e.ident.toChars());
+            return ErrorExp.get();
+        }
+        if (vtbl)
+            return symbolSlice(e.loc, sc, cd, SymbolDeclaration.Kind.vtbl, Type.tvoidptr, cd.vtbl.length, false);
+        if (cd.classKind == ClassKind.objc || cd.classKind != ClassKind.d && !(global.params.useTypeInfo && Type.dtypeinfo))
+        {
+            eSink.error(e.loc, "__traits(interfaceSymbol) needs the ClassInfo of %s `%s`, which is not generated", cd.kind, cd.toPrettyChars);
+            return ErrorExp.get();
+        }
+        auto tinterface = new TypeIdentifier(e.loc, Id.empty);
+        tinterface.addIdent(Id.object);
+        tinterface.addIdent(Id.Interface);
+        const n = cd.vtblInterfaces.length;
+        return symbolSlice(e.loc, sc, cd, SymbolDeclaration.Kind.interfaces, tinterface, n, n == 0);
     }
     if (e.ident == Id.isZeroInit)
     {
@@ -2508,4 +2546,39 @@ private void traitNotFound(TraitsExp e)
         eSink.error(e.loc, "unrecognized trait `%s`, did you mean `%.*s`?", e.ident.toErrMsg(), cast(int) sub.length, sub.ptr);
     else
         eSink.error(e.loc, "unrecognized trait `%s`", e.ident.toErrMsg());
+}
+
+private Expression symbolSlice(Loc loc, Scope* sc, AggregateDeclaration ad, SymbolDeclaration.Kind kind,
+    Type elem, ulong length, bool isNull)
+{
+    if (!verifyHookExist(loc, *sc, Id.__SymbolSlice, "this trait"))
+        return ErrorExp.get();
+    elem = elem.typeSemantic(loc, sc);
+    if (elem.ty == Terror)
+        return ErrorExp.get();
+    Expression e = new IdentifierExp(loc, Id.empty);
+    e = new DotIdExp(loc, e, Id.object);
+    e = new DotTemplateInstanceExp(loc, e, Id.__SymbolSlice, new Objects(elem));
+    auto te = e.expressionSemantic(sc).isTypeExp();
+    auto ts = te ? te.type.isTypeStruct() : null;
+    if (!ts)
+        return ErrorExp.get();
+    elem = elem.immutableOf();
+
+    Expression ptr = new NullExp(loc, elem.pointerTo());
+    if (!isNull)
+    {
+        auto d = ad.symbolDecls[kind];
+        if (!d)
+        {
+            d = new SymbolDeclaration(ad.loc, ad);
+            d.kind = kind;
+            d.type = elem;
+            ad.symbolDecls[kind] = d;
+        }
+        ptr = new SymOffExp(loc, d, 0, false);
+        ptr.type = elem.pointerTo();
+    }
+    auto elements = new Expressions(new IntegerExp(loc, length, Type.tsize_t), ptr);
+    return new StructLiteralExp(loc, ts.sym, elements, ts).expressionSemantic(sc);
 }

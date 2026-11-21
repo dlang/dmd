@@ -20,20 +20,6 @@ void test1()
 /********************************************
 TEST_OUTPUT:
 ---
-fail_compilation/traits_initSymbol.d(203): Error: cannot determine the address of the initializer symbol during CTFE
-fail_compilation/traits_initSymbol.d(203):        called from here: `(*(function () pure nothrow @nogc @safe => S))()`
----
-*/
-#line 200
-
-void test2()
-{
-    enum initLen = (() => __traits(initSymbol, S))();
-}
-
-/********************************************
-TEST_OUTPUT:
----
 fail_compilation/traits_initSymbol.d(305): Error: struct / class type expected as argument to __traits(initSymbol) instead of `traits_initSymbol.Interface`
 ---
 */
