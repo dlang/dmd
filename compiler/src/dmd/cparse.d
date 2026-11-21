@@ -35,6 +35,10 @@ import dmd.typesem : size, makeImmutable, nextOf;
 final class CParser(AST) : Parser!AST
 {
     AST.Dsymbols* symbols;      // symbols declared in current scope
+    AST.Dsymbols* rootSymbols;  // symbols declared at file scope
+
+    Array!Token commentLibs;    // string tokens from #pragma comment(lib, "name"),
+                                // drained into rootSymbols once parsing finishes
 
     bool addFuncName;           /// add declaration of __func__ to function symbol table
     bool refFuncName;           // declaration of __FUNCTION__
@@ -120,12 +124,22 @@ final class CParser(AST) : Parser!AST
     {
         //printf("cparseTranslationUnit()\n");
         symbols = new AST.Dsymbols();
+        rootSymbols = symbols;
         typedefTab.push(null);  // C11 6.2.1-3 symbol table for "file scope"
         while (1)
         {
             if (token.value == TOK.endOfFile)
             {
+                assert(symbols is rootSymbols);
                 addDefines();   // convert #define's to Dsymbols
+                assert(symbols is rootSymbols);
+
+                foreach (ref tok; commentLibs[])
+                {
+                    auto args = new AST.Expressions(1);
+                    (*args)[0] = new AST.StringExp(tok.loc, tok.ustring[0 .. tok.len]);
+                    rootSymbols.push(new AST.PragmaDeclaration(tok.loc, Id.lib, args, null));
+                }
 
                 // wrap the symbols in `extern (C) { symbols }`
                 auto wrap = new AST.Dsymbols();
@@ -5337,6 +5351,8 @@ final class CParser(AST) : Parser!AST
         {
             if (n.ident == Id.pack)
                 return pragmaPack(loc, true);
+            if (n.ident == Id.comment)
+                return pragmaComment(loc);
             if (n.ident == Id.attribute)
                 return pragmaAttribute(loc);
             if (n.ident == Id.function_decl)
@@ -5547,6 +5563,66 @@ final class CParser(AST) : Parser!AST
         }
 
         error(loc, "unrecognized `#pragma pack(%s)`", n.toChars());
+        if (n.value != TOK.endOfLine)
+            skipToNextLine();
+    }
+
+    /*********
+     * # pragma comment(lib, "name")
+     * https://learn.microsoft.com/en-us/cpp/preprocessor/comment-c-cpp
+     * Only `lib` is recognized; its name is collected and turned into
+     * `pragma(lib, "name")` at file scope once parsing finishes, so it
+     * is honored no matter where in the file it appears.
+     * Scanner is on the `comment`
+     * Params:
+     *  loc = location to use for error messages
+     */
+    private void pragmaComment(Loc loc)
+    {
+        Token n;
+        scan(&n);
+        if (n.value != TOK.leftParenthesis)
+        {
+            if (n.value != TOK.endOfLine)
+                skipToNextLine();
+            return;
+        }
+        scan(&n);
+        if (n.value != TOK.identifier || n.ident != Id.lib)
+        {
+            if (n.value != TOK.endOfLine)
+                skipToNextLine();
+            return;
+        }
+        scan(&n);
+        if (n.value != TOK.comma)
+        {
+            error(loc, "`,` expected following `#pragma comment(lib`");
+            if (n.value != TOK.endOfLine)
+                skipToNextLine();
+            return;
+        }
+        scan(&n);
+        if (n.value != TOK.string_)
+        {
+            error(loc, "string literal expected for library name in `#pragma comment(lib, ...)`");
+            if (n.value != TOK.endOfLine)
+                skipToNextLine();
+            return;
+        }
+        Token libtok = n;
+        scan(&n);
+        if (n.value != TOK.rightParenthesis)
+        {
+            error(loc, "`)` expected to close `#pragma comment(lib, ...)`");
+            if (n.value != TOK.endOfLine)
+                skipToNextLine();
+            return;
+        }
+
+        commentLibs.push(libtok);
+
+        scan(&n);
         if (n.value != TOK.endOfLine)
             skipToNextLine();
     }
