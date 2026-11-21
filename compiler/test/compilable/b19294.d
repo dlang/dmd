@@ -1,3 +1,4 @@
+// COMPILABLE_MATH_TEST
 alias MT = MyStruct!int;
 
 struct MyStruct(T)

@@ -4,13 +4,7 @@ version(Windows)
 {
     // without main, there is no implicit reference to the runtime library
     // other platforms pass the runtime library on the linker command line
-    version(CRuntime_Microsoft)
-        version(Win64)
-            pragma(lib, "phobos64");
-        else
-            pragma(lib, "phobos32mscoff");
-    else
-        pragma(lib, "phobos");
+    pragma(lib, "druntime");
 }
 
 extern(C++) int test6716(int magic)
