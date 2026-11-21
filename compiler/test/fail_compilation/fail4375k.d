@@ -3,7 +3,7 @@
 TEST_OUTPUT:
 ---
 fail_compilation/fail4375k.d-mixin-11(15): Error: else is dangling, add { } after condition at fail_compilation/fail4375k.d-mixin-11(12)
-fail_compilation/fail4375k.d-mixin-11(12):        while parsing string mixin statement
+fail_compilation/fail4375k.d(11):        while parsing string mixin statement
 ---
 */
 
