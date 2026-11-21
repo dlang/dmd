@@ -1,0 +1,9 @@
+`core.sys.windows.objbase` functions are now marked `@nogc`
+
+The Windows COM/OLE API functions declared in `core.sys.windows.objbase`
+are now annotated with `@nogc`, since they are native Windows functions
+that do not allocate via the D garbage collector. These functions were
+already marked `nothrow` for the same reason.
+
+This allows the bindings to be used in `@nogc` contexts without explicit
+`cast`s.
