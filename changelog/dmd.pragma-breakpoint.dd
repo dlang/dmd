@@ -1,0 +1,9 @@
+Adds a compiler-time debugger via `pragma(breakpoint)`
+
+When a `pragma breakpoint` statement is analyzed during semantic, compilation is paused and presents a debugger console to the user mimicing GDB/LLDB
+
+Currently, the debugger supports:
+
+* backtrace -- show the nested scopes that the breakpoint occurs in, analgous to a call stack
+* members -- show the symbols in a specified scope
+* continue -- end the debugging session, keep compiling
