@@ -1597,7 +1597,7 @@ else
 
         // Create a weak symbol for the comdat
         const namidxcd = ElfObj_addstr(&elfobj.symtab_strings, p);
-        s.Sxtrnnum = elf_addsym(namidxcd, 0, 0, STT_FUNC, STB_WEAK, MAP_SEG2SECIDX(s.Sseg));
+        s.Sxtrnnum = elf_addsym(namidxcd, 0, 0, STT_FUNC, STB_WEAK, MAP_SEG2SECIDX(s.Sseg), definedVisibility());
 
         if (added)
         {
@@ -2104,6 +2104,25 @@ debug
 void ElfObj_export_symbol(Symbol* s,uint argsize)
 {
     //dbg_printf("ElfObj_export_symbol(%s,%d)\n",s.Sident.ptr,argsize);
+    if (!s.Sxtrnnum)
+        return;
+    if (I64)
+    {
+        if (s.Sxtrnnum < elfobj.SymbolTable64.length)
+            elfobj.SymbolTable64[s.Sxtrnnum].st_other = STV_DEFAULT;
+    }
+    else
+    {
+        if (s.Sxtrnnum < elfobj.SymbolTable.length)
+            elfobj.SymbolTable[s.Sxtrnnum].st_other = STV_DEFAULT;
+    }
+}
+
+/// Visibility for a newly defined global/weak symbol: hidden until
+/// export_symbol() is called for it (`export`, or `-visibility=public`)
+private ubyte definedVisibility()
+{
+    return STV_HIDDEN;
 }
 
 /*******************************
@@ -2233,10 +2252,12 @@ void ElfObj_pubdefsize(int seg, Symbol* s, targ_size_t offset, targ_size_t symsi
         case SC.global:
         case SC.inline:
             bind = STB_GLOBAL;
+            visibility = definedVisibility();
             break;
         case SC.comdat:
         case SC.comdef:
             bind = STB_WEAK;
+            visibility = definedVisibility();
             break;
         case SC.static_:
             if (s.Sflags & SFLhidden)
@@ -3462,9 +3483,22 @@ private void obj_rtinit()
     // make the symbols hidden so that each DSO gets its own brackets
     IDXSYM minfo_beg, minfo_end, dso_rec;
 
+    IDXSYM deh_beg, deh_end;
+
     {
     // needs to be writeable for PIC code, see Bugzilla 13117
     const shf_flags = SHF_ALLOC | SHF_WRITE;
+
+    if (config.exe & (EX_OPENBSD | EX_OPENBSD64))
+    {
+        const namidx3 = ElfObj_addstr(&elfobj.symtab_strings,"__start_deh");
+        deh_beg = elf_addsym(namidx3, 0, 0, STT_NOTYPE, STB_GLOBAL, SHN_UNDEF, STV_HIDDEN);
+
+        ElfObj_getsegment("deh", null, SHT_PROGBITS, shf_flags, _tysize[TYnptr]);
+
+        const namidx4 = ElfObj_addstr(&elfobj.symtab_strings,"__stop_deh");
+        deh_end = elf_addsym(namidx4, 0, 0, STT_NOTYPE, STB_GLOBAL, SHN_UNDEF, STV_HIDDEN);
+    }
 
     const namidx = ElfObj_addstr(&elfobj.symtab_strings,"__start_minfo");
     minfo_beg = elf_addsym(namidx, 0, 0, STT_NOTYPE, STB_GLOBAL, SHN_UNDEF, STV_HIDDEN);
@@ -3651,6 +3685,11 @@ private void obj_rtinit()
             off += 1;
         }
 
+        if (config.exe & (EX_OPENBSD | EX_OPENBSD64))
+        {
+            writeSym(deh_end);
+            writeSym(deh_beg);
+        }
         writeSym(minfo_end);
         writeSym(minfo_beg);
         writeSym(dso_rec);
@@ -3808,9 +3847,22 @@ private void obj_rtinit_aarch64()
     // make the symbols hidden so that each DSO gets its own brackets
     IDXSYM minfo_beg, minfo_end, dso_rec;
 
+    IDXSYM deh_beg, deh_end;
+
     {
     // needs to be writeable for PIC code, see Bugzilla 13117
     const shf_flags = SHF_ALLOC | SHF_WRITE;
+
+    if (config.exe & (EX_OPENBSD | EX_OPENBSD64))
+    {
+        const namidx3 = ElfObj_addstr(&elfobj.symtab_strings,"__start_deh");
+        deh_beg = elf_addsym(namidx3, 0, 0, STT_NOTYPE, STB_GLOBAL, SHN_UNDEF, STV_HIDDEN);
+
+        ElfObj_getsegment("deh", null, SHT_PROGBITS, shf_flags, _tysize[TYnptr]);
+
+        const namidx4 = ElfObj_addstr(&elfobj.symtab_strings,"__stop_deh");
+        deh_end = elf_addsym(namidx4, 0, 0, STT_NOTYPE, STB_GLOBAL, SHN_UNDEF, STV_HIDDEN);
+    }
 
     const namidx = ElfObj_addstr(&elfobj.symtab_strings,"__start_minfo");
     minfo_beg = elf_addsym(namidx, 0, 0, STT_NOTYPE, STB_GLOBAL, SHN_UNDEF, STV_HIDDEN);
