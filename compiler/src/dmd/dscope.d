@@ -47,6 +47,7 @@ enum Contract : ubyte
 /// Bitfield for settable/copyable flags, see `copyFlagsFrom`, `resetAllFlags`
 private extern (D) struct FlagBitFields
 {
+    bool allowUninitializedThis; /// analyzing the left side of `this = value` in an enum-union constructor
     bool noAccessCheck;     /// don't do access checks
     bool condition;         /// inside static if/assert condition
     bool debug_;            /// inside debug conditional
