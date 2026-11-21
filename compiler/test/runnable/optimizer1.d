@@ -245,6 +245,10 @@ void test24315()
 {
     assert(!f_24315(-1));
 }
+}
+
+/**************************************************/
+// https://github.com/dlang/dmd/issues/24316
 
 ulong f_24316(long x) { return (x << 38) + 1; }
 
@@ -253,6 +257,11 @@ void test24316()
     assert(f_24316(1) == 0x40_0000_0001);
 }
 
+/**************************************************/
+// https://github.com/dlang/dmd/issues/24317
+
+static if (0)
+{
 long e19_24317(byte p0, ulong p1, ushort p2) { return (((p1 * 0xaU) - (1)) - p0); }
 
 __gshared ulong[16] inputs_24317 = [0, 0xffffffffffffffefUL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
@@ -264,6 +273,9 @@ void test24317()
     for (int k = 0; k < 1; k++)
         check_24317("e19_24317 %d %llx\n", k, cast(ulong)e19_24317(cast(byte)inputs_24317[(0) % 1], inputs_24317[(1) % 2], cast(ushort)inputs_24317[(k + 0) % 2]));
 }
+
+/**************************************************/
+// https://github.com/dlang/dmd/issues/24318
 
 struct S1_24318 { int[1] m0; }
 struct S2_24318 { int m0; short m1; }
@@ -317,6 +329,10 @@ void test24318()
     }
 }
 
+/**************************************************/
+// https://github.com/dlang/dmd/issues/24319
+
+
 __gshared uint g_24319 = 0x80;
 
 bool f_24319(uint x) { return ((x >> 30) | (x << 2)) != 0; }
@@ -326,6 +342,10 @@ void test24319()
     if (g_24319 == 0x80)
         assert(f_24319(g_24319));
 }
+
+/**************************************************/
+// https://github.com/dlang/dmd/issues/24320
+
 
 version (D_SIMD)
 {
@@ -339,6 +359,9 @@ version (D_SIMD)
         assert(f_24320()[0] == 1);
     }
 }
+
+/**************************************************/
+// https://github.com/dlang/dmd/issues/24321
 
 uint rol8_24321(uint v) { return (v << 8) | (v >> 24); }
 
@@ -920,7 +943,7 @@ void main()
     //test24313();
     test24314();
     //test24315();
-    //test24316();
+    test24316();
     //test24317();
     //test24318();
     //test24319();
