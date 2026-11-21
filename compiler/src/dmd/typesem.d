@@ -9617,7 +9617,7 @@ Expression getMaxMinValue(EnumDeclaration ed, Loc loc, Identifier id)
     if (!(ed.memtype && ed.memtype.isIntegral()))
     {
         eSink.error(loc, "%s `%s` has no `.%s` property because base type `%s` is not an integral type", ed.kind, ed.toPrettyChars, id.toErrMsg(),
-              id.toErrMsg(), ed.memtype ? ed.memtype.toErrMsg() : "");
+              ed.memtype ? ed.memtype.toErrMsg() : "");
         return errorReturn();
     }
 
