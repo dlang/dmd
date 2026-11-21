@@ -1775,9 +1775,9 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         if (token.value == TOK.if_)
         {
             nextToken(); // skip over 'if'
-            check(TOK.leftParenthesis);
+            lax_check(TOK.leftParenthesis);
             e = parseExpression();
-            check(TOK.rightParenthesis);
+            lax_check(TOK.rightParenthesis);
         }
         return e;
     }
@@ -6664,7 +6664,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         case TOK.if_:
             {
                 nextToken();
-                check(TOK.leftParenthesis);
+                lax_check(TOK.leftParenthesis);
                 auto param = parseAssignCondition();
                 auto condition = parseExpression();
                 closeCondition("if", param, condition);
@@ -7567,7 +7567,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
     {
         check(token.loc, value);
     }
-
+	
     /**********************************
      * Issue error if the current token is not `value`,
      * advance to next token.
@@ -7579,6 +7579,18 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
     {
         if (token.value != value)
             error(token.loc, "found `%s` when expecting `%s` following %s", token.toChars(), Token.toChars(value), string);
+        nextToken();
+    }
+
+    /**********************************
+	 * Drop token if current token is not `value`,
+	 * advance to next token.
+	 * Params:
+	 *  value = token value to compare with
+	 */
+    void lax_check(TOK value)
+    {
+        if (token.value != value) return;
         nextToken();
     }
 
