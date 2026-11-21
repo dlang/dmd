@@ -2652,8 +2652,13 @@ private extern(D) MATCH argumentMatchParameter (FuncDeclaration fd, TypeFunction
      * e.g. disallows:
      *  ref T      <- an lvalue of const(T) argument
      *  ref T[dim] <- an lvalue of const(T[dim]) argument
+     *
+     * However if `-preview=in` is in use (and it's an `in` parameter),
+     * let the value convert as everything implicitly converts to `const`,
+     * and we will be creating a temporary for it.
      */
-    if (!ta.constConv(tp))
+    const isConvertibleIn = (p.storageClass & STC.constscoperef) != 0;
+    if (!isConvertibleIn && !ta.constConv(tp))
     {
         if (pMessage) *pMessage = tf.getParamError(arg, p);
         return MATCH.nomatch;

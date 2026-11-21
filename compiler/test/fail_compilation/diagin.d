@@ -6,7 +6,7 @@ fail_compilation/diagin.d(15): Error: function `foo` is not callable using argum
 fail_compilation/diagin.d(15):        too few arguments, expected 1, got 0
 fail_compilation/diagin.d(20):        `diagin.foo(in int)` declared here
 fail_compilation/diagin.d(17): Error: template `foo1` is not callable using argument types `!()(bool[])`
-fail_compilation/diagin.d(21):        Candidate is: `foo1(T)(in T v, string)`
+fail_compilation/diagin.d(22):        Candidate is: `foo1(T)(in T v, string)`
 ---
  */
 
@@ -18,9 +18,11 @@ void main ()
 }
 
 void foo(in int) {}
+void fooPtr(in int*) {}
 void foo1(T)(in T v, string) {}
 
 // Ensure that `in` has a unique mangling
-static assert(foo.mangleof       == `_D6diagin3fooFIiZv`);
-static assert(foo1!int.mangleof  == `_D6diagin__T4foo1TiZQiFNaNbNiNfIiAyaZv`);
-static assert(foo1!char.mangleof == `_D6diagin__T4foo1TaZQiFNaNbNiNfIaAyaZv`);
+static assert(foo.mangleof       == `_D6diagin3fooFIKiZv`);
+static assert(fooPtr.mangleof    == `_D6diagin6fooPtrFIPiZv`);
+static assert(foo1!int.mangleof  == `_D6diagin__T4foo1TiZQiFNaNbNiNfIKiAyaZv`);
+static assert(foo1!char.mangleof == `_D6diagin__T4foo1TaZQiFNaNbNiNfIKaAyaZv`);
