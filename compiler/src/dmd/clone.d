@@ -319,7 +319,7 @@ FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
         auto tdtor = sd.dtor.type.isTypeFunction();
 
         auto idswap = Identifier.generateId("__swap");
-        auto swap = new VarDeclaration(loc, sd.type, idswap, new VoidInitializer(loc));
+        auto swap = new VarDeclaration(loc, sd.type, idswap, voidInitializer(loc));
         swap.storage_class |= STC.nodtor | STC.temp | STC.ctfe;
         if (tdtor.isScopeQual)
             swap.storage_class |= STC.scope_;
