@@ -359,6 +359,7 @@ version (D_SIMD)
         assert(f_24320()[0] == 1);
     }
 }
+}
 
 /**************************************************/
 // https://github.com/dlang/dmd/issues/24321
@@ -371,7 +372,7 @@ void test24321()
 {
     assert(f_24321(-3) == 0xFFFF_FFFF);
 }
-}
+
 
 /************************************************/
 // https://github.com/dlang/dmd/issues/24323
@@ -948,7 +949,7 @@ void main()
     //test24318();
     //test24319();
     //version (D_SIMD) test24320();
-    //test24321();
+    test24321();
     test24323();
     //test24309d();
     //test24325a();
