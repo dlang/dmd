@@ -260,8 +260,6 @@ void test24316()
 /**************************************************/
 // https://github.com/dlang/dmd/issues/24317
 
-static if (0)
-{
 long e19_24317(byte p0, ulong p1, ushort p2) { return (((p1 * 0xaU) - (1)) - p0); }
 
 __gshared ulong[16] inputs_24317 = [0, 0xffffffffffffffefUL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
@@ -272,7 +270,6 @@ void test24317()
 {
     for (int k = 0; k < 1; k++)
         check_24317("e19_24317 %d %llx\n", k, cast(ulong)e19_24317(cast(byte)inputs_24317[(0) % 1], inputs_24317[(1) % 2], cast(ushort)inputs_24317[(k + 0) % 2]));
-}
 }
 
 /**************************************************/
@@ -955,7 +952,7 @@ void main()
     test24314();
     //test24315();
     test24316();
-    //test24317();
+    test24317();
     //test24318();
     test24319();
     //version (D_SIMD) test24320();
