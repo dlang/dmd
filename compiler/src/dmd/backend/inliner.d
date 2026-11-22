@@ -450,13 +450,24 @@ private elem* inlineCall(elem* e,Symbol* sfunc)
 @trusted
 private elem* initializeParamsWithArgs(elem* eargs, SYMIDX sistart, SYMIDX siend)
 {
+    //printf("initializeParamsWithArgs()\n");
     /* Create args[] and fill it with the arguments
      */
     const nargs = el_nparams(eargs);
     assert(nargs < size_t.max / (2 * (elem*).sizeof));   // conservative overflow check
     elem*[] args = (cast(elem**)malloc(nargs * (elem*).sizeof))[0 .. nargs];
     elem** tmp = args.ptr;
+    assert(!nargs || tmp);
     el_paramArray(&tmp, eargs);
+
+    static if (0) for (size_t n = args.length; n; --n)
+    {
+        elem* e = args[n - 1];
+        printf("[%zu]\n", n - 1);
+        elem_print(e);
+        symbol_print(*e.Vsym);
+        if (e.ET) type_print(e.ET);
+    }
 
     elem* ecopy;
 
@@ -584,11 +595,7 @@ private elem* initializeParamsWithArgs(elem* eargs, SYMIDX sistart, SYMIDX siend
         elem* evar = el_var(s);
         elem* ex = el_copytree(e);
         auto ty = tybasic(ex.Ety);
-        if (szs == 3)
-        {
-            ty = TYstruct;
-        }
-        else if (szs < sze && sze == 4)
+        if (szs < sze && sze == 4)
         {
             // e got promoted to int
             ex = el_una(OP32_16, TYshort, ex);
@@ -598,6 +605,11 @@ private elem* initializeParamsWithArgs(elem* eargs, SYMIDX sistart, SYMIDX siend
                 ex = el_una(OP16_8, TYschar, ex);
                 ty = TYschar;
             }
+        }
+        else if (szs != tysize(ex.Ety))
+        {
+            ty = TYstruct;
+            ex.Ety = TYstruct;
         }
         evar.Ety = ty;
         auto eeq = el_bin(OPeq,ty,evar,ex);
