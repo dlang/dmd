@@ -1696,7 +1696,7 @@ void cddiv(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
                 {
                     // This may be better done by cgelem.d
                     assert(pow2 == 63);
-                    cdb.genc2(0x81,grex | modregrmx(3,4,rhi),0x8000_0000); // ADD rhi,0x8000_000
+                    cdb.genc2(0x81,grex | modregrmx(3,0,rhi),0x8000_0000); // ADD rhi,0x8000_000
                     cdb.genregs(0x09,rlo,rhi);                             // OR  rlo,rhi
                     cdb.gen2(0x0F94,modregrmx(3,0,rlo));                   // SETZ rlo
                     cdb.genregs(MOVZXb,rlo,rlo);                           // MOVZX rlo,rloL
