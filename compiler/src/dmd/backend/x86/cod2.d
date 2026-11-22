@@ -2745,7 +2745,7 @@ void cdshift(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     if (cg.AArch64)
         return dmd.backend.arm.cod2.cdshift(cg, cdb, e, pretregs);
 
-    //printf("cdshift()\n");
+    //printf("cdshift(pretregs: %s)\n", regm_str(pretregs));
     reg_t resreg;
     uint shiftcnt;
     regm_t retregs,rretregs;
@@ -2981,7 +2981,7 @@ void cdshift(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
                         if (forccs)
                             code_orflag(cdb.last(),CF.psw);
                     }
-                    if (sz <= REGSIZE)
+                    if (sz <= REGSIZE && s1 >= 2)      // ROL/ROR don't set flags
                         pretregs &= mBP | ALLREGS;     // flags already set
                 }
                 freenode(e2);
@@ -3031,7 +3031,7 @@ void cdshift(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
                 // Note that a shift by CL does not set the flags if
                 // CL == 0. If e2 is a constant, we know it isn't 0
                 // (it would have been optimized out).
-                if (e2isconst)
+                if (e2isconst && s1 >= 2)      // ROL/ROR don't set flags
                     pretregs &= mBP | ALLREGS; // flags already set with result
             }
             else if (sz == 2 * REGSIZE &&

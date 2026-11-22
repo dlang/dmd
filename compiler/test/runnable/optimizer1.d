@@ -329,6 +329,7 @@ void test24318()
         assert(r1 == 0xe8702e6a);
     }
 }
+}
 
 /**************************************************/
 // https://github.com/dlang/dmd/issues/24319
@@ -348,7 +349,8 @@ void test24319()
 /**************************************************/
 // https://github.com/dlang/dmd/issues/24320
 
-
+static if (0)
+{
 version (D_SIMD)
 {
     __gshared ulong g0_24320 = 1;
@@ -949,7 +951,7 @@ void main()
     test24316();
     //test24317();
     //test24318();
-    //test24319();
+    test24319();
     //version (D_SIMD) test24320();
     test24321();
     test24323();
