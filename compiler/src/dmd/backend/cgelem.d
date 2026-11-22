@@ -5382,7 +5382,8 @@ private elem* elshl(elem* e, Goal goal)
         e2.Eoper == OPconst &&
         (e1.Eoper == OPshr || e1.Eoper == OPashr) &&
         e1.E2.Eoper == OPconst &&
-        el_tolong(e2) == el_tolong(e1.E2))
+        el_tolong(e2) == el_tolong(e1.E2) &&
+        e.Eoper == OPshl)
     {   /* Rewrite:
          *  (x >> c) << c)
          * with:
