@@ -7317,6 +7317,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 Expression e = (*exp.arguments)[0];
                 e = e.implicitCastTo(sc, tb);
                 (*exp.arguments)[0] = e;
+                if (checkNewEscape(*sc, e, false))
+                    return setError();
             }
             else
             {
