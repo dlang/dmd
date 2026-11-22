@@ -235,10 +235,91 @@ void test4()
 
 /***************************************************/
 
+struct S5
+{
+    S5* ptr;
+
+    this(int)
+    {
+        ptr = &this;
+    }
+
+    this(this)
+    {
+        ptr = &this;
+    }
+
+    void check()
+    {
+        assert(this.ptr is &this);
+    }
+}
+
+__gshared bool b5;
+__gshared S5 obj5;
+
+S5 f5()
+{
+    return b5 ? obj5 : S5(1);
+}
+
+S5 f5i()
+{
+    pragma(inline, true);
+    return b5 ? obj5 : S5(1);
+}
+
+S5 g5()
+{
+    S5 s5 = S5(1);
+    return s5;
+}
+
+S5 g5i()
+{
+    pragma(inline, true);
+    S5 s5 = S5(1);
+    return s5;
+}
+
+S5 h5()
+{
+    return b5 ? obj5 : g5();
+}
+
+S5 h5i()
+{
+    return b5 ? obj5 : g5i();
+}
+
+void test5()
+{
+    S5 s1 = f5();
+    s1.check();
+
+    S5 s2 = f5i();
+    s2.check();
+
+    S5 s3 = b5 ? obj5 : f5();
+    s3.check();
+
+    S5 s4 = b5 ? obj5 : f5i();
+    s4.check();
+
+    S5 s5 = h5();
+    s5.check();
+
+    S5 s6 = h5i();
+    s6.check();
+}
+
+/***************************************************/
+
 void main()
 {
     test1();
     test2();
     test3();
     test4();
+    test5();
 }
