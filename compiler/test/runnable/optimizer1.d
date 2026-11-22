@@ -329,13 +329,10 @@ void test24318()
         assert(r1 == 0xe8702e6a);
     }
 }
-}
 
 /**************************************************/
 // https://github.com/dlang/dmd/issues/24319
 
-static if (0)
-{
 __gshared uint g_24319 = 0x80;
 
 bool f_24319(uint x) { return ((x >> 30) | (x << 2)) != 0; }
