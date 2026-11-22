@@ -316,3 +316,18 @@ struct S1300
     int* oops;
 //    this(int* p) @safe { oops = p; }
 }
+
+/*
+TEST_OUTPUT:
+---
+fail_compilation/retscope2.d(1404): Error: escaping a reference to local variable `i` by copying `& i` into allocated memory is not allowed in a `@safe` function
+---
+*/
+
+#line 1400
+
+int** test1400() @safe
+{
+    int i;
+    return new int*(&i);
+}
