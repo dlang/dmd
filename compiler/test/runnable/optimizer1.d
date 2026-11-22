@@ -329,7 +329,6 @@ void test24318()
         assert(r1 == 0xe8702e6a);
     }
 }
-}
 
 /**************************************************/
 // https://github.com/dlang/dmd/issues/24319
