@@ -53,8 +53,8 @@ private void genorreg(ref CodeBuilder c, uint t, uint f) { genregs(c, 0x09, f, t
 
 /* array to convert from index register to r/m field    */
                                        /* AX CX DX BX SP BP SI DI       */
-private __gshared const byte[8] regtorm32 =   [  0, 1, 2, 3,-1, 5, 6, 7 ];
-__gshared const   byte[8] regtorm   =   [ -1,-1,-1, 7,-1, 6, 4, 5 ];
+private immutable byte[8] regtorm32 =   [  0, 1, 2, 3,-1, 5, 6, 7 ];
+        immutable byte[8] regtorm   =   [ -1,-1,-1, 7,-1, 6, 4, 5 ];
 
 
 /*********************************
@@ -143,7 +143,7 @@ struct Ssindex
 }
 
 /*private*/
-__gshared const Ssindex[21] ssindex_array =
+immutable Ssindex[21] ssindex_array =
 [
     { 0, 0, 0 },               // [0] is a place holder
 
@@ -172,19 +172,28 @@ __gshared const Ssindex[21] ssindex_array =
     { 64, 3, 3, SSFLnobase1 | SSFLnobase },
 ];
 
+/**********************************
+ * Try to use LEA instead of multiply/shift
+ * Params:
+ *      op = OPmul or OPshl
+ *      product = the result of the LEA addressing mode
+ * Returns:
+ *      0 for no match,
+ *      >0 for index into ssindex_array
+ */
 @safe
-int ssindex(OPER op,targ_uns product)
+uint ssindex(OPER op, uint product)
 {
-    if (op == OPshl)
+    if (op == OPshl) // and so product is a shift count
     {
-        if (product >= targ_uns.sizeof * 8)
+        if (product > 6)   // 64 is the largest power of 2 in the table
             return 0;
-        product = 1 << product;
+        product = 1 << product; // convert shift count to product
     }
     for (size_t i = 1; i < ssindex_array.length; i++)
     {
         if (ssindex_array[i].product == product)
-            return cast(int)i;
+            return cast(uint)i;
     }
     return 0;
 }
