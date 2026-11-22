@@ -333,8 +333,6 @@ void test24318()
 /**************************************************/
 // https://github.com/dlang/dmd/issues/24319
 
-static if (0)
-{
 __gshared uint g_24319 = 0x80;
 
 bool f_24319(uint x) { return ((x >> 30) | (x << 2)) != 0; }
@@ -344,7 +342,7 @@ void test24319()
     if (g_24319 == 0x80)
         assert(f_24319(g_24319));
 }
-}
+
 /**************************************************/
 // https://github.com/dlang/dmd/issues/24320
 
