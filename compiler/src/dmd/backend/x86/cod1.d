@@ -1107,9 +1107,10 @@ void getlvalue(ref CGstate cg,ref CodeBuilder cdb,ref code pcs,elem* e,regm_t ke
                                 if (rbase == BP || rbase == R13)
                                 {
                                     static immutable uint[4] imm32 = [1+1,2+1,4+1,8+1];
-
                                     // IMUL r,BP,imm32
                                     cdb.genc2(0x69, modregxrmx(3, r, rbase), imm32[ss1]);
+                                    if (I64 && rbase == 13)
+                                        code_orrex(cdb.last(), REX_W);
                                     goto L7;
                                 }
                             }
