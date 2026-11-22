@@ -483,6 +483,10 @@ void test24329()
 {
     assert(f_24329() == 3);
 }
+}
+
+/***********************************************/
+// https://github.com/dlang/dmd/issues/24330
 
 long f_24330(long x) { return x / long.min; }
 
@@ -491,6 +495,11 @@ void test24330()
     assert(f_24330(0) == 0);
 }
 
+/***********************************************/
+// https://github.com/dlang/dmd/issues/24331
+
+static if (0)
+{
 byte f_24331a(int a) { return cast(byte)((a & 1) - ((a * -1) != 0)); }
 
 void test24331a()
@@ -961,7 +970,7 @@ void main()
     //test24328();
     //test24325b();
     //test24329();
-    //test24330();
+    test24330();
     //test24331a();
     //test24332();
     //test24333();
