@@ -2864,7 +2864,7 @@ int MachObj_common_block(Symbol* s,targ_size_t size,targ_size_t count)
         s.Sfl = FL.udata;
         MachObj_data_start(s, size, UDATA);
         MachObj_pubdef(UDATA, s, s.Soffset);
-        MachObj_lidata(UDATA, s.Soffset, size * count);
+        MachObj_lidata(UDATA, s.Soffset, cast(size_t)(size * count));
         return 0;
     }
 
