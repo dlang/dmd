@@ -3827,6 +3827,17 @@ void test21194()
 }
 
 /************************************/
+// `char[]` doesn't match `inout(ubyte)[]` in IFTI
+
+void inoutElem()(inout(ubyte)[] data) {}
+void inoutElem()(inout(ubyte)* data) {}
+int inoutElem(T)(const T str) { return 0; }
+
+static assert(is(typeof(inoutElem((char[]).init)) == int));
+static assert(is(typeof(inoutElem((char*).init)) == int));
+static assert(is(typeof(inoutElem((ubyte[]).init)) == void));
+
+/************************************/
 
 int main()
 {
