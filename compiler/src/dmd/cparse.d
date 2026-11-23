@@ -6029,8 +6029,10 @@ final class CParser(AST) : Parser!AST
                         {
                             /* Look for:
                              *  #define ID identifier ( args )
+                             *  #define ID identifier
                              * where the macro body is exactly a function-like macro call
-                             * (no additional operators that could cause precedence issues).
+                             * or a bare identifier (no additional operators that could
+                             * cause precedence issues).
                              * Rewrite to a template function:
                              *  auto ID()() { return identifier(args); }
                              */
@@ -6041,10 +6043,11 @@ final class CParser(AST) : Parser!AST
                                 break;                          // abandon this #define
                             if (token.value != TOK.endOfFile)   // did not consume the entire line
                                 break;
-                            // Only allow bare function calls to avoid precedence issues.
-                            // E.g., `#define X FUNC(5)` is safe, but `#define X FUNC(5) + 1`
-                            // would have different semantics in D vs C when used as `X * 2`.
-                            if (!exp.isCallExp())
+                            // Only allow bare function calls or a bare identifier to avoid
+                            // precedence issues. E.g., `#define X FUNC(5)` is safe, but
+                            // `#define X FUNC(5) + 1` would have different semantics in D
+                            // vs C when used as `X * 2`.
+                            if (!exp.isCallExp() && !exp.isIdentifierExp())
                                 break;
                             addNullaryTemplate(exp, id);
                             ++p;

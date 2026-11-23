@@ -69,3 +69,8 @@ int pr16199c()
 #define BARE_CALL DOUBLE(5)          // bare function-like macro call (no outer parens)
 #define PAREN_CALL (DOUBLE(5))       // parenthesized call (already works)
 #define WRAPPER(x) DOUBLE(x)         // function-like macro calling another macro
+
+// bare identifier aliases, e.g. curl.h's `#define CURL_GLOBAL_DEFAULT CURL_GLOBAL_ALL`
+#define ALIAS_TARGET 42
+#define ALIAS_SOURCE ALIAS_TARGET    // bare identifier alias (no outer parens)
+#define ALIAS_OF_ALIAS ALIAS_SOURCE  // alias of an alias
