@@ -1033,7 +1033,13 @@ void cdaddass(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
                 cs.Irm |= modregrm(0,mode,0);
                 switch (op)
                 {
-                    case OPminass:      // convert to +=
+                    case OPminass:
+                        if (i == 0x8000_0000)  // -int.min overflows back to int.min
+                        {
+                            cs.IEV2.Vsize_t = i;
+                            break;
+                        }
+                        // convert to +=
                         cs.Irm ^= modregrm(0,5,0);
                         i = -i;
                         cs.IEV2.Vsize_t = i;
