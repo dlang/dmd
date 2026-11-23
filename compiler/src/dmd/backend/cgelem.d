@@ -2674,7 +2674,7 @@ private elem* eldiv(elem* e, Goal goal)
             {
                 // The transformation will fail if c1*c2 overflows. This substitutes
                 // for a proper overflow check.
-                if (uns1 ? (c1 < SQRT_UINT_MAX && c2 < SQRT_UINT_MAX)
+                if (uns1 ? (cast(ulong)c1 < SQRT_UINT_MAX && cast(ulong)c2 < SQRT_UINT_MAX)
                          : (-SQRT_INT_MAX < c1 && c1 < SQRT_INT_MAX && -SQRT_INT_MAX < c2 && c2 < SQRT_INT_MAX))
                 {
                     e.E1 = e1.E1;
@@ -2705,7 +2705,7 @@ private elem* eldiv(elem* e, Goal goal)
             {
                 // The transformation will fail if c1*c2 overflows. This substitutes
                 // for a proper overflow check.
-                if (uns1 ? (c1 < SQRT_UINT_MAX && c2 < SQRT_UINT_MAX)
+                if (uns1 ? (cast(ulong)c1 < SQRT_UINT_MAX && cast(ulong)c2 < SQRT_UINT_MAX)
                          : (-SQRT_INT_MAX < c1 && c1 < SQRT_INT_MAX && -SQRT_INT_MAX < c2 && c2 < SQRT_INT_MAX))
                 {
                     e.E1 = erq.E1;
