@@ -519,8 +519,6 @@ void test24332()
 /***********************************************/
 // https://github.com/dlang/dmd/issues/24333
 
-static if (0)
-{
 ulong f_24333(ulong x) { return (x / 0xFFFF_FFFF_FFFF_FFFE) / 0xFFFF_FFFF_0000_0000; }
 
 void test24333()
@@ -531,6 +529,8 @@ void test24333()
 /***********************************************/
 // https://github.com/dlang/dmd/issues/24309
 
+static if (0)
+{
 pragma(inline, true) long nz_24309c(long x) { return x == 0 ? 0 : x; }
 
 byte f_24309c(uint a, long b) { return cast(byte)(b / nz_24309c(cast(byte)(1 <= a))); }
@@ -982,7 +982,7 @@ void main()
     test24330();
     //test24331a();
     test24332();
-    //test24333();
+    test24333();
     //test24309c();
     //test24325c();
     //version (D_SIMD) test24334();
