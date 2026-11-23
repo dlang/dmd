@@ -61,7 +61,6 @@ int test24326(void)
 /***************************************************/
 // https://github.com/dlang/dmd/issues/24336
 
-#if 0
 long long f_24336(long long x, int y, int z) { return -((x || y) || z); }
 
 int test24336(void)
@@ -70,7 +69,10 @@ int test24336(void)
     return 0;
 }
 
+/***************************************************/
+// https://github.com/dlang/dmd/issues/24337
 
+#if 0
 int x_24337;
 
 int test24337(void)
@@ -79,6 +81,9 @@ int test24337(void)
     return 0;
 }
 
+
+/***************************************************/
+// https://github.com/dlang/dmd/issues/24344
 
 struct S_24344 { short a : 1; unsigned char b : 8; short c : 14; } s_24344;
 
@@ -89,6 +94,8 @@ int test24344(void)
     return 0;
 }
 
+/***************************************************/
+// https://github.com/dlang/dmd/issues/24352
 
 struct S_24352 { int a : 3; } s_24352;
 
@@ -111,7 +118,7 @@ int main(void)
   //test24322();
   //test24324();
     test24326();
-  //test24336();
+    test24336();
   //test24337();
   //test24344();
   //test24352();
