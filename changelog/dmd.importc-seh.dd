@@ -1,0 +1,21 @@
+ImportC supports `__try`, `__except`, and `__finally`
+
+MSVC's structured exception handling statements are now supported in
+ImportC, lowered to D's own try/catch/finally:
+
+-------
+__try {
+    riskyCall();
+} __except (filter) {
+    handleIt();
+}
+-------
+
+The filter expression is an ordinary C expression; `1`
+(`EXCEPTION_EXECUTE_HANDLER`) runs the handler, anything else rethrows,
+since `EXCEPTION_CONTINUE_EXECUTION` has no D equivalent. `_exception_code()`
+and `_exception_info()` are not supported, since the hardware-exception
+information they need isn't preserved by the time a fault reaches D.
+
+(On win64, a real exception through `__except` crashes LDC's SEH/unwind
+lowering; DMD's own backend is unaffected.)
