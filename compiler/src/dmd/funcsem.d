@@ -542,6 +542,7 @@ void funcDeclarationSemantic(Scope* sc, FuncDeclaration funcdecl)
 
     funcdecl.visibility = sc.visibility;
     funcdecl.userAttribDecl = sc.userAttribDecl;
+    checkSymbolVisibility(funcdecl, sc);
     checkGNUABITag(funcdecl, funcdecl._linkage);
     checkMustUseReserved(funcdecl);
 

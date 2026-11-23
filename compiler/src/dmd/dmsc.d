@@ -119,6 +119,9 @@ void backend_init(const ref Param params, const ref DMDparams driverParams, cons
         cast(GetFileContentsCallback) &getFileContentsBackend,
     );
 
+    if (driverParams.exportVisibility == ExpVis.hidden)
+        config.flags3 |= CFG3hidden;
+
     out_config_debug(
         driverParams.debugb,
         driverParams.debugc,

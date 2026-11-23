@@ -7,6 +7,8 @@
  * $(THEAD Attribute Name, Linkage, Description)
  * $(TROW $(LREF gnuAbiTag), C++,
  *         Declares an ABI tag on a C++ symbol.)
+ * $(TROW $(LREF hidden),,
+ *         Hides a function or global variable from other shared libraries.)
  * $(TROW $(LREF mustuse),,
  *          Ensures that values of a struct or union type are not discarded.)
  * $(TROW $(LREF optional), Objective-C,
@@ -53,6 +55,30 @@ version (CoreDdoc)
     version = UdaGNUAbiTag;
     version = UdaOptional;
     version = UdaSelector;
+}
+
+/**
+ * Sets the visibility of a function or global variable to hidden on ELF and
+ * Mach-O targets. The symbol can be referenced from within the same executable
+ * or shared library, but is not exposed to other shared libraries.
+ *
+ * This attribute takes precedence over `-visibility=public`. An explicit
+ * `export` protection attribute overrides `@hidden`.
+ *
+ * Examples:
+ * ---
+ * import core.attribute : hidden;
+ * @hidden void implementation() {}
+ * @hidden __gshared int internalState;
+ * ---
+ */
+version (DigitalMars)
+{
+    enum hidden;
+}
+else
+{
+    // GDC and LDC declare this attribute in their own modules.
 }
 
 /**

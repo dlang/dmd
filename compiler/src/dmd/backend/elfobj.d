@@ -1597,7 +1597,8 @@ else
 
         // Create a weak symbol for the comdat
         const namidxcd = ElfObj_addstr(&elfobj.symtab_strings, p);
-        s.Sxtrnnum = elf_addsym(namidxcd, 0, 0, STT_FUNC, STB_WEAK, MAP_SEG2SECIDX(s.Sseg));
+        s.Sxtrnnum = elf_addsym(namidxcd, 0, 0, STT_FUNC, STB_WEAK, MAP_SEG2SECIDX(s.Sseg),
+            s.Sflags & SFLhidden || config.flags3 & CFG3hidden ? STV_HIDDEN : STV_DEFAULT);
 
         if (added)
         {
@@ -2104,6 +2105,13 @@ debug
 void ElfObj_export_symbol(Symbol* s,uint argsize)
 {
     //dbg_printf("ElfObj_export_symbol(%s,%d)\n",s.Sident.ptr,argsize);
+    if (!(s.Sflags & SFLhidden))
+    {
+        if (I64)
+            elfobj.SymbolTable64[s.Sxtrnnum].st_other = STV_DEFAULT;
+        else
+            elfobj.SymbolTable[s.Sxtrnnum].st_other = STV_DEFAULT;
+    }
 }
 
 /*******************************
@@ -2233,10 +2241,12 @@ void ElfObj_pubdefsize(int seg, Symbol* s, targ_size_t offset, targ_size_t symsi
         case SC.global:
         case SC.inline:
             bind = STB_GLOBAL;
+            visibility = s.Sflags & SFLhidden || config.flags3 & CFG3hidden ? STV_HIDDEN : STV_DEFAULT;
             break;
         case SC.comdat:
         case SC.comdef:
             bind = STB_WEAK;
+            visibility = s.Sflags & SFLhidden || config.flags3 & CFG3hidden ? STV_HIDDEN : STV_DEFAULT;
             break;
         case SC.static_:
             if (s.Sflags & SFLhidden)
@@ -2322,7 +2332,8 @@ int ElfObj_external(Symbol* s)
     }
 
     s.Sxtrnnum = elf_addsym(namidx, size, size, symtype,
-        /*(s.ty() & mTYweak) ? STB_WEAK : */STB_GLOBAL, sectype);
+        /*(s.ty() & mTYweak) ? STB_WEAK : */STB_GLOBAL, sectype,
+        s.Sflags & SFLhidden ? STV_HIDDEN : STV_DEFAULT);
     return s.Sxtrnnum;
 
 }

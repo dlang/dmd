@@ -1,0 +1,8 @@
+DMD supports hidden symbol visibility on ELF and Mach-O
+
+`-visibility=hidden` now hides definitions on ELF and Mach-O targets unless
+explicitly marked `export`. Without this option, symbol visibility is unchanged.
+
+The new `core.attribute.hidden` UDA hides individual functions and global
+variables, including when compiling with `-visibility=public`. Explicit `export`
+protection overrides `@hidden`.

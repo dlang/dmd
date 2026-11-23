@@ -484,6 +484,7 @@ enum
     SFLweak         = 0x1000000,   // resolve to NULL if not found
     SFLhidden       = 0x2000000,   // SC.static_/SC.global: not visible outside of DSOs (-fvisibility=hidden)
                                    // SC.parameter: hidden return value parameter
+    SFLexport      = 0x8000000,   // explicitly exported from the DSO
     SFLartifical    = 0x4000000,   // compiler generated symbol
     SFLnounderscore = 0x8000_0000, // don't prepend an _ to identifiers in object file
 

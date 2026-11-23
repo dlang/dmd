@@ -55,7 +55,7 @@ struct DMDparams
     bool ibt;               // generate indirect branch tracking
     PIC pic = PIC.fixed;    // generate fixed, pic or pie code
     bool stackstomp;        // add stack stomping code
-    ExpVis exportVisibility = ExpVis.hidden; // which symbols to "dllexport"
+    ExpVis exportVisibility = ExpVis.default_; // which symbols to "dllexport"
     SymImport symImport;    // which symbols to "dllimport"
 
     bool symdebug;          // insert debug symbolic information

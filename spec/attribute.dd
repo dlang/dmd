@@ -1095,6 +1095,29 @@ $(H3 $(LNAME2 override, $(D override) Attribute))
     $(P See $(DDSUBLINK spec/function, virtual-functions, Virtual Functions).)
 
 
+$(H2 $(LNAME2 hidden-attribute, `@hidden` Attribute))
+
+        $(P
+            The `@hidden` attribute is a compiler-recognized $(RELATIVE_LINK2 uda,
+            UDA) defined in $(DPLLINK phobos/core_attribute.html, `core.attribute`).
+            On ELF and Mach-O targets it gives a function or global variable
+            hidden symbol visibility. The symbol can be referenced within the
+            same executable or shared library but is not exposed to other shared
+            libraries. It does not change D access protection.
+        )
+
+        $(P
+            `@hidden` takes precedence over `-visibility=public`.
+            Explicit `export` protection overrides `@hidden`.
+        )
+
+---
+import core.attribute : hidden;
+@hidden void implementation() {}
+@hidden __gshared int internalState;
+export void api() { implementation(); }
+---
+
 $(H2 $(LNAME2 mustuse-attribute, `@mustuse` Attribute))
 
     $(P
