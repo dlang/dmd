@@ -2783,6 +2783,7 @@ private elem* swaplog(elem* e, Goal goal)
     elem* e1 = e.E1;
     e.E1 = e1.E2;
     e1.E2 = e;
+    e1.Ety = e.Ety;
     return optelem(e1,goal);
 }
 
