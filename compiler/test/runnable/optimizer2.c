@@ -82,6 +82,9 @@ int test24337(void)
 }
 
 
+/***************************************************/
+// https://github.com/dlang/dmd/issues/24344
+
 struct S_24344 { short a : 1; unsigned char b : 8; short c : 14; } s_24344;
 
 int test24344(void)
@@ -91,6 +94,8 @@ int test24344(void)
     return 0;
 }
 
+/***************************************************/
+// https://github.com/dlang/dmd/issues/24352
 
 struct S_24352 { int a : 3; } s_24352;
 
