@@ -2534,9 +2534,8 @@ private void comsub(ref CodeBuilder cdb,elem* e, ref regm_t pretregs)
         fixresult(*cg,cdb,e,regm,pretregs);
         return;
     }
-    else if (tym == TYdouble || tym == TYdouble_alias)    // double
+    else if (I16 && (tym == TYdouble || tym == TYdouble_alias))    // double
     {
-        assert(I16);
         if (((csemask | emask) & DOUBLEREGS_16) == DOUBLEREGS_16)
         {
             immutable reg_t[4] dblreg = [ BX,DX,NOREG,CX ];

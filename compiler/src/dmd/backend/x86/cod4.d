@@ -3547,7 +3547,7 @@ void cdcnvt(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
                     fixresult87(cg, cdb, e, retregsy, pretregs);
                     return;
                 }
-                break;
+		assert(0);
 
             case OPd_s64:
                 if (!I64)

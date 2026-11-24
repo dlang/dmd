@@ -2765,9 +2765,8 @@ private bool funcprev(ref GlobalOptimizer go, ref Iv biv, ref famlist fl)
                             el_bin(OPmin,tymin,
                                     e2,
                                     el_copytree(fls.c2)));
-        if (sz < tysize(tymin) && sz == tysize(e1.Ety))
+        if (I16 && sz < tysize(tymin) && sz == tysize(e1.Ety))
         {
-            assert(I16);
             flse1.E2 = el_una(OPoffset,fl.FLty,flse1.E2);
         }
 
