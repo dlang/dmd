@@ -1854,7 +1854,7 @@ static if (1)
             cfa_state.offset   = OFFSET_FAC;
             cfa_state.regstates[16].offset = -8;        // RIP
         }
-        else if (I16 || I32)
+        else if (I32)
         {
             cfa_state.reg      = dwarf_regno(SP);
             cfa_state.offset   = OFFSET_FAC;

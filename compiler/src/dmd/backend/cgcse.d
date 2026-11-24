@@ -108,8 +108,6 @@ struct CSE
     @trusted
     static void updateSizeAndAlign(elem* e)
     {
-        if (I16)
-            return;
         const sz = tysize(e.Ety);
         if (slotSize < sz)
             slotSize = sz;

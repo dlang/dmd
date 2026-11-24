@@ -483,7 +483,6 @@ void genCompBranch(ref CodeBuilder cdb, uint sf, reg_t R, bool op, FL fltarg, bl
 
 // prolog_ifunc
 // prolog_ifunc2
-// prolog_16bit_windows_farfunc
 // prolog_frame
 // prolog_stackalign
 // prolog_frameadj
@@ -958,7 +957,7 @@ void epilog(ref CGstate cg, block* b)
     {
         Symbol* s = getRtlsym(farfunc ? RTLSYM.TRACE_EPI_F : RTLSYM.TRACE_EPI_N);
         makeitextern(s);
-        cdbx.gencs(I16 ? 0x9A : CALL,0,FL.func,s);      // CALLF _trace
+        cdbx.gencs(CALL,0,FL.func,s);      // CALLF _trace
         code_orflag(cdbx.last(),CF.off | CF.selfrel26);
         useregs((ALLREGS | mBP | mES) & ~s.Sregsaved);
         assert(0);      // TODO AArch64
@@ -1410,12 +1409,12 @@ int branch(block* bl,int flag)
                 if (op == JMP)
                 {
                     c.Iop = JMPS;              // JMP SHORT
-                    bytesaved += I16 ? 1 : 3;
+                    bytesaved += 3;
                 }
                 else                            // else Jcond
                 {
                     c.Iflags &= ~CF.jmp16;      // a branch is ok
-                    bytesaved += I16 ? 3 : 4;
+                    bytesaved += 4;
                 }
                 csize = calccodsize(c);
             }

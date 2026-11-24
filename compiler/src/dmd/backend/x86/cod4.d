@@ -441,8 +441,7 @@ void cdeq(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             if (e1.Eoper == OPind &&
                 ((e11 = e1.E1).Eoper == OPpostinc || e11.Eoper == OPpostdec) &&
                 e11.E1.Eoper == OPvar &&
-                e11.E1.Vsym.Sfl == FL.reg &&
-                (!I16 || e11.E1.Vsym.Sregm & IDXREGS)
+                e11.E1.Vsym.Sfl == FL.reg
                )
             {
                 Symbol* s = e11.E1.Vsym;
@@ -589,12 +588,7 @@ void cdeq(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
                     int off = sz;
                     do
                     {   int regsize = REGSIZE;
-                        if (off >= 4 && I16 && config.target_cpu >= TARGET_80386)
-                        {
-                            regsize = 4;
-                            cs.Iflags |= CF.opsize;      // use opsize to do 32 bit operation
-                        }
-                        else if (I64 && sz == 16 && *p >= 0x80000000)
+                        if (I64 && sz == 16 && *p >= 0x80000000)
                         {
                             regm_t rregm = cg.allregs & ~idxregm(&cs);
                             const regx = regwithvalue(cdb,rregm,*p,64);
@@ -616,7 +610,7 @@ void cdeq(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
                                 if (I64 && sz == 1 && regx >= 4)
                                     cs.Irex |= REX;
                             }
-                            if (!I16 && off == 2)      // if 16 bit operand
+                            if (off == 2)      // if 16 bit operand
                                 cs.Iflags |= CF.opsize;
                             if (I64 && sz == 8)
                                 cs.Irex |= REX_W;
@@ -708,8 +702,7 @@ void cdeq(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     if (e1.Eoper == OPind &&
         ((e11 = e1.E1).Eoper == OPpostinc || e11.Eoper == OPpostdec) &&
         e11.E1.Eoper == OPvar &&
-        e11.E1.Vsym.Sfl == FL.reg &&
-        (!I16 || e11.E1.Vsym.Sregm & IDXREGS)
+        e11.E1.Vsym.Sfl == FL.reg
        )
     {
         Symbol* s = e11.E1.Vsym;
@@ -745,57 +738,26 @@ void cdeq(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     }
     else
     {
-        if (!I16)
+        reg = findreg(retregs &
+                ((sz > REGSIZE) ? mBP | mLSW : mBP | ALLREGS));
+        cs.Irm |= modregrm(0,reg & 7,0);
+        if (reg & 8)
+            cs.Irex |= REX_R;
+        for (; true; sz -= REGSIZE)
         {
-            reg = findreg(retregs &
-                    ((sz > REGSIZE) ? mBP | mLSW : mBP | ALLREGS));
-            cs.Irm |= modregrm(0,reg & 7,0);
-            if (reg & 8)
-                cs.Irex |= REX_R;
-            for (; true; sz -= REGSIZE)
-            {
-                // Do not generate mov from register onto itself
-                if (regvar && reg == ((cs.Irm & 7) | (cs.Irex & REX_B ? 8 : 0)))
-                    break;
-                if (sz == 2)            // if 16 bit operand
-                    cs.Iflags |= CF.opsize;
-                else if (sz == 1 && reg >= 4)
-                    cs.Irex |= REX;
-                cdb.gen(&cs);           // MOV EA+offset,reg
-                if (sz <= REGSIZE)
-                    break;
-                getlvalue_msw(cs);
-                reg = findregmsw(retregs);
-                code_newreg(&cs, reg);
-            }
-        }
-        else
-        {
-            if (sz > REGSIZE)
-                cs.IEV1.Voffset += sz - REGSIZE;  // 0,2,6
-            reg = findreg(retregs &
-                    (sz > REGSIZE ? mMSW : ALLREGS));
-            if (tyml == TYdouble || tyml == TYdouble_alias)
-                reg = AX;
-            cs.Irm |= modregrm(0,reg,0);
             // Do not generate mov from register onto itself
-            if (!regvar || reg != (cs.Irm & 7))
-                for (; true; sz -= REGSIZE)             // 1,2,4
-                {
-                    cdb.gen(&cs);             // MOV EA+offset,reg
-                    if (sz <= REGSIZE)
-                        break;
-                    cs.IEV1.Voffset -= REGSIZE;
-                    if (tyml == TYdouble || tyml == TYdouble_alias)
-                    {
-                                                       // AX,CX,   DX,BX
-                            immutable reg_t[4] dblreg = [ BX,DX,NOREG,CX ];
-                            reg = dblreg[reg];
-                    }
-                    else
-                            reg = findreglsw(retregs);
-                    NEWREG(cs.Irm,reg);
-                }
+            if (regvar && reg == ((cs.Irm & 7) | (cs.Irex & REX_B ? 8 : 0)))
+                break;
+            if (sz == 2)            // if 16 bit operand
+                cs.Iflags |= CF.opsize;
+            else if (sz == 1 && reg >= 4)
+                cs.Irex |= REX;
+            cdb.gen(&cs);           // MOV EA+offset,reg
+            if (sz <= REGSIZE)
+                break;
+            getlvalue_msw(cs);
+            reg = findregmsw(retregs);
+            code_newreg(&cs, reg);
         }
     }
     if (e1.Ecount ||                    // if lvalue is a CSE or
@@ -890,8 +852,6 @@ void cdaddass(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         }
         return;
     }
-    uint opsize = (I16 && tylong(tyml) && config.target_cpu >= TARGET_80386)
-        ? CF.opsize : 0;
     uint cflags = 0;
     regm_t forccs = pretregs & mPSW;            // return result in flags
     regm_t forregs = pretregs & ~mPSW;          // return result in regs
@@ -954,16 +914,14 @@ void cdaddass(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 
             case SHORTSIZE:
                 cdb.gen(&cs);
-                if (!I16 && pretregs & mPSW)
+                if (pretregs & mPSW)
                     cdb.last().Iflags |= CF.opsize | CF.psw;
                 break;
 
             case LONGSIZE:
-                if (!I16 || opsize)
-                {   cdb.gen(&cs);
-                    cdb.last().Iflags |= opsize;
-                    break;
-                }
+                cdb.gen(&cs);
+                break;
+
             neg_2reg:
                 getlvalue_msw(cs);
                 cdb.gen(&cs);              // NEG EA+2
@@ -978,8 +936,6 @@ void cdaddass(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
                 break;
 
             case LLONGSIZE:
-                if (I16)
-                    assert(0);             // not implemented yet
                 if (I32)
                     goto neg_2reg;
                 cdb.gen(&cs);
@@ -1008,15 +964,14 @@ void cdaddass(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         modEA(cdb,&cs);
         cs.IFL2 = FL.const_;
         cs.IEV2.Vsize_t = e2.Vint;
-        if (sz <= REGSIZE || tyfv(tyml) || opsize)
+        if (sz <= REGSIZE || tyfv(tyml))
         {
             targ_int i = cs.IEV2.Vint;
 
             // Handle shortcuts. Watch out for if result has
             // to be in flags.
 
-            if (reghasvalue(isbyte ? BYTEREGS : ALLREGS,i,reg) && i != 1 && i != -1 &&
-                !opsize)
+            if (reghasvalue(isbyte ? BYTEREGS : ALLREGS,i,reg) && i != 1 && i != -1)
             {
                 cs.Iop = op1;
                 cs.Irm |= modregrm(0,reg & 7,0);
@@ -1059,10 +1014,9 @@ void cdaddass(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
                 }
                 cs.Iop ^= isbyte;             // for byte operations
             }
-            cs.Iflags |= opsize;
             if (forccs)
                 cs.Iflags |= CF.psw;
-            else if (!I16 && cs.Iflags & CF.opsize)
+            else if (cs.Iflags & CF.opsize)
             {
                 switch (op)
                 {   case OPorass:
@@ -1147,10 +1101,7 @@ void cdaddass(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             else
             {
                 cdb.gen(&cs);
-                cs.Iflags &= ~opsize;
                 cs.Iflags &= ~CF.psw;
-                if (I16 && opsize)                     // if DWORD operand
-                    cs.IEV1.Voffset += 2; // compensate for wantres code
             }
         }
         else if (sz == 2 * REGSIZE)
@@ -1231,7 +1182,6 @@ void cdaddass(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         if ((op == OPaddass) ^ (jop == JC))
             regop = 3;                          // SBB
         code_newreg(&cs,regop);
-        cs.Iflags |= opsize;
         if (forccs)
             cs.Iflags |= CF.psw;
         cs.IFL2 = FL.const_;
@@ -1588,7 +1538,7 @@ void cdmulass(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             cs.IEV2.Vint = cast(int)e2factor;
             opr = resreg;
         }
-        else if (!I16 && !isbyte)
+        else if (!isbyte)
         {
          L1:
             retregs = pretregs & (ALLREGS | mBP);
@@ -1763,7 +1713,7 @@ void cddivass(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         int pow2;
 
         assert(!isbyte);                      // should never happen
-        assert(I16 || sz != SHORTSIZE);
+        assert(sz != SHORTSIZE);
 
         if (e2.Eoper == OPconst)
         {
@@ -2121,7 +2071,7 @@ void cddivass(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         !uns &&
         e.Eoper == OPconst &&
         pow2 != -1 &&
-        I32 // not set up for I16 or I64 cent
+        I32 // not set up for I64 cent
        )
     {
         freenode(e2);
@@ -2498,29 +2448,19 @@ void cdshass(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             if (isbyte && I64 && (reg >= 4))
                 cs.Irex |= REX;
             cdb.gen(&cs);                     // MOV reg,EA
-            if (!I16)
-            {
-                assert(!isbyte || (mask(reg) & BYTEREGS));
-                cdb.genc2(v ^ isbyte,modregrmx(3,op1,reg),shiftcnt);
-                if (isbyte && I64 && (reg >= 4))
-                    cdb.last().Irex |= REX;
-                code_orrex(cdb.last(), rex);
-                // We can do a 32 bit shift on a 16 bit operand if
-                // it's a left shift and we're not concerned about
-                // the flags. Remember that flags are not set if
-                // a shift of 0 occurs.
-                if (_tysize[tym] == SHORTSIZE &&
-                    (oper == OPshrass || oper == OPashrass ||
-                     (pretregs & mPSW && conste2)))
-                     cdb.last().Iflags |= CF.opsize;            // 16 bit operand
-            }
-            else
-            {
-                while (loopcnt--)
-                {   // Generate shift instructions.
-                    cdb.genc2(v ^ isbyte,modregrm(3,op1,reg),shiftcnt);
-                }
-            }
+            assert(!isbyte || (mask(reg) & BYTEREGS));
+            cdb.genc2(v ^ isbyte,modregrmx(3,op1,reg),shiftcnt);
+            if (isbyte && I64 && (reg >= 4))
+                cdb.last().Irex |= REX;
+            code_orrex(cdb.last(), rex);
+            // We can do a 32 bit shift on a 16 bit operand if
+            // it's a left shift and we're not concerned about
+            // the flags. Remember that flags are not set if
+            // a shift of 0 occurs.
+            if (_tysize[tym] == SHORTSIZE &&
+                (oper == OPshrass || oper == OPashrass ||
+                 (pretregs & mPSW && conste2)))
+                 cdb.last().Iflags |= CF.opsize;            // 16 bit operand
             if (pretregs & mPSW && conste2)
             {
                 assert(shiftcnt);
@@ -2650,8 +2590,7 @@ void cdcmp(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     /* routine, because we don't know the target of the signed branch     */
     /* (have to set up flags so that jmpopcode() will do it right)        */
     if (!eqorne &&
-        (I16 && tym == TYlong  && tybasic(e2.Ety) == TYlong ||
-         I32 && tym == TYllong && tybasic(e2.Ety) == TYllong)
+        I32 && tym == TYllong && tybasic(e2.Ety) == TYllong
        )
     {
         assert(jop != JC && jop != JNC);
@@ -2660,41 +2599,33 @@ void cdcmp(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         retregs = mCX | mBX;
         scodelem(cg,cdb,e2,retregs,mDX | mAX,false);
 
-        if (I16)
-        {
-            retregs = 0;
-            callclib(cg,cdb,e,CLIB.lcmp,retregs,0);    // gross, but it works
-        }
-        else
-        {
-            /* Generate:
-             *      CMP  EDX,ECX
-             *      JNE  C1
-             *      XOR  EDX,EDX
-             *      CMP  EAX,EBX
-             *      JZ   C1
-             *      JA   C3
-             *      DEC  EDX
-             *      JMP  C1
-             * C3:  INC  EDX
-             * C1:
-             */
-             getregs(cdb,mDX);
-             genregs(cdb,0x39,CX,DX);             // CMP EDX,ECX
-             code* c1 = gennop(null);
-             genjmp(cdb,JNE,FL.code,cast(block*)c1);  // JNE C1
-             movregconst(cg,cdb,DX,0,0);             // XOR EDX,EDX
-             genregs(cdb,0x39,BX,AX);             // CMP EAX,EBX
-             genjmp(cdb,JE,FL.code,cast(block*)c1);   // JZ C1
-             code* c3 = gen1(null,0x40 + DX);                  // INC EDX
-             genjmp(cdb,JA,FL.code,cast(block*)c3);   // JA C3
-             cdb.gen1(0x48 + DX);                              // DEC EDX
-             genjmp(cdb,JMPS,FL.code,cast(block*)c1); // JMP C1
-             cdb.append(c3);
-             cdb.append(c1);
-             getregs(cdb,mDX);
-             retregs = mPSW;
-        }
+        /* Generate:
+         *      CMP  EDX,ECX
+         *      JNE  C1
+         *      XOR  EDX,EDX
+         *      CMP  EAX,EBX
+         *      JZ   C1
+         *      JA   C3
+         *      DEC  EDX
+         *      JMP  C1
+         * C3:  INC  EDX
+         * C1:
+         */
+         getregs(cdb,mDX);
+         genregs(cdb,0x39,CX,DX);             // CMP EDX,ECX
+         code* c1 = gennop(null);
+         genjmp(cdb,JNE,FL.code,cast(block*)c1);  // JNE C1
+         movregconst(cg,cdb,DX,0,0);             // XOR EDX,EDX
+         genregs(cdb,0x39,BX,AX);             // CMP EAX,EBX
+         genjmp(cdb,JE,FL.code,cast(block*)c1);   // JZ C1
+         code* c3 = gen1(null,0x40 + DX);                  // INC EDX
+         genjmp(cdb,JA,FL.code,cast(block*)c3);   // JA C3
+         cdb.gen1(0x48 + DX);                              // DEC EDX
+         genjmp(cdb,JMPS,FL.code,cast(block*)c1); // JMP C1
+         cdb.append(c3);
+         cdb.append(c1);
+         getregs(cdb,mDX);
+         retregs = mPSW;
         goto L3;
     }
 
@@ -2723,7 +2654,7 @@ void cdcmp(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         retregs = BYTEREGS;
 
     ce = null;
-    cs.Iflags = (!I16 && sz == SHORTSIZE) ? CF.opsize : CF.zero;
+    cs.Iflags = (sz == SHORTSIZE) ? CF.opsize : CF.zero;
     cs.Irex = cast(ubyte)rex;
     if (sz > REGSIZE)
         ce = gennop(ce);
@@ -2743,7 +2674,7 @@ void cdcmp(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
                 rreg = findreg(rretregs);
                 genregs(cdb,0x3B ^ isbyte ^ reverse,reg,rreg);
                 code_orrex(cdb.last(), rex);
-                if (!I16 && sz == SHORTSIZE)
+                if (sz == SHORTSIZE)
                     cdb.last().Iflags |= CF.opsize;          // compare only 16 bits
                 if (I64 && isbyte && (reg >= 4 || rreg >= 4))
                     cdb.last().Irex |= REX;                 // address byte registers
@@ -2826,8 +2757,7 @@ void cdcmp(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 
             if (!tyuns(tym) && !tyuns(e2.Ety) &&
                 !boolres(e2) && !(pretregs & mPSW) &&
-                (sz == REGSIZE || (I64 && sz == 4)) &&
-                (!I16 || op == OPlt || op == OPge))
+                (sz == REGSIZE || (I64 && sz == 4)))
             {
                 assert(pretregs & (cg.allregs));
                 codelem(cg,cdb,e1,pretregs,false);
@@ -2858,19 +2788,7 @@ void cdcmp(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
                     case OPlt:
                     oplt:
                         // Get the sign bit, i.e. 1 if the value is negative.
-                        if (!I16)
-                            cdb.genc2(0xC1,grex | modregrmx(3,5,reg),sz * 8 - 1); // SHR reg,31
-                        else
-                        {   /* 8088-286 do not have a barrel shifter, so use this
-                               faster sequence
-                             */
-                            genregs(cdb,0xD1,0,reg);   // ROL reg,1
-                            reg_t regi;
-                            if (reghasvalue(cg.allregs,1,regi))
-                                genregs(cdb,0x23,reg,regi);  // AND reg,regi
-                            else
-                                cdb.genc2(0x81,modregrm(3,4,reg),1); // AND reg,1
-                        }
+                        cdb.genc2(0xC1,grex | modregrmx(3,5,reg),sz * 8 - 1); // SHR reg,31
                         break;
 
                     case OPge:
@@ -2965,7 +2883,7 @@ void cdcmp(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
                         }
                         getlvalue_msw(cs);
                         cdb.gen(&cs);              // CMP EA+2,const
-                        if (!I16 && sz == 6)
+                        if (sz == 6)
                             cdb.last().Iflags |= CF.opsize;      // seg is only 16 bits
                         genjmp(cdb,JNE,FL.code, cast(block*) ce); // JNE nop
                         if (e2.Eoper == OPconst)
@@ -3035,8 +2953,7 @@ void cdcmp(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
                 {
                     genregs(cdb,0x3B,reg,rreg);
                     code_orrex(cdb.last(), rex);
-                    if (!I16)
-                        cdb.last().Iflags |= cs.Iflags & CF.opsize;
+                    cdb.last().Iflags |= cs.Iflags & CF.opsize;
                     freenode(e2);
                     break;
                 }
@@ -3531,7 +3448,7 @@ void cdcnvt(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
                     xmmcnvt(cg,cdb,e,pretregs);
                     return;
                 }
-                else if (!I16)
+                else
                 {
                     regm_t retregsx = ALLREGS;
                     codelem(cg,cdb,e.E1, retregsx, false);
@@ -3547,7 +3464,6 @@ void cdcnvt(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
                     fixresult87(cg, cdb, e, retregsy, pretregs);
                     return;
                 }
-                break;
 
             case OPd_s64:
                 if (!I64)
@@ -3673,7 +3589,6 @@ void cdshtlng(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     }
     else if (
              op == OPnp_fp ||
-             (I16 && op == OPu16_32) ||
              (I32 && op == OPu32_64) ||
              (I64 && op == OPu64_128)
             )
@@ -3758,7 +3673,7 @@ void cdshtlng(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         fixresult(cg,cdb,e,retregs,pretregs);
         return;
     }
-    else if (!I16 && (op == OPs16_32 || op == OPu16_32) ||
+    else if ((op == OPs16_32 || op == OPu16_32) ||
               I64 && op == OPs32_64)
     {
         elem* e11;
@@ -3917,53 +3832,35 @@ void cdbyteint(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     elem* e1 = e.E1;
     if (e1.Eoper == OPcomma)
         docommas(cdb,e1);
-    if (!I16)
+    if (e1.Eoper == OPvar || (e1.Eoper == OPind && !e1.Ecount))
     {
-        if (e1.Eoper == OPvar || (e1.Eoper == OPind && !e1.Ecount))
-        {
-            code cs;
+        code cs;
 
-            regm_t retregsx = pretregs;
-            const reg = allocreg(cdb,retregsx,TYint);
-            if (config.flags4 & CFG4speed &&
-                op == OPu8_16 && mask(reg) & BYTEREGS &&
-                config.target_cpu < TARGET_PentiumPro)
-            {
-                movregconst(cg,cdb,reg,0,0);                 //  XOR reg,reg
-                loadea(cg,cdb,e1,cs,0x8A,reg,0,retregsx,retregsx); //  MOV regL,EA
-            }
-            else
-            {
-                const opcode = (op == OPu8_16) ? MOVZXb : MOVSXb; // MOVZX/MOVSX reg,EA
-                loadea(cg,cdb,e1,cs,opcode,reg,0,0,retregsx);
-                cdb.last().Iflags &= ~CF.opsize;  // make sure it goes to Ereg, not reg
-            }
-            freenode(e1);
-            fixresult(cg,cdb,e,retregsx,pretregs);
-            return;
-        }
-        size = tysize(e.Ety);
-        retregs = pretregs & BYTEREGS;
-        if (retregs == 0)
-            retregs = BYTEREGS;
-        retregs |= pretregs & mPSW;
-        pretregs &= ~mPSW;
-    }
-    else
-    {
-        if (op == OPu8_16)              // if uint conversion
+        regm_t retregsx = pretregs;
+        const reg = allocreg(cdb,retregsx,TYint);
+        if (config.flags4 & CFG4speed &&
+            op == OPu8_16 && mask(reg) & BYTEREGS &&
+            config.target_cpu < TARGET_PentiumPro)
         {
-            retregs = pretregs & BYTEREGS;
-            if (retregs == 0)
-                retregs = BYTEREGS;
+            movregconst(cg,cdb,reg,0,0);                 //  XOR reg,reg
+            loadea(cg,cdb,e1,cs,0x8A,reg,0,retregsx,retregsx); //  MOV regL,EA
         }
         else
         {
-            // CBW doesn't affect flags, so we can depend on the integer
-            // math to provide the flags.
-            retregs = mAX | (pretregs & mPSW); // want integer result in AX
+            const opcode = (op == OPu8_16) ? MOVZXb : MOVSXb; // MOVZX/MOVSX reg,EA
+            loadea(cg,cdb,e1,cs,opcode,reg,0,0,retregsx);
+            cdb.last().Iflags &= ~CF.opsize;  // make sure it goes to Ereg, not reg
         }
+        freenode(e1);
+        fixresult(cg,cdb,e,retregsx,pretregs);
+        return;
     }
+    size = tysize(e.Ety);
+    retregs = pretregs & BYTEREGS;
+    if (retregs == 0)
+        retregs = BYTEREGS;
+    retregs |= pretregs & mPSW;
+    pretregs &= ~mPSW;
 
     CodeBuilder cdb1;
     cdb1.ctor();
@@ -3989,39 +3886,26 @@ void cdbyteint(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     else
     {
      L1:
-        if (!I16)
+        if (op == OPs8_16 && reg == AX && size == 2)
         {
-            if (op == OPs8_16 && reg == AX && size == 2)
-            {
-                cdb.gen1(0x98);                  // CBW
-                cdb.last().Iflags |= CF.opsize;  // don't do a CWDE
-            }
-            else
-            {
-                // We could do better by not forcing the src and dst
-                // registers to be the same.
-
-                if (config.flags4 & CFG4speed && op == OPu8_16)
-                {   // AND reg,0xFF
-                    cdb.genc2(0x81,modregrmx(3,4,reg),0xFF);
-                }
-                else
-                {
-                    opcode_t iop = (op == OPu8_16) ? MOVZXb : MOVSXb; // MOVZX/MOVSX reg,reg
-                    genregs(cdb,iop,reg,reg);
-                    if (I64 && reg >= 4)
-                        code_orrex(cdb.last(), REX);
-                }
-            }
+            cdb.gen1(0x98);                  // CBW
+            cdb.last().Iflags |= CF.opsize;  // don't do a CWDE
         }
         else
         {
-            if (op == OPu8_16)
-                genregs(cdb,0x30,reg+4,reg+4);  // XOR regH,regH
+            // We could do better by not forcing the src and dst
+            // registers to be the same.
+
+            if (config.flags4 & CFG4speed && op == OPu8_16)
+            {   // AND reg,0xFF
+                cdb.genc2(0x81,modregrmx(3,4,reg),0xFF);
+            }
             else
             {
-                cdb.gen1(0x98);                 // CBW
-                pretregs &= ~mPSW;             // flags already set
+                opcode_t iop = (op == OPu8_16) ? MOVZXb : MOVSXb; // MOVZX/MOVSX reg,reg
+                genregs(cdb,iop,reg,reg);
+                if (I64 && reg >= 4)
+                    code_orrex(cdb.last(), REX);
             }
         }
     }
@@ -4079,8 +3963,7 @@ void cdlngsht(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             retregs = pretregs ? ALLREGS : 0;
             codelem(cg,cdb,e.E1,retregs,false);
             bool isOff = e.Eoper == OPoffset;
-            if (I16 ||
-                I32 && (isOff || e.Eoper == OP64_32) ||
+            if (I32 && (isOff || e.Eoper == OP64_32) ||
                 I64 && (isOff || e.Eoper == OP128_64))
                 retregs &= mLSW;                // want LSW only
         }
@@ -4107,7 +3990,6 @@ void cdlngsht(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 
 /**********************************************
  * Get top 32 bits of 64 bit value (I32)
- * or top 16 bits of 32 bit value (I16)
  * or top 64 bits of 128 bit value (I64).
  * OPmsw
  */
@@ -4220,7 +4102,7 @@ void cdasm(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     // Assume only regs normally destroyed by a function are destroyed
     getregs(cdb,(ALLREGS | mES) & ~cg.fregsaved);
     cdb.genasm(cast(ubyte[])e.Vstring[0 .. e.Vstrlen]);
-    fixresult(cg,cdb,e,(I16 ? mDX | mAX : mAX),pretregs);
+    fixresult(cg,cdb,e,mAX,pretregs);
 }
 
 /************************
@@ -4347,7 +4229,7 @@ void cdbtst(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
 
     tym_t ty1 = tybasic(e1.Ety);
     const sz = tysize(e1.Ety);
-    ubyte word = (!I16 && _tysize[ty1] == SHORTSIZE) ? CF.opsize : 0;
+    ubyte word = (_tysize[ty1] == SHORTSIZE) ? CF.opsize : 0;
 
 //    if (e2.Eoper == OPconst && e2.Vuns < 0x100)  // should do this instead?
     if (e2.Eoper == OPconst)
@@ -4476,7 +4358,7 @@ void cdbt(ref CGstate cg, ref CodeBuilder cdb,elem* e, ref regm_t pretregs)
 
     const ty1 = tybasic(e1.Ety);
     const ty2 = tybasic(e2.Ety);
-    ubyte word = (!I16 && _tysize[ty1] == SHORTSIZE) ? CF.opsize : 0;
+    ubyte word = (_tysize[ty1] == SHORTSIZE) ? CF.opsize : 0;
     regm_t idxregs = idxregm(&cs);         // mask if index regs used
 
 //    if (e2.Eoper == OPconst && e2.Vuns < 0x100)  // should do this instead?
@@ -4601,7 +4483,7 @@ void cdbscan(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
 
     cs.Iop = (e.Eoper == OPbsf) ? 0x0FBC : 0x0FBD;        // BSF/BSR reg,EA
     code_newreg(&cs, reg);
-    if (!I16 && sz == SHORTSIZE)
+    if (sz == SHORTSIZE)
         cs.Iflags |= CF.opsize;
     cdb.gen(&cs);
     if (sz == 8)
@@ -4625,7 +4507,6 @@ void cdpopcnt(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 
     //printf("cdpopcnt()\n");
     //elem_print(e);
-    assert(!I16);
     if (!pretregs)
     {
         codelem(cg,cdb,e.E1,pretregs,false);
@@ -4801,7 +4682,7 @@ void cdcmpxchg(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs
     else
     {
         const uint isbyte = (sz == 1);            // 1 for byte operation
-        const ubyte word = (!I16 && sz == SHORTSIZE) ? CF.opsize : 0;
+        const ubyte word = (sz == SHORTSIZE) ? CF.opsize : 0;
         const uint rex = (I64 && sz == 8) ? REX_W : 0;
 
         regm_t retregsx = mAX;

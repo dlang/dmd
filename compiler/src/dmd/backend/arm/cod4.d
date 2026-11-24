@@ -1187,8 +1187,7 @@ printf("OPconst:\n");
 
             if (!tyuns(tym) && !tyuns(e2.Ety) &&
                 !boolres(e2) && !(pretregs & mPSW) &&
-                (sz == REGSIZE || (I64 && sz == 4)) &&
-                (!I16 || op == OPlt || op == OPge))
+                (sz == REGSIZE || (I64 && sz == 4)))
             {
                 assert(pretregs & (cg.allregs));
                 codelem(cg,cdb,e1,pretregs,false);
@@ -1219,19 +1218,7 @@ printf("OPconst:\n");
                     case OPlt:
                     oplt:
                         // Get the sign bit, i.e. 1 if the value is negative.
-                        if (!I16)
-                            cdb.genc2(0xC1,grex | modregrmx(3,5,reg),sz * 8 - 1); // SHR reg,31
-                        else
-                        {   /* 8088-286 do not have a barrel shifter, so use this
-                               faster sequence
-                             */
-                            genregs(cdb,0xD1,0,reg);   // ROL reg,1
-                            reg_t regi;
-                            if (reghasvalue(cg.allregs,1,regi))
-                                genregs(cdb,0x23,reg,regi);  // AND reg,regi
-                            else
-                                cdb.genc2(0x81,modregrm(3,4,reg),1); // AND reg,1
-                        }
+                        cdb.genc2(0xC1,grex | modregrmx(3,5,reg),sz * 8 - 1); // SHR reg,31
                         break;
 
                     case OPge:
@@ -1374,8 +1361,7 @@ printf("OPconst:\n");
                 {
                     genregs(cdb,0x3B,reg,rreg);
                     code_orrex(cdb.last(), rex);
-                    if (!I16)
-                        cdb.last().Iflags |= cs.Iflags & CFopsize;
+                    cdb.last().Iflags |= cs.Iflags & CFopsize;
                     freenode(e2);
                     break;
                 }
@@ -2127,7 +2113,6 @@ void cdlngsht(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 
 /**********************************************
  * Get top 32 bits of 64 bit value (I32)
- * or top 16 bits of 32 bit value (I16)
  * or top 64 bits of 128 bit value (I64).
  * OPmsw
  */
