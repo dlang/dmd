@@ -673,6 +673,10 @@ void test24340()
     ulong r = f_24340(cast(byte)inputs_24340[0 % 1], cast(int)inputs_24340[0 % 1], cast(int)inputs_24340[0 % 1]);
     assert(r == 0);
 }
+}
+
+/****************************************************/
+// https://github.com/dlang/dmd/issues/24341
 
 struct S_24341 { double a, b; }
 
@@ -683,6 +687,11 @@ void test24341()
     assert(f_24341(S_24341(1.0, 2.0)) == 0x3FF0_0000_0000_0000);
 }
 
+/****************************************************/
+// https://github.com/dlang/dmd/issues/24341
+
+static if (0)
+{
 pragma(inline, true) long nz_long_24331b(long x) { return (x == 0) ? 1 : x; }
 ulong f0_24331b(long p8, uint p6, ushort p10)
 {
@@ -1002,7 +1011,7 @@ void main()
     //test24351e();
     test24339();
     //test24340();
-    //test24341();
+    test24341();
     //test24331b();
     //test24331c();
     //test24342a();
