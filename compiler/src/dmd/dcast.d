@@ -2289,9 +2289,6 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
         // arithmetic values vs. references or fat values
         if (tob_isA && (t1b_isR || t1b_isFV) || t1b_isA && (tob_isR || tob_isFV))
         {
-            // Allow arithmetic <-> static array cast when sizes match
-            if (t1b.size(e.loc) == tob.size(e.loc) && (tob.ty == Tsarray || t1b.ty == Tsarray))
-                return ok();
             return fail();
         }
 
