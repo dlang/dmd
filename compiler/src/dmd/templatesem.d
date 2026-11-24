@@ -7039,8 +7039,15 @@ MATCH deduceType(scope RootObject o, scope Scope* sc, scope Type tparam,
 
             if (t.nextOf())
             {
-                if (tparam.deco && !tparam.hasWild())
+                if (tparam.deco)
                 {
+                    // Nothing left to deduce but `inout`: resolve it from `t`,
+                    // as `callMatch` does
+                    if (tparam.hasWild())
+                    {
+                        if (const wx = t.deduceWild(tparam, false))
+                            tparam = tparam.substWildTo(wx);
+                    }
                     result = t.implicitConvTo(tparam);
                     return;
                 }
