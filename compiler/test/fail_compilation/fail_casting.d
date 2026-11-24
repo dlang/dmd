@@ -221,3 +221,16 @@ void test14629()
     { auto x = cast(N)fp; }
     { auto x = cast(N)dg; }
 }
+
+/*
+TEST_OUTPUT:
+---
+fail_compilation/fail_casting.d(234): Error: cannot cast expression `0` of type `int` to `byte[4]`
+fail_compilation/fail_casting.d(235): Error: cannot cast expression `0L` of type `long` to `int[2]`
+---
+*/
+void test24262()
+{
+    auto arr1 = cast(byte[4]) 0;
+    auto arr2 = cast(int[2]) 0L;
+}
