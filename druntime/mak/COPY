@@ -506,6 +506,7 @@ COPY=\
 	$(IMPDIR)\core\sys\windows\oleidl.d \
 	$(IMPDIR)\core\sys\windows\pbt.d \
 	$(IMPDIR)\core\sys\windows\powrprof.d \
+	$(IMPDIR)\core\sys\windows\propsys.d \
 	$(IMPDIR)\core\sys\windows\prsht.d \
 	$(IMPDIR)\core\sys\windows\psapi.d \
 	$(IMPDIR)\core\sys\windows\rapi.d \
@@ -548,6 +549,7 @@ COPY=\
 	$(IMPDIR)\core\sys\windows\stdc\time.d \
 	$(IMPDIR)\core\sys\windows\subauth.d \
 	$(IMPDIR)\core\sys\windows\threadaux.d \
+	$(IMPDIR)\core\sys\windows\thumbcache.d \
 	$(IMPDIR)\core\sys\windows\tlhelp32.d \
 	$(IMPDIR)\core\sys\windows\tmschema.d \
 	$(IMPDIR)\core\sys\windows\unknwn.d \

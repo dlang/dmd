@@ -10,10 +10,17 @@ module core.sys.windows.wtypes;
 version (Windows):
 
 import core.sys.windows.rpc, core.sys.windows.rpcndr;
+import core.sys.windows.basetyps : GUID;
 import core.sys.windows.windef;
 import core.sys.windows.uuid; // for GUID_NULL
 
 alias IID_NULL = GUID_NULL, CLSID_NULL = GUID_NULL;
+
+struct PROPERTYKEY {
+    GUID  fmtid;
+    DWORD pid;
+}
+alias REFPROPERTYKEY = const(PROPERTYKEY)*;
 
 enum ROTFLAGS_REGISTRATIONKEEPSALIVE = 0x01;
 enum ROTFLAGS_ALLOWANYCLIENT         = 0x02;

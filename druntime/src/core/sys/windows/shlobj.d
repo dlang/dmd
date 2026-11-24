@@ -844,6 +844,38 @@ interface IShellFolder : IUnknown {
 }
 alias LPSHELLFOLDER = IShellFolder;
 
+static if (_WIN32_WINNT >= 0x600) {
+    alias SIGDN = int;
+    enum : SIGDN {
+        SIGDN_NORMALDISPLAY               = 0,
+        SIGDN_PARENTRELATIVEPARSING       = 0x80018001,
+        SIGDN_DESKTOPABSOLUTEPARSING      = 0x80028000,
+        SIGDN_PARENTRELATIVEEDITING       = 0x80031001,
+        SIGDN_DESKTOPABSOLUTEEDITING      = 0x8004c000,
+        SIGDN_FILESYSPATH                 = 0x80058000,
+        SIGDN_URL                         = 0x80068000,
+        SIGDN_PARENTRELATIVEFORADDRESSBAR = 0x8007c001,
+        SIGDN_PARENTRELATIVE              = 0x80080001,
+        SIGDN_PARENTRELATIVEFORUI         = 0x80094001
+    }
+
+    alias SICHINTF = DWORD;
+    enum : SICHINTF {
+        SICHINT_DISPLAY                       = 0,
+        SICHINT_ALLFIELDS                     = 0x80000000,
+        SICHINT_CANONICAL                     = 0x10000000,
+        SICHINT_TEST_FILESYSPATH_IF_NOT_EQUAL = 0x20000000
+    }
+
+    interface IShellItem : IUnknown {
+        HRESULT BindToHandler(IBindCtx, REFGUID, REFIID, void**);
+        HRESULT GetParent(IShellItem*);
+        HRESULT GetDisplayName(SIGDN, LPWSTR*);
+        HRESULT GetAttributes(SFGAOF, SFGAOF*);
+        HRESULT Compare(IShellItem, SICHINTF, int*);
+    }
+}
+
 static if (_WIN32_IE >= 0x500) {
 
 interface IEnumExtraSearch: IUnknown {

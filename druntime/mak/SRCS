@@ -488,6 +488,7 @@ SRCS=\
 	src\core\sys\windows\oleidl.d \
 	src\core\sys\windows\pbt.d \
 	src\core\sys\windows\powrprof.d \
+	src\core\sys\windows\propsys.d \
 	src\core\sys\windows\prsht.d \
 	src\core\sys\windows\psapi.d \
 	src\core\sys\windows\rapi.d \
@@ -530,6 +531,7 @@ SRCS=\
 	src\core\sys\windows\stdc\time.d \
 	src\core\sys\windows\subauth.d \
 	src\core\sys\windows\threadaux.d \
+	src\core\sys\windows\thumbcache.d \
 	src\core\sys\windows\tlhelp32.d \
 	src\core\sys\windows\tmschema.d \
 	src\core\sys\windows\unknwn.d \

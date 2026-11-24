@@ -470,6 +470,7 @@ DOCS=\
 	$(DOCDIR)\core_sys_windows_oleidl.html \
 	$(DOCDIR)\core_sys_windows_pbt.html \
 	$(DOCDIR)\core_sys_windows_powrprof.html \
+	$(DOCDIR)\core_sys_windows_propsys.html \
 	$(DOCDIR)\core_sys_windows_prsht.html \
 	$(DOCDIR)\core_sys_windows_psapi.html \
 	$(DOCDIR)\core_sys_windows_rapi.html \
@@ -502,6 +503,7 @@ DOCS=\
 	$(DOCDIR)\core_sys_windows_sqlucode.html \
 	$(DOCDIR)\core_sys_windows_stacktrace.html \
 	$(DOCDIR)\core_sys_windows_subauth.html \
+	$(DOCDIR)\core_sys_windows_thumbcache.html \
 	$(DOCDIR)\core_sys_windows_tlhelp32.html \
 	$(DOCDIR)\core_sys_windows_unknwn.html \
 	$(DOCDIR)\core_sys_windows_winbase.html \
