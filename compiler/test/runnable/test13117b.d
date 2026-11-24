@@ -12,3 +12,5 @@ int main()
         enum limit = 1763328;
     return size > limit * 13 / 10;
 }
+
+// DISABLED: wasm

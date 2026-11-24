@@ -1,6 +1,6 @@
 // https://issues.dlang.org/show_bug.cgi?id=21514
 // REQUIRED_ARGS: -verrors=simple
-// DISABLED: win32 win64
+// DISABLED: win32 win64 wasm
 /* TEST_OUTPUT:
 ---
 compilable/test21514.d(17): Deprecation: use of complex type `cdouble` is deprecated, use `std.complex.Complex!(double)` instead

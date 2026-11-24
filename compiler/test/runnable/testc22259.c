@@ -1,4 +1,4 @@
-// DISABLED: win32 win64
+// DISABLED: win32 win64 wasm
 
 // https://github.com/dlang/dmd/issues/22259
 

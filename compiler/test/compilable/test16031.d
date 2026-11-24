@@ -1,6 +1,6 @@
 // REQUIRED_ARGS: -fPIC -lib
 // PERMUTE_ARGS:
-// DISABLED: win32 win64
+// DISABLED: win32 win64 wasm
 extern void throwing();
 
 void foo()

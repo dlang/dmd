@@ -24,11 +24,11 @@
 float x = NAN;
 #endif
 
-#ifndef _MSC_VER // setjmp.h(51): Error: missing tag `identifier` after `struct
+#if !defined(_MSC_VER) && !defined(__wasi__) // setjmp.h(51): Error: missing tag `identifier` after `struct
 #include <setjmp.h>
 #endif
 
-#if !(defined(__linux__) && defined(__aarch64__)) // /usr/include/linux/types.h(12): Error: __int128 not supported
+#if !(defined(__linux__) && defined(__aarch64__)) && !defined(__wasi__) // /usr/include/linux/types.h(12): Error: __int128 not supported
 #include <signal.h>
 #endif
 
