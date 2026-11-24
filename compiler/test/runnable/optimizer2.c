@@ -72,7 +72,6 @@ int test24336(void)
 /***************************************************/
 // https://github.com/dlang/dmd/issues/24337
 
-#if 0
 int x_24337;
 
 int test24337(void)
@@ -85,6 +84,7 @@ int test24337(void)
 /***************************************************/
 // https://github.com/dlang/dmd/issues/24344
 
+#if 0
 struct S_24344 { short a : 1; unsigned char b : 8; short c : 14; } s_24344;
 
 int test24344(void)
@@ -119,7 +119,7 @@ int main(void)
   //test24324();
     test24326();
     test24336();
-  //test24337();
+    test24337();
   //test24344();
   //test24352();
     return 0;
