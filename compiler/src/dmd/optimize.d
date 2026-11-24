@@ -1308,6 +1308,10 @@ Expression optimize(Expression e, int result, bool keepLvalue = false)
                 // e1 || true -> (e1, true)
                 // e1 && false -> (e1, false)
                 ret = IntegerExp.createBool(oror);
+
+                ret = new CastExp(ret.loc, ret, e.type);  // || evaluates to int for C
+                ret.type = e.type;
+
                 ret = Expression.combine(e.e1, ret);
                 if (e.type.toBasetype().ty == Tvoid)
                 {
