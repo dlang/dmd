@@ -315,6 +315,12 @@ bool cTypeEquivalence(Type t1, Type t2)
     if (auto te = t1.isTypeEnum())
         return te.sym is t2.isTypeEnum().sym;
 
+    if (auto tt = t1.isTypeTag())
+    {
+        auto tt2 = t2.isTypeTag();
+        return tt.tok == tt2.tok && tt.id && tt.id == tt2.id;
+    }
+
     if (auto tf = t1.isTypeFunction())
         return cFuncEquivalence(tf, tf.isTypeFunction());
 

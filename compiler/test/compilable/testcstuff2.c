@@ -767,3 +767,12 @@ typedef enum
 // https://issues.dlang.org/show_bug.cgi?id=24580
 
 int ioctl(int __fd, unsigned __request, ...) __attribute__((overloadable)) __attribute__((enable_if(1, ""))) asm("ioctl");
+
+/************************************************************/
+// https://github.com/dlang/dmd/issues/24438
+
+struct S24438 { int a; };
+typedef struct S24438 A24438;
+typedef A24438 B24438;
+extern B24438 x24438;
+extern struct S24438 x24438;
