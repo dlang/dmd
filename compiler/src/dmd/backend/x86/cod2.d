@@ -157,14 +157,9 @@ void opdouble(ref CGstate cg, ref CodeBuilder cdb, elem* e,ref regm_t pretregs,u
     }
     else
     {
-        if (I32)
-        {   retregs1 = DOUBLEREGS_32;
-            retregs2 = DOUBLEREGS2_32;
-        }
-        else
-        {   retregs1 = mSTACK;
-            retregs2 = DOUBLEREGS_16;
-        }
+        assert(I32);
+        retregs1 = DOUBLEREGS_32;
+        retregs2 = DOUBLEREGS2_32;
     }
 
     codelem(cg,cdb,e.E1, retregs1,false);
