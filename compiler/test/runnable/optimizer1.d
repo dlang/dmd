@@ -628,6 +628,10 @@ void test24351e()
 }
 
 bool g_24338(short p) { return cast(double)p < cast(double)p - 0; }
+}
+
+/****************************************************/
+// https://github.com/dlang/dmd/issues/24339
 
 __gshared ulong g_24339 = 0;
 
@@ -641,6 +645,11 @@ void test24339()
     assert(r == 0);
 }
 
+/****************************************************/
+// https://github.com/dlang/dmd/issues/24340
+
+static if (0)
+{
 ulong f_24340(byte p0, int p1, int p2)
 {
     short v = 0;
@@ -991,7 +1000,7 @@ void main()
     //test24309e();
     //test24351d();
     //test24351e();
-    //test24339();
+    test24339();
     //test24340();
     //test24341();
     //test24331b();

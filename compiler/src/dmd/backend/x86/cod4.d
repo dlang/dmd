@@ -3936,6 +3936,7 @@ void cdbyteint(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             {
                 const opcode = (op == OPu8_16) ? MOVZXb : MOVSXb; // MOVZX/MOVSX reg,EA
                 loadea(cg,cdb,e1,cs,opcode,reg,0,0,retregsx);
+                cdb.last().Iflags &= ~CF.opsize;  // make sure it goes to Ereg, not reg
             }
             freenode(e1);
             fixresult(cg,cdb,e,retregsx,pretregs);
