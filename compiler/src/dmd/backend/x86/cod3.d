@@ -4788,23 +4788,8 @@ void prolog_loadparams(ref CGstate cg, ref CodeBuilder cdb, tym_t tyf, bool push
             assert(!(mask(preg) & assignregs));         // not already stepped on
             assignregs |= mask(r);
 
-            // MOV reg,preg
-            if (r == preg)
-            {
-            }
-            else if (mask(preg) & XMMREGS)
-            {
-                const op = xmmload(t.Tty);      // MOVSS/D xreg,preg
-                uint xreg = r - XMM0;
-                cdb.gen2(op,modregxrmx(3,xreg,preg - XMM0));
-            }
-            else
-            {
-                //printf("test1 mov %s, %s\n", regstring[r], regstring[preg]);
-                genmovreg(cdb,r,preg);
-                if (I64 && sz == 8)
-                    code_orrex(cdb.last(), REX_W);
-            }
+            genmovreg(cdb, r, preg, t.Tty);            // MOV r,preg
+
             preg = s.Spreg2;
             r = s.Sregmsw;
             if (t2)
