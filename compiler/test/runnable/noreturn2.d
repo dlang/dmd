@@ -192,6 +192,131 @@ void testAccess()
         noreturn a;
         auto b = true ? a : 1;
     });
+
+    // https://github.com/dlang/dmd/issues/18186
+    {
+        noreturn[0] empty = noreturn[0].init;
+        noreturn[0] empty2 = empty;
+        enum ctfeEmpty = noreturn[0].init;
+        static assert(ctfeEmpty.length == 0);
+        assert(empty.length == 0 && empty2.length == 0);
+
+        noreturn[0][2] nestedEmpty = noreturn[0][2].init;
+        noreturn[0][2] nestedEmpty2 = nestedEmpty;
+        enum ctfeNestedEmpty = noreturn[0][2].init;
+        static assert(ctfeNestedEmpty.length == 2);
+        assert(nestedEmpty.length == 2 && nestedEmpty2.length == 2);
+    }
+
+    testAssertFailure(__LINE__ + 2, msg,
+    {
+        noreturn[1] x = noreturn[1].init;
+    });
+
+    testAssertFailure(__LINE__ + 2, msg,
+    {
+        noreturn[1] x2 = noreturn.init;
+    });
+
+    testAssertFailure(__LINE__ + 2, msg,
+    {
+        noreturn[3] x = noreturn[3].init;
+    });
+
+    testAssertFailure(__LINE__ + 2, msg,
+    {
+        noreturn[1][2] x = noreturn[1][2].init;
+    });
+
+    testAssertFailure(__LINE__ + 3, msg,
+    {
+        noreturn[1] a;
+        noreturn[1] b = a;
+    });
+
+    testAssertFailure(__LINE__ + 3, msg,
+    {
+        noreturn[1] x;
+        x = noreturn[1].init;
+    });
+
+    testAssertFailure(__LINE__ + 3, msg,
+    {
+        noreturn[1] x;
+        x = noreturn.init;
+    });
+
+    testAssertFailure(__LINE__ + 3, msg,
+    {
+        noreturn[2] x;
+        x[] = noreturn.init;
+    });
+
+    testAssertFailure(__LINE__ + 5, msg,
+    {
+        static struct S { int a; noreturn n; int b; }
+        __gshared int side;
+        side = 0;
+        S s = S(++side, noreturn.init, ++side);
+    });
+
+    // Accessing noreturn variables inside array/struct literals must assert,
+    // while custom throws/asserts inside noreturn[N] literals must not be clobbered
+    testAssertFailure(__LINE__ + 3, msg,
+    {
+        noreturn n;
+        noreturn[1] y = [n];
+    });
+
+    testAssertFailure(__LINE__ + 3, msg,
+    {
+        noreturn n;
+        int[2] y = [1, n];
+    });
+
+    testAssertFailure(__LINE__ + 3, msg,
+    {
+        noreturn[1] na;
+        noreturn[1][1] y = [na];
+    });
+
+    testAssertFailure(__LINE__ + 4, msg,
+    {
+        static struct S { int a; noreturn b; }
+        noreturn n;
+        S s = S(1, n);
+    });
+
+    testAssertFailure(__LINE__ + 2, "custom literal",
+    {
+        noreturn[1] x = [assert(0, "custom literal")];
+    });
+
+    testAssertFailure(__LINE__ + 2, "custom casted literal",
+    {
+        noreturn[1] x = cast(noreturn[1])[assert(0, "custom casted literal")];
+    });
+
+    // LHS side effects must still be evaluated before a noreturn RHS
+    {
+        __gshared int lhsSide;
+        static noreturn* getPtr() { ++lhsSide; return null; }
+
+        lhsSide = 0;
+        testAssertFailure(__LINE__ + 2, "rhs abort",
+        {
+            *getPtr() = assert(0, "rhs abort");
+        });
+        assert(lhsSide == 1);
+
+        static int getIdx() { ++lhsSide; return 0; }
+        testAssertFailure(__LINE__ + 3, "rhs abort 2",
+        {
+            int[2] arr;
+            arr[getIdx()] = assert(0, "rhs abort 2");
+        });
+        assert(lhsSide == 2);
+    }
 }
 
 /*****************************************/
