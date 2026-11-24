@@ -612,11 +612,10 @@ Symbol* out_string_literal(const(char)* str, uint len, uint sz)
  * a code generator tree.
  * Params:
  *      e = expression tree
- *      addressOfParam = set to true if the address of a parameter is taken (I16 only)
  */
 
 @trusted private
-void outelem(elem* e, ref bool addressOfParam)
+void outelem(elem* e)
 {
 again:          // for tail recursion
     assert(e);
@@ -630,7 +629,7 @@ again:          // for tail recursion
     default:
         //if (!EOP(e)) printf("e.Eoper = x%x\n",e.Eoper);
         if (OTbinary(e.Eoper))
-        {   outelem(e.E1, addressOfParam);
+        {   outelem(e.E1);
             e = e.E2;
         }
         else if (OTunary(e.Eoper))
@@ -666,10 +665,7 @@ again:          // for tail recursion
             case SC.shadowreg:
                 if (e.Eoper == OPrelconst)
                 {
-                    if (I16)
-                        addressOfParam = true;   // taking addr of param list
-                    else
-                        s.Sflags &= ~(SFLdistinct | GTregcand);
+                    s.Sflags &= ~(SFLdistinct | GTregcand);
                 }
                 break;
 
@@ -722,7 +718,6 @@ again:          // for tail recursion
 void out_regcand(Symbol*[] psymtab)
 {
     //printf("out_regcand()\n");
-    bool addressOfParam = false;                  // haven't taken addr of param yet
 
     void walk(elem* e)
     {
@@ -770,12 +765,6 @@ void out_regcand(Symbol*[] psymtab)
                         case SC.regpar:
                         case SC.parameter:
                         case SC.shadowreg:
-                            if (I16)
-                                addressOfParam = true;       // taking addr of param list
-                            else
-                                s.Sflags &= ~(SFLdistinct | GTregcand);
-                            break;
-
                         case SC.auto_:
                         case SC.register:
                         case SC.fastpar:
@@ -824,15 +813,6 @@ void out_regcand(Symbol*[] psymtab)
         // Any assembler blocks make everything ambiguous
         if (b.bc == BC.asm_)
             foreach (s; psymtab)
-                s.Sflags &= ~(SFLdistinct | GTregcand);
-    }
-
-    // If we took the address of one parameter, assume we took the
-    // address of all non-register parameters.
-    if (addressOfParam)                      // if took address of a parameter
-    {
-        foreach (s; psymtab)
-            if (s.Sclass == SC.parameter || s.Sclass == SC.shadowreg)
                 s.Sflags &= ~(SFLdistinct | GTregcand);
     }
 }
@@ -944,13 +924,12 @@ void writefunc2(Symbol* sfunc, ref GlobalOptimizer go, ref BlockOpt bo)
         }
     }
 
-    bool addressOfParam = false;  // see if any parameters get their address taken
     bool anyasm = false;
     for (block* b = bo.startblock; b; b = b.Bnext)
     {
         memset(&b._BLU,0,block.sizeof - block._BLU.offsetof);
         if (b.Belem)
-        {   outelem(b.Belem, addressOfParam);
+        {   outelem(b.Belem);
             if (b.Belem.Eoper == OPhalt)
             {   b.bc = BC.exit;
                 b.Bsucc.reset();
@@ -968,19 +947,16 @@ void writefunc2(Symbol* sfunc, ref GlobalOptimizer go, ref BlockOpt bo)
     {
         const marksi = globsym.length;
         eecontext.EEin++;
-        outelem(eecontext.EEelem, addressOfParam);
+        outelem(eecontext.EEelem);
         eecontext.EEelem = doptelem(eecontext.EEelem, Goal.value);
         eecontext.EEin--;
         eecontext_convs(marksi);
     }
 
-    // If we took the address of one parameter, assume we took the
-    // address of all non-register parameters.
-    if (addressOfParam | anyasm)        // if took address of a parameter
+    if (anyasm)
     {
         foreach (s; globsym[])
-            if (anyasm || s.Sclass == SC.parameter)
-                s.Sflags &= ~(SFLdistinct | GTregcand);
+            s.Sflags &= ~(SFLdistinct | GTregcand);
     }
 
     block_pred(bo.startblock);              // compute predecessors to blocks

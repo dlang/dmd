@@ -494,8 +494,7 @@ void logexp(ref CGstate cg, ref CodeBuilder cdb, elem* e, uint jcond, FL fltarg,
     static if (0)
     if (OTrel2(e.Eoper) &&               // if < <= >= >
         !e.Ecount &&
-        ( (I16 && tybasic(e.E1.Ety) == TYlong  && tybasic(e.E2.Ety) == TYlong) ||
-          (I32 && tybasic(e.E1.Ety) == TYllong && tybasic(e.E2.Ety) == TYllong))
+        (I32 && tybasic(e.E1.Ety) == TYllong && tybasic(e.E2.Ety) == TYllong)
        )
     {
         longcmp(cdb, e, jcond != 0, fltarg, targ);
@@ -2636,7 +2635,7 @@ void loaddata(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t outretreg
         {
             if (sz == 1)
                 flags |= 1;
-            else if (!I16 && sz == SHORTSIZE &&
+            else if (sz == SHORTSIZE &&
                      !(mask(reg) & cg.regcon.mvar) &&
                      !(config.flags4 & CFG4speed)
                     )
@@ -2714,32 +2713,15 @@ void loaddata(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t outretreg
                 if (movOnly(e))
                     opmv = 0x8B;
             }
-            if (!I16)
+            if (config.target_cpu >= TARGET_PentiumPro && config.flags4 & CFG4speed &&
+                // Workaround for OSX linker bug:
+                //   ld: GOT load reloc does not point to a movq instruction in test42 for x86_64
+                !(config.exe & EX_OSX64 && !(sytab[e.Vsym.Sclass] & SCSS))
+               )
             {
-                if (config.target_cpu >= TARGET_PentiumPro && config.flags4 & CFG4speed &&
-                    // Workaround for OSX linker bug:
-                    //   ld: GOT load reloc does not point to a movq instruction in test42 for x86_64
-                    !(config.exe & EX_OSX64 && !(sytab[e.Vsym.Sclass] & SCSS))
-                   )
-                {
-//                    opmv = tyuns(tym) ? MOVZXb : MOVSXb;      // MOVZX/MOVSX
-                }
-                loadea(cg, cdb, e, cs, opmv, reg, 0, 0, 0);     // MOV regL,data
+//                opmv = tyuns(tym) ? MOVZXb : MOVSXb;      // MOVZX/MOVSX
             }
-            else
-            {
-                nregm = tyuns(tym) ? BYTEREGS : cast(regm_t) mAX;
-                if (outretregs & nregm)
-                    nreg = reg;                             // already allocated
-                else
-                    nreg = allocreg(cdb, nregm, tym);
-                loadea(cg, cdb, e, cs, opmv, nreg, 0, 0, 0);    // MOV nregL,data
-                if (reg != nreg)
-                {
-                    genmovreg(cdb, reg, nreg);   // MOV reg,nreg
-                    cssave(e, mask(nreg), false);
-                }
-            }
+            loadea(cg, cdb, e, cs, opmv, reg, 0, 0, 0);     // MOV regL,data
         }
         else if (0 && forregs & XMMREGS)
         {

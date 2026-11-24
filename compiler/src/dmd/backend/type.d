@@ -679,7 +679,7 @@ void type_init()
     }
 
     // Type of trace function
-    tstrace = type_fake(I16 ? TYffunc : TYnfunc);
+    tstrace = type_fake(TYnfunc);
     tstrace.Tmangle = Mangle.c;
     tstrace.Tcount++;
 
