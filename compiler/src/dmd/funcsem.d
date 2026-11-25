@@ -2729,7 +2729,7 @@ FuncDeclaration overloadModMatch(FuncDeclaration thisfd, Loc loc, Type tthis, re
             OutBuffer thisBuf, funcBuf;
             MODMatchToBuffer(&thisBuf, tthis.mod, tf.mod);
             MODMatchToBuffer(&funcBuf, tf.mod, tthis.mod);
-            global.errorSink.error(loc, "%smethod %s is not callable using a %sobject", thisfd.kind, thisfd.toPrettyChars,
+            global.errorSink.error(loc, "%smethod `%s` is not callable using a %sobject",
                 funcBuf.peekChars(), thisfd.toPrettyChars(), thisBuf.peekChars());
         }
     }
