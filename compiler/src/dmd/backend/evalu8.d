@@ -93,7 +93,6 @@ int boolres(elem* e)
                 case TYifloat:
                 case TYdouble:
                 case TYidouble:
-                case TYdouble_alias:
                 case TYireal:
                 case TYreal:
                 {   targ_real ld = el_toreald(e);
@@ -372,11 +371,9 @@ static if (0)
                 }
                 break;
             case TYdouble:
-            case TYdouble_alias:
                 switch (tym2)
                 {
                     case TYdouble:
-                    case TYdouble_alias:
                             e.Vdouble = e1.Vdouble + e2.Vdouble;
                         break;
                     case TYidouble:
@@ -569,11 +566,9 @@ static if (0)
                 }
                 break;
             case TYdouble:
-            case TYdouble_alias:
                 switch (tym2)
                 {
                     case TYdouble:
-                    case TYdouble_alias:
                         e.Vdouble = e1.Vdouble - e2.Vdouble;
                         break;
                     case TYidouble:
@@ -759,11 +754,9 @@ static if (0)
                     }
                     break;
                 case TYdouble:
-                case TYdouble_alias:
                     switch (tym2)
                     {
                         case TYdouble:
-                        case TYdouble_alias:
                         case TYidouble:
                             e.Vdouble = e1.Vdouble * e2.Vdouble;
                             break;
@@ -939,11 +932,9 @@ static if (0)
                     }
                     break;
                 case TYdouble:
-                case TYdouble_alias:
                     switch (tym2)
                     {
                         case TYdouble:
-                        case TYdouble_alias:
                             e.Vdouble = e1.Vdouble / e2.Vdouble;
                             break;
                         case TYreal:
@@ -1113,7 +1104,6 @@ static if (0)
             switch (tym)
             {   case TYdouble:
                 case TYidouble:
-                case TYdouble_alias:
                     e.Vdouble = fmod(e1.Vdouble,e2.Vdouble);
                     break;
                 case TYfloat:
@@ -1377,7 +1367,6 @@ static if (0)
         switch (tym)
         {   case TYdouble:
             case TYidouble:
-            case TYdouble_alias:
                 e.Vdouble = -e.Vdouble;
                 break;
             case TYfloat:
@@ -1416,7 +1405,6 @@ static if (0)
         {
             case TYdouble:
             case TYidouble:
-            case TYdouble_alias:
                 e.Vdouble = fabs(e1.Vdouble);
                 break;
             case TYfloat:
@@ -1957,7 +1945,6 @@ targ_real el_toreald(elem* e)
             break;
         case TYdouble:
         case TYidouble:
-        case TYdouble_alias:
             result = e.Vdouble;
             break;
         case TYreal:

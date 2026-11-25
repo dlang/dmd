@@ -726,7 +726,6 @@ private bool local_preserveAssignmentTo(tym_t ty)
             case TYcfloat:
             case TYdouble:
             case TYidouble:
-            case TYdouble_alias:
             case TYcdouble:
                 return true;
 

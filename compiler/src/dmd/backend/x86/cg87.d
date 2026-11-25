@@ -130,7 +130,6 @@ private void ndp_fstp(ref CodeBuilder cdb, size_t i, tym_t ty)
             break;
 
         case TYdouble:
-        case TYdouble_alias:
         case TYidouble:
         case TYcdouble:
             cdb.genc1(0xDD,modregrm(2,3,BPRM),FL.ndp,i); // FSTP m64real i[BP]
@@ -159,7 +158,6 @@ private void ndp_fld(ref CodeBuilder cdb, size_t i, tym_t ty)
             break;
 
         case TYdouble:
-        case TYdouble_alias:
         case TYidouble:
         case TYcdouble:
             cdb.genc1(0xDD,modregrm(2,0,BPRM),FL.ndp,i);
@@ -710,7 +708,6 @@ ubyte loadconst(elem* e, int im)
                 break;
 
             case TYdouble:
-            case TYdouble_alias:
             case TYidouble:
             case TYcdouble:
                 d = e.Vdouble;
@@ -970,7 +967,6 @@ void orth87(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     {
         case X(OPadd, TYfloat, TYfloat):
         case X(OPadd, TYdouble, TYdouble):
-        case X(OPadd, TYdouble_alias, TYdouble_alias):
         case X(OPadd, TYreal, TYreal):
         case X(OPadd, TYreal, TYdouble):
         case X(OPadd, TYdouble, TYreal):
@@ -982,7 +978,6 @@ void orth87(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 
         case X(OPmin, TYfloat, TYfloat):
         case X(OPmin, TYdouble, TYdouble):
-        case X(OPmin, TYdouble_alias, TYdouble_alias):
         case X(OPmin, TYreal, TYreal):
         case X(OPmin, TYreal, TYdouble):
         case X(OPmin, TYdouble, TYreal):
@@ -994,7 +989,6 @@ void orth87(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 
         case X(OPmul, TYfloat, TYfloat):
         case X(OPmul, TYdouble, TYdouble):
-        case X(OPmul, TYdouble_alias, TYdouble_alias):
         case X(OPmul, TYreal, TYreal):
         case X(OPmul, TYreal, TYdouble):
         case X(OPmul, TYdouble, TYreal):
@@ -1012,7 +1006,6 @@ void orth87(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 
         case X(OPdiv, TYfloat, TYfloat):
         case X(OPdiv, TYdouble, TYdouble):
-        case X(OPdiv, TYdouble_alias, TYdouble_alias):
         case X(OPdiv, TYreal, TYreal):
         case X(OPdiv, TYreal, TYdouble):
         case X(OPdiv, TYdouble, TYreal):
@@ -1024,7 +1017,6 @@ void orth87(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 
         case X(OPmod, TYfloat, TYfloat):
         case X(OPmod, TYdouble, TYdouble):
-        case X(OPmod, TYdouble_alias, TYdouble_alias):
         case X(OPmod, TYreal, TYreal):
         case X(OPmod, TYfloat, TYifloat):
         case X(OPmod, TYdouble, TYidouble):
@@ -1040,7 +1032,6 @@ void orth87(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 
         case X(OPeqeq, TYfloat, TYfloat):
         case X(OPeqeq, TYdouble, TYdouble):
-        case X(OPeqeq, TYdouble_alias, TYdouble_alias):
         case X(OPeqeq, TYreal, TYreal):
         case X(OPeqeq, TYifloat, TYifloat):
         case X(OPeqeq, TYidouble, TYidouble):
@@ -1690,7 +1681,6 @@ L5:
                     case TYidouble:
                     case TYcfloat:
                     case TYcdouble:
-                    case TYdouble_alias:
                         loadea(cg,cdb,e,cs,ESC(mf,1),0,0,0,0); // FLD var
                         break;
                     case TYreal:
@@ -1974,7 +1964,6 @@ void eq87(ref CGstate cg,ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     tym_t ty1 = tybasic(e.E1.Ety);
     switch (ty1)
     {
-        case TYdouble_alias:
         case TYidouble:
         case TYdouble:      op1 = ESC(MFdouble,1);  op2 = 3; break;
 
@@ -2257,7 +2246,6 @@ public void opass87(ref CGstate cg,ref CodeBuilder cdb,elem* e,ref regm_t pretre
 
     switch (ty1)
     {
-        case TYdouble_alias:
         case TYidouble:
         case TYdouble:      op1 = ESC(MFdouble,1);  op2 = 3; break;
         case TYifloat:
@@ -2810,10 +2798,9 @@ void cdnegass87(ref CGstate cg,ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         switch (tyml)
         {
             case TYifloat:
-            case TYfloat:               cs.Iop = 0xD9;  op = 0; break;
+            case TYfloat:            cs.Iop = 0xD9;  op = 0; break;
             case TYidouble:
-            case TYdouble:
-            case TYdouble_alias:        cs.Iop = 0xDD;  op = 0; break;
+            case TYdouble:           cs.Iop = 0xDD;  op = 0; break;
             case TYireal:
             case TYreal:             cs.Iop = 0xDB;  op = 5; break;
             default:
@@ -2850,7 +2837,6 @@ void post87(ref CGstate cg,ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     tym_t ty1 = tybasic(e.E1.Ety);
     switch (ty1)
     {
-        case TYdouble_alias:
         case TYidouble:
         case TYdouble:
         case TYcdouble:     op1 = ESC(MFdouble,1);  reg = 0;        break;
@@ -3438,7 +3424,6 @@ void cdind87(ref CGstate cg,ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 
             case TYidouble:
             case TYdouble:
-            case TYdouble_alias:
                 cs.Iop = 0xDD;
                 break;
 

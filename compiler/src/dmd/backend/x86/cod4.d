@@ -657,7 +657,7 @@ void cdeq(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
           )
         // getlvalue() needs ES, so we can't return it
         retregs = cg.allregs;              // no conflicts with ES
-    else if (tyml == TYdouble || tyml == TYdouble_alias || retregs & mST0)
+    else if (tyml == TYdouble || retregs & mST0)
         retregs = DOUBLEREGS;
 
     regvar = false;

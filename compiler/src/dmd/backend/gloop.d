@@ -1914,7 +1914,6 @@ private void newfamlist(famlist* fl, tym_t ty)
             break;
 
         case TYdouble:
-        case TYdouble_alias:
             c.Vdouble = 1;
             break;
 
@@ -3292,7 +3291,6 @@ private bool flcmp(const ref famlist f1, const ref famlist f2)
                 break;
 
             case TYdouble:
-            case TYdouble_alias:
                 if (t2.Vdouble == 1.0 ||
                     t1.Vdouble != 1.0 && f2.c2.Vdouble == 0)
                         goto Lf2;

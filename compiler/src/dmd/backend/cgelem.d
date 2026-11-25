@@ -187,7 +187,6 @@ int elemisone(elem* e)
                 break;
             case TYdouble:
             case TYidouble:
-            case TYdouble_alias:
                 if (e.Vdouble != 1)
                         goto nomatch;
                 break;
@@ -251,7 +250,6 @@ int elemisnegone(elem* e)
                 break;
             case TYdouble:
             //case TYidouble:
-            case TYdouble_alias:
                 if (e.Vdouble != -1)
                         goto nomatch;
                 break;

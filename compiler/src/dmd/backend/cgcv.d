@@ -633,7 +633,6 @@ L1:
         case TYlong:
         case TYfloat:
         case TYdouble:
-        case TYdouble_alias:
         case TYreal:
         case TYifloat:
         case TYidouble:
@@ -928,8 +927,7 @@ __gshared ubyte[TYMAX] dttab =
     TYucent   : 0x86,
     TYfloat   : 0x88,
     TYdouble  : 0x89,
-    TYdouble_alias : 0x89,
-    TYreal : 0x89,
+    TYreal    : 0x89,
 
     TYifloat   : 0x88,
     TYidouble  : 0x89,
@@ -1033,8 +1031,7 @@ __gshared ushort[TYMAX] dttab4 =
     TYucent   : 0x603,
     TYfloat   : 0x40,
     TYdouble  : 0x41,
-    TYdouble_alias : 0x41,
-    TYreal : 0x42,
+    TYreal    : 0x42,
 
     TYifloat   : 0x40,
     TYidouble  : 0x41,

@@ -653,14 +653,13 @@ void type_init()
     tstypes[TYullong]  = type_allocbasic(TYullong);
     tstypes[TYfloat]   = type_allocbasic(TYfloat);
     tstypes[TYdouble]  = type_allocbasic(TYdouble);
-    tstypes[TYdouble_alias]  = type_allocbasic(TYdouble_alias);
-    tstypes[TYreal] = type_allocbasic(TYreal);
+    tstypes[TYreal]    = type_allocbasic(TYreal);
     tstypes[TYifloat]  = type_allocbasic(TYifloat);
     tstypes[TYidouble] = type_allocbasic(TYidouble);
-    tstypes[TYireal] = type_allocbasic(TYireal);
-    tstypes[TYcfloat]   = type_allocbasic(TYcfloat);
-    tstypes[TYcdouble]  = type_allocbasic(TYcdouble);
-    tstypes[TYcreal] = type_allocbasic(TYcreal);
+    tstypes[TYireal]   = type_allocbasic(TYireal);
+    tstypes[TYcfloat]  = type_allocbasic(TYcfloat);
+    tstypes[TYcdouble] = type_allocbasic(TYcdouble);
+    tstypes[TYcreal]   = type_allocbasic(TYcreal);
 
     if (I64)
     {
