@@ -114,7 +114,6 @@ public:
     int needModuleInfo();
     bool isPackageAccessible(Package *p, Visibility visibility, SearchOptFlags flags = (SearchOptFlags)SearchOpt::all) override;
     Dsymbol *symtabInsert(Dsymbol *s) override;
-    int imports(Module *m);
 
     bool isRoot() { return this->importedFrom == this; }
     // true if the module source file is directly
