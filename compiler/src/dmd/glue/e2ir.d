@@ -179,13 +179,6 @@ elem* elAssign(elem* e1, elem* e2, Type t, type* tx)
         e2 = el_pair(TYdelegate, el_long(TYnptr, 0), e2);
     }
 
-    if (tybasic(e2.Ety) == TYnoreturn)
-    {
-        // A noreturn rvalue diverges before producing a storable value;
-        // evaluate e1 (for any address side effects) followed by e2.
-        return el_combine(e1, e2);
-    }
-
     elem* e = el_bin(OPeq, e2.Ety, e1, e2);
     switch (tybasic(e2.Ety))
     {
@@ -443,8 +436,6 @@ elem* addressElem(elem* e, Type t, bool alwaysCopy = false)
     if (alwaysCopy || !hasAddress(*pe))
     {
         elem* e2 = *pe;
-        if (tybasic(e2.Ety) == TYnoreturn)
-            return e;
         type* tx;
 
         // Convert to ((tmp=e2),tmp)
@@ -1674,8 +1665,7 @@ elem* toElem(Expression e, ref IRState irs)
         elem* e;
         if (irs.params.useAssert != CHECKENABLE.on)
         {
-            if (ae.type && ae.type.toBasetype().ty == Tnoreturn)
-                return genHalt(ae.loc);
+            // BUG: should replace assert(0); with a HLT instruction
             e = el_long(TYint, 0);
             elem_setLoc(e,ae.loc);
             return e;
@@ -2450,39 +2440,11 @@ elem* toElem(Expression e, ref IRState irs)
         /*
             https://issues.dlang.org/show_bug.cgi?id=23120
 
-            If rhs is a noreturn expression, evaluate any lhs side effects
-            first and then evaluate rhs without generating a store.
+            If rhs is a noreturn expression, then there is no point
+            to generate any code for the noreturen variable.
          */
-        static elem* discardValueElem(elem* e, Type t)
-        {
-            if (!e)
-                return null;
-            elem** pe = el_scancommas(&e);
-            if ((*pe).Eoper == OPind)
-            {
-                const typtr = (*pe).E1.Ety;
-                *pe = el_selecte1(*pe);
-                (*pe).Ety = typtr;
-                for (elem* ex = e; ex.Eoper == OPcomma; ex = ex.E2)
-                    ex.Ety = typtr;
-            }
-            else
-                e = addressElem(e, t);
-            return e;
-        }
-
         if (ae.e2.type.isTypeNoreturn())
-        {
-            elem* e1 = null;
-            if ((ae.op == EXP.assign || !ae.e1.isVarExp()) && el_sideeffect(e1 = toElem(ae.e1, irs)))
-                e1 = discardValueElem(e1, ae.e1.type);
-            else if (e1)
-            {
-                el_free(e1);
-                e1 = null;
-            }
-            return setResult(el_combine(e1, toElem(ae.e2, irs)));
-        }
+            return setResult(toElem(ae.e2, irs));
 
         Type t1b = ae.e1.type.toBasetype();
 
@@ -2561,14 +2523,6 @@ elem* toElem(Expression e, ref IRState irs)
                 einit = el_combine(einit, euprx);
 
                 elem* evalue = toElem(ae.e2, irs);
-                if (tybasic(evalue.Ety) == TYnoreturn)
-                {
-                    el_free(n1);
-                    el_free(elwr);
-                    el_free(eupr);
-                    el_free(enbytes);
-                    return setResult(el_combine(einit, evalue));
-                }
 
                 version (none)
                 {
@@ -2616,10 +2570,6 @@ elem* toElem(Expression e, ref IRState irs)
                  */
                 elem* eto = toElem(ae.e1, irs);
                 elem* efrom = toElem(ae.e2, irs);
-                if (tybasic(efrom.Ety) == TYnoreturn)
-                {
-                    return setResult(el_combine(eto, efrom));
-                }
 
                 // https://github.com/dlang/dmd/issues/22659
                 // LHS is a SliceExp with static array type from cast(T[n]) slice.
@@ -2770,21 +2720,6 @@ elem* toElem(Expression e, ref IRState irs)
             return setResult(el_combine(e, e1x));
         }
 
-        elem* handleNoreturnRhs(elem* e2)
-        {
-            el_free(e1);
-            el_free(e1x);
-            elem* elhs = null;
-            if ((ae.op == EXP.assign || !ae.e1.isVarExp()) && el_sideeffect(elhs = toElem(ae.e1, irs)))
-                elhs = discardValueElem(elhs, ae.e1.type);
-            else if (elhs)
-            {
-                el_free(elhs);
-                elhs = null;
-            }
-            return setResult(el_combine(elhs, e2));
-        }
-
         // Create a reference to e1.
         if (e1.Eoper == OPvar || e1.Eoper == OPbit)
             e1x = el_copytree(e1);
@@ -2893,8 +2828,6 @@ elem* toElem(Expression e, ref IRState irs)
              *  (struct = struct)
              */
             elem* e2 = toElem(ae.e2, irs);
-            if (tybasic(e2.Ety) == TYnoreturn)
-                return handleNoreturnRhs(e2);
 
             elem* e = elAssign(e1, e2, ae.e1.type, null);
             return setResult2(e);
@@ -2961,11 +2894,6 @@ elem* toElem(Expression e, ref IRState irs)
 
                     // Eliminate _d_arrayliteralTX call in ae.e2.
                     e = ExpressionsToStaticArray(irs, ale.loc, ale.elements, &stmp, 0, ale.basis);
-                    if (e && tybasic(e.Ety) == TYnoreturn)
-                    {
-                        el_free(e1x);
-                        return setResult(el_combine(e1, e));
-                    }
                     e = el_combine(e1, e);
                 }
                 return setResult2(e);
@@ -3008,13 +2936,6 @@ elem* toElem(Expression e, ref IRState irs)
 
             elem* e2 = toElem(ae.e2, irs);
 
-            /* If rhs is a noreturn expression (or cast from noreturn),
-             * evaluate e1's address side effects and then e2 without generating a store.
-             * https://issues.dlang.org/show_bug.cgi?id=23120
-             */
-            if (tybasic(e2.Ety) == TYnoreturn)
-                return handleNoreturnRhs(e2);
-
             if (!postblit && !destructor ||
                 ae.op == EXP.construct && !lvalueElem && postblit ||
                 ae.op == EXP.blit ||
@@ -3037,10 +2958,7 @@ elem* toElem(Expression e, ref IRState irs)
         }
         else
         {
-            elem* e2 = toElem(ae.e2, irs);
-            if (tybasic(e2.Ety) == TYnoreturn)
-                return handleNoreturnRhs(e2);
-            elem* e = el_bin(OPeq, tym, e1, e2);
+            elem* e = el_bin(OPeq, tym, e1, toElem(ae.e2, irs));
             return setResult2(e);
         }
         assert(0);
@@ -4178,11 +4096,6 @@ elem* toElem(Expression e, ref IRState irs)
             {
                 Symbol* stmp = null;
                 e = ExpressionsToStaticArray(irs, ale.loc, ale.elements, &stmp, 0, ale.basis);
-                if (e && tybasic(e.Ety) == TYnoreturn)
-                {
-                    elem_setLoc(e, ale.loc);
-                    return e;
-                }
                 e = el_combine(e, el_ptr(stmp));
             }
             else
@@ -4203,13 +4116,7 @@ elem* toElem(Expression e, ref IRState irs)
                 Symbol* stmp = symbol_genauto(Type_toCtype(Type.tvoid.pointerTo()));
                 e = el_bin(OPeq, TYnptr, el_var(stmp), e);
 
-                elem* einit = ExpressionsToStaticArray(irs, ale.loc, ale.elements, &stmp, 0, ale.basis);
-                e = el_combine(e, einit);
-                if (einit && tybasic(einit.Ety) == TYnoreturn)
-                {
-                    elem_setLoc(e, ale.loc);
-                    return e;
-                }
+                e = el_combine(e, ExpressionsToStaticArray(irs, ale.loc, ale.elements, &stmp, 0, ale.basis));
 
                 e = el_combine(e, el_var(stmp));
             }
@@ -4752,8 +4659,6 @@ elem* ElemsToStaticArray(Loc loc, Type telem, Elems* elems, Symbol **psym)
     elem* e = null;
     foreach (i, ep; *elems)
     {
-        if (tybasic(ep.Ety) == TYnoreturn)
-            return el_combine(e, ep);
         /* Generate: *(&stmp + i * szelem) = element[i]
          */
         elem* ev = el_ptr(stmp);
@@ -4803,8 +4708,6 @@ elem* ExpressionsToStaticArray(ref IRState irs, Loc loc, Expressions* exps, Symb
                 elem* ex = ExpressionsToStaticArray(irs,
                     ale.loc, ale.elements, &stmp, cast(uint)(offset + i * szelem), ale.basis);
                 e = el_combine(e, ex);
-                if (ex && tybasic(ex.Ety) == TYnoreturn)
-                    return e;
             }
             i++;
             continue;
@@ -4828,11 +4731,6 @@ elem* ExpressionsToStaticArray(ref IRState irs, Loc loc, Expressions* exps, Symb
         /* Generate: *(&stmp + i * szelem) = element[i]
          */
         elem* ep = toElem(el, irs);
-        if (tybasic(ep.Ety) == TYnoreturn)
-        {
-            // Element evaluation diverges; skip store and unreachable subsequent elements.
-            return el_combine(e, ep);
-        }
         elem* ev = tybasic(stmp.Stype.Tty) == TYnptr ? el_var(stmp) : el_ptr(stmp);
         ev = el_bin(OPadd, TYnptr, ev, el_long(TYsize_t, offset + i * szelem));
 
@@ -5047,13 +4945,6 @@ elem* toElemCast(CastExp ce, elem* e, bool isLvalue, ref IRState irs)
     }
 
     ftym = tybasic(e.Ety);
-    if (fty == Tnoreturn || ftym == TYnoreturn)
-    {
-        // noreturn expression will throw/abort and never produce a
-        //  value to cast, hence we discard the cast
-        elem_setLoc(e, ce.loc);
-        return e;
-    }
     ttym = tybasic(totym(t));
     if (ftym == ttym)
         return Lret(ce, e);
@@ -5118,8 +5009,7 @@ elem* toElemCast(CastExp ce, elem* e, bool isLvalue, ref IRState irs)
         // noreturn expression will throw/abort and never produce a
         //  value to cast, hence we discard the cast
         case Tnoreturn:
-            elem_setLoc(e, ce.loc);
-            return e;
+            return Lret(ce, e);
 
         case Tfloat80:          if (RealIsDouble) fty = Tfloat64;     break;
         case Timaginary80:      if (RealIsDouble) fty = Timaginary64; break;
@@ -7303,11 +7193,6 @@ elem* toElemStructLit(StructLiteralExp sle, ref IRState irs, EXP op, Symbol* sym
         if (t1b.ty == Tsarray)
         {
             elem* ep = toElem(element, irs);
-            if (tybasic(ep.Ety) == TYnoreturn)
-            {
-                el_free(e1);
-                return el_combine(e, ep);
-            }
             e1 = el_bin(OPadd, TYnptr, e1, el_long(TYsize_t, v.offset));
             if (t2b.implicitConvTo(t1b))
             {
@@ -7315,15 +7200,10 @@ elem* toElemStructLit(StructLiteralExp sle, ref IRState irs, EXP op, Symbol* sym
                 ep = array_toPtr(element.type, ep);
                 e1 = el_bin(OPmemcpy, TYnptr, e1, el_param(ep, esize));
             }
-            else if (const sz2 = t2b.size())
-            {
-                elem* edim = el_long(TYsize_t, t1b.size() / sz2);
-                e1 = setArray(element, e1, edim, t2b, ep, irs, op == EXP.construct ? EXP.blit : op);
-            }
             else
             {
-                el_free(e1);
-                e1 = ep;
+                elem* edim = el_long(TYsize_t, t1b.size() / t2b.size());
+                e1 = setArray(element, e1, edim, t2b, ep, irs, op == EXP.construct ? EXP.blit : op);
             }
             e = el_combine(e, e1);
             continue;
@@ -7361,11 +7241,6 @@ elem* toElemStructLit(StructLiteralExp sle, ref IRState irs, EXP op, Symbol* sym
         if (bf)
         {
             elem* ep = toElem(element, irs);
-            if (tybasic(ep.Ety) == TYnoreturn)
-            {
-                el_free(e1);
-                return el_combine(e, ep);
-            }
             if (!vbf || vbf.offset + vbf.type.size() <= v.offset)
             {
                 /* Initialize entire location the bitfield is in
@@ -7387,18 +7262,10 @@ elem* toElemStructLit(StructLiteralExp sle, ref IRState irs, EXP op, Symbol* sym
         else if (op == EXP.construct && tybasic(tym) == TYstruct && canElideCopy(element, t1b))
         {
             e1 = toElemRVO(element, e1, irs);
-            if (e1 && tybasic(e1.Ety) == TYnoreturn)
-                return el_combine(e, e1);
         }
         else
         {
             elem* ep = toElem(element, irs);
-            if (tybasic(ep.Ety) == TYnoreturn)
-            {
-                // Field evaluation diverges; skip store and unreachable subsequent fields.
-                el_free(e1);
-                return el_combine(e, ep);
-            }
             e1 = elAssign(e1, ep, v.type, e1.ET);
         }
 

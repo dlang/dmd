@@ -5026,13 +5026,10 @@ Expression defaultInitLiteral(Type t, Loc loc, const bool isCfile = false)
         }
         size_t d = cast(size_t)tsa.dim.toInteger();
         Expression elementinit;
-        if (d > 0)
-        {
-            if (tsa.next.ty == Tvoid)
-                elementinit = Type.tuns8.defaultInitLiteral(loc, isCfile);
-            else
-                elementinit = tsa.next.defaultInitLiteral(loc, isCfile);
-        }
+        if (tsa.next.ty == Tvoid)
+            elementinit = Type.tuns8.defaultInitLiteral(loc, isCfile);
+        else
+            elementinit = tsa.next.defaultInitLiteral(loc, isCfile);
         auto elements = new Expressions(d);
         foreach (ref e; *elements)
             e = null;
