@@ -18,3 +18,10 @@ void fun3()
 {
     auto foo = assertFalse() ? 1 : 2;
 }
+
+// https://github.com/dlang/dmd/issues/18186
+void fun4()
+{
+    noreturn[1] x = noreturn[1].init;
+    noreturn[1] x2 = noreturn.init;
+}
