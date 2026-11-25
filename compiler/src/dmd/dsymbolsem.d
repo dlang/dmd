@@ -623,7 +623,6 @@ Dsymbol search_correct(Scope* _this, Identifier ident)
         if (!id)
             return null;
         Scope* sc = _this;
-        Module.clearCache();
         Dsymbol scopesym;
         Dsymbol s = sc.search(Loc.initial, id, scopesym, SearchOpt.ignoreErrors);
         if (!s)
@@ -7814,7 +7813,6 @@ Dsymbol search_correct(Dsymbol d, Identifier ident)
             return null;
         cost = 0;   // all the same cost
         Dsymbol s = d;
-        Module.clearCache();
         return s.search(Loc.initial, id, SearchOpt.ignoreErrors);
     }
 

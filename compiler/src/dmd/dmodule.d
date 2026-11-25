@@ -933,12 +933,6 @@ extern (C++) final class Module : Package
             File.remove(docfile.toChars());
     }
 
-    extern (D) static void clearCache() nothrow
-    {
-        foreach (Module m; amodules)
-            m.searchCacheIdent = null;
-    }
-
     /************************************
      * Recursively look at every module this module imports,
      * return true if it imports m.
