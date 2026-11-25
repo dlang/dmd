@@ -2195,54 +2195,15 @@ Expression checkNoreturnVarAccess(Expression exp)
         ce.e2 = checkNoreturnVarAccess(ce.e2);
         return ce;
 
-    case EXP.arrayLiteral:
-        auto ale = exp.isArrayLiteralExp();
-        if (ale.basis)
-            ale.basis = checkNoreturnVarAccess(ale.basis);
-        if (ale.elements)
-        {
-            foreach (ref el; (*ale.elements)[])
-            {
-                if (el)
-                    el = checkNoreturnVarAccess(el);
-            }
-        }
-        return ale;
-
-    case EXP.structLiteral:
-        auto sle = exp.isStructLiteralExp();
-        if (sle.elements)
-        {
-            foreach (ref el; (*sle.elements)[])
-            {
-                if (el)
-                    el = checkNoreturnVarAccess(el);
-            }
-        }
-        return sle;
-
     default:
-        if (!exp.type)
+        if (!exp.type || !exp.type.isTypeNoreturn())
             return exp;
-        if (!exp.type.isTypeNoreturn())
-        {
-            // Non-empty static arrays of noreturn (e.g. noreturn[1], noreturn[1][2])
-            // are uninhabited just like noreturn itself, whereas noreturn[0] is empty/valid.
-            Type tb = exp.type.toBasetype();
-            if (!tb.isTypeSArray() || !tb.baseElemOf().isTypeNoreturn())
-                return exp;
-            for (auto tsa = tb.isTypeSArray(); tsa; tsa = tsa.next.toBasetype().isTypeSArray())
-            {
-                if (tsa.dim.toInteger() == 0)
-                    return exp;
-            }
-        }
 
         auto msg = new StringExp(exp.loc, "Accessed expression of type `noreturn`");
         msg.type = Type.tstring;
         auto ae = new AssertExp(exp.loc, IntegerExp.literal!0, msg);
         ae.loweredFrom = exp;
-        ae.type = exp.type.isTypeNoreturn() ? exp.type : Type.tnoreturn;
+        ae.type = exp.type;
         return ae;
     }
 }
@@ -6299,14 +6260,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return setError();
         }
 
-        if (e.basis)
-            e.basis = checkNoreturnVarAccess(e.basis);
-        foreach (ref el; (*e.elements)[])
-        {
-            if (el)
-                el = checkNoreturnVarAccess(el);
-        }
-
         if (global.params.useTypeInfo && Type.dtypeinfo)
             semanticTypeInfo(sc, e.type);
 
@@ -6394,17 +6347,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         Type tvalue = arrayExpressionToCommonType(sc, *e.values);
         if (tkey is null || tvalue is null)
             return setError();
-
-        foreach (ref el; (*e.values)[])
-        {
-            if (el)
-                el = checkNoreturnVarAccess(el);
-        }
-        foreach (ref el; (*e.keys)[])
-        {
-            if (el)
-                el = checkNoreturnVarAccess(el);
-        }
 
         e.type = new TypeAArray(tvalue, tkey);
         e.type = e.type.typeSemantic(e.loc, sc);
@@ -18486,7 +18428,6 @@ private bool fit(StructDeclaration sd, Loc loc, Scope* sc, Expressions* elements
         if (e.op == EXP.error)
             return false;
 
-        e = checkNoreturnVarAccess(e);
         (*elements)[i] = doCopyOrMove(sc, e, null, false);
     }
     return true;

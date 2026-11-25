@@ -2339,8 +2339,7 @@ public:
 
         // Visit the default initializer for noreturn variables
         // (Custom initializers would abort the current function call and exit above)
-        if (result.type.ty == Tnoreturn ||
-            (result.type.toBasetype().isTypeSArray() && result.type.baseElemOf().isTypeNoreturn()))
+        if (result.type.ty == Tnoreturn)
         {
             result.accept(this);
             return;
@@ -2584,20 +2583,12 @@ public:
         Type tn = tb.nextOf().toBasetype();
         bool wantCopy = (tn.ty == Tsarray || tn.ty == Tstruct);
 
+        auto basis = interpretRegion(e.basis, istate);
+        if (exceptionOrCant(basis))
+            return;
+
         auto expsx = e.elements;
         size_t dim = e.length;
-
-        Expression basis = null;
-        foreach (i; 0 .. dim)
-        {
-            if (!(*expsx)[i])
-            {
-                basis = interpretRegion(e.basis, istate);
-                if (exceptionOrCant(basis))
-                    return;
-                break;
-            }
-        }
 
         for (size_t i = 0; i < dim; i++)
         {

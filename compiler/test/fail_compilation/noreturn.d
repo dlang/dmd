@@ -136,21 +136,3 @@ noreturn func()
 }
 
 enum f = func();
-
-/*
-https://github.com/dlang/dmd/issues/18186
-
-TEST_OUTPUT:
----
-fail_compilation/noreturn.d(152): Error: Accessed expression of type `noreturn`
-fail_compilation/noreturn.d(156):        called from here: `assignSArray()`
----
-*/
-int assignSArray()
-{
-    noreturn[1] a;
-    noreturn[1] b = a;
-    return 0;
-}
-
-enum forceAssignSArray = assignSArray();

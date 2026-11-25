@@ -9,7 +9,7 @@
 */
 module core.internal.array.utils;
 
-import core.internal.traits : hasIndirections, Parameters;
+import core.internal.traits : Parameters;
 import core.memory : GC;
 debug(PRINTF) import core.stdc.stdio : printf;
 
@@ -53,7 +53,13 @@ template isPostblitNoThrow(T) {
  */
 void[] __arrayAlloc(T)(size_t arrSize) @trusted
 {
-    enum uint attr = __staticTypeAttrs!T | BlkAttr.APPENDABLE;
+    import core.lifetime : TypeInfoSize;
+    import core.internal.traits : hasIndirections;
+
+    enum typeInfoSize = TypeInfoSize!T;
+    enum uint attr = BlkAttr.APPENDABLE | GC.convertAlignmentToBlkAttr(T.alignof)
+        | (typeInfoSize ? BlkAttr.FINALIZE : 0)
+        | (!hasIndirections!T ? BlkAttr.NO_SCAN : 0);
 
     version(D_TypeInfo)
         auto ptr = GC.malloc(arrSize, attr, typeid(T));
@@ -137,31 +143,24 @@ size_t newCapacity(size_t newlength, size_t elemsize) pure nothrow
     return newcap;
 }
 
-enum uint __staticTypeAttrs(T) =
-    (T.alignof ? GC.convertAlignmentToBlkAttr(T.alignof) : 0)
-    | (!hasIndirections!T ? BlkAttr.NO_SCAN : 0)
-    | (is(T == struct) && __traits(needsDestruction, T) ? BlkAttr.FINALIZE : 0);
-
-uint __typeAttrs(T)(void *copyAttrsFrom = null) @trusted pure nothrow
+uint __typeAttrs(T)(void *copyAttrsFrom = null)
 {
-    enum uint alignAttr = T.alignof ? GC.convertAlignmentToBlkAttr(T.alignof) : 0;
+    import core.internal.traits : hasIndirections;
+    import core.memory : GC;
 
-    if (!__ctfe && copyAttrsFrom)
+    alias BlkAttr = GC.BlkAttr;
+
+    if (copyAttrsFrom)
     {
         // try to copy attrs from the given block
         auto info = GC.query(copyAttrsFrom);
         if (info.base)
-            return info.attr | alignAttr;
+            return info.attr | GC.convertAlignmentToBlkAttr(T.alignof);
     }
 
-    return __staticTypeAttrs!T;
-}
+    enum uint attrs = GC.convertAlignmentToBlkAttr(T.alignof)
+        | (!hasIndirections!T ? BlkAttr.NO_SCAN : 0)
+        | (is(T == struct) && __traits(needsDestruction, T) ? BlkAttr.FINALIZE : 0);
 
-@safe pure nothrow unittest
-{
-    static assert(__staticTypeAttrs!noreturn == BlkAttr.NO_SCAN);
-    static assert(__typeAttrs!noreturn() == BlkAttr.NO_SCAN);
-
-    import core.internal.array.construction : _d_arrayliteralTX;
-    static assert(__traits(compiles, &_d_arrayliteralTX!noreturn));
+    return attrs;
 }

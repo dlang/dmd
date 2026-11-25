@@ -607,10 +607,16 @@ void* _d_arrayliteralTX(T)(size_t length) @trusted pure nothrow
     else
     {
         import core.memory : GC;
-        import core.internal.array.utils : __staticTypeAttrs;
+        import core.internal.traits : hasIndirections;
         alias BlkAttr = GC.BlkAttr;
 
-        enum uint attrs = __staticTypeAttrs!T | BlkAttr.APPENDABLE;
+        /* Same as in core.internal.array.utils.__typeAttrs!T,
+        *  but don't use a nested template function call here to avoid
+        *  possible linking errors.
+        */
+        enum uint attrs = BlkAttr.APPENDABLE | GC.convertAlignmentToBlkAttr(T.alignof)
+            | (!hasIndirections!T ? BlkAttr.NO_SCAN : 0)
+            | (is(T == struct) && __traits(needsDestruction, T) ? BlkAttr.FINALIZE : 0);
 
         version (D_TypeInfo)
             return GC.malloc(allocsize, attrs, typeid(T));
