@@ -2723,14 +2723,12 @@ if (is(T == class))
  */
 T* _d_newitemT(T)() @trusted
 {
+    import core.internal.array.utils : __staticTypeAttrs;
     import core.internal.lifetime : emplaceInitializer;
-    import core.internal.traits : hasIndirections;
     import core.memory : GC;
 
     immutable itemSize = T.sizeof;
-    enum flags = (!hasIndirections!T ? GC.BlkAttr.NO_SCAN : GC.BlkAttr.NONE)
-               | (TypeInfoSize!T ? GC.BlkAttr.FINALIZE : 0)
-               | GC.convertAlignmentToBlkAttr(T.alignof);
+    enum flags = __staticTypeAttrs!T;
 
     version(D_TypeInfo)
         auto p = GC.malloc(itemSize, flags, typeid(T));
@@ -2903,6 +2901,3 @@ debug(SENTINEL) {} else
     import core.exception : InvalidMemoryOperationError;
     assert(!test!InvalidMemoryOperationError);
 }
-
-
-enum TypeInfoSize(T) = (is (T == struct) && __traits(needsDestruction, T)) ? size_t.sizeof : 0;

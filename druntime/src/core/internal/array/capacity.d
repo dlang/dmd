@@ -255,6 +255,7 @@ private size_t _d_arraysetlengthT_(Tarr : T[], T)(return ref scope Tarr arr, siz
     import core.checkedint : mulu;
     import core.exception : onFinalizeError, onOutOfMemoryError;
     import core.stdc.string : memcpy, memset;
+    import core.internal.array.utils : __typeAttrs;
     import core.internal.traits : hasElaborateCopyConstructor, Unqual;
     import core.lifetime : emplace;
     import core.memory;
@@ -296,8 +297,7 @@ private size_t _d_arraysetlengthT_(Tarr : T[], T)(return ref scope Tarr arr, siz
         return newlength;
     }
 
-    enum uint gcAttrs = BlkAttr.APPENDABLE | GC.convertAlignmentToBlkAttr(T.alignof)
-        | (is(T == struct) && __traits(hasMember, T, "xdtor") ? BlkAttr.FINALIZE : 0);
+    const uint gcAttrs = __typeAttrs!T(cast(void*)arr.ptr) | BlkAttr.APPENDABLE;
 
     if (!arr.ptr)
     {
@@ -410,4 +410,44 @@ private size_t _d_arraysetlengthT_(Tarr : T[], T)(return ref scope Tarr arr, siz
     // the backing storage directly to verify initialization.
     foreach (s; (() @trusted => *cast(S[]*) &arr2)())
         assert(s == S.init);
+}
+
+// https://github.com/dlang/dmd/issues/24424
+// https://github.com/dlang/dmd/issues/24425
+// https://github.com/dlang/dmd/issues/24426
+@system unittest
+{
+    import core.memory : GC;
+
+    // #24426: pointer-free element types receive NO_SCAN
+    ubyte[] b;
+    b.length = 64;
+    assert(GC.query(b.ptr).attr & GC.BlkAttr.NO_SCAN);
+
+    // #24424: custom GC block attributes are preserved on reallocation
+    int*[] c = new int*[](2);
+    GC.setAttr(c.ptr, GC.BlkAttr.NO_SCAN);
+    c.length = 64;
+    assert(GC.query(c.ptr).attr & GC.BlkAttr.NO_SCAN);
+
+    // #24425: structs with ~this() receive FINALIZE, whereas a field named `xdtor` does not
+    static struct WithDtor
+    {
+        int x;
+        ~this() {}
+    }
+
+    WithDtor[] dtors;
+    dtors.length = 4;
+    assert((GC.query(dtors.ptr).attr & (GC.BlkAttr.FINALIZE | GC.BlkAttr.NO_SCAN)) ==
+        (GC.BlkAttr.FINALIZE | GC.BlkAttr.NO_SCAN));
+
+    static struct PodWithXdtorField
+    {
+        int xdtor;
+    }
+
+    PodWithXdtorField[] pod;
+    pod.length = 4;
+    assert((GC.query(pod.ptr).attr & GC.BlkAttr.FINALIZE) == 0);
 }
