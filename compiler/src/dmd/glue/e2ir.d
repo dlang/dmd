@@ -5850,7 +5850,6 @@ elem* callfunc(Loc loc,
                         case TYbool:
                         case TYchar:
                         case TYuchar:
-                        case TYchar8:
                             opc = OPu8_16;
                             goto L1;
 
@@ -5858,7 +5857,6 @@ elem* callfunc(Loc loc,
                             opc = OPs8_16;
                             goto L1;
 
-                        case TYchar16:
                         case TYwchar_t:
                         case TYushort:
                             opc = OPu16_32;

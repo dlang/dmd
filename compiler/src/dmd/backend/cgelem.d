@@ -155,7 +155,6 @@ int elemisone(elem* e)
             case TYchar:
             case TYuchar:
             case TYschar:
-            case TYchar16:
             case TYshort:
             case TYushort:
             case TYint:
@@ -220,7 +219,6 @@ int elemisnegone(elem* e)
             case TYchar:
             case TYuchar:
             case TYschar:
-            case TYchar16:
             case TYshort:
             case TYushort:
             case TYint:

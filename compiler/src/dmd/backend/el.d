@@ -1883,7 +1883,6 @@ L1:
                     case TYshort:
                     case TYwchar_t:
                     case TYushort:
-                    case TYchar16:
                     case_short:
                         if (n1.Vshort != n2.Vshort)
                             return false;
@@ -2140,7 +2139,6 @@ targ_llong el_tolong(elem* e)
 
         case TYushort:
         case TYwchar_t:
-        case TYchar16:
         Ushort:
             result = e.Vushort;
             break;
@@ -2433,7 +2431,6 @@ void elem_print_const(const elem* e)
         case TYshort:
         case TYwchar_t:
         case TYushort:
-        case TYchar16:
         L3:
             printf("%d ",e.Vint);
             break;

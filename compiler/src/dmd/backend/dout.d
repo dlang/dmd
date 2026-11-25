@@ -527,7 +527,7 @@ Symbol* out_string_literal(const(char)* str, uint len, uint sz)
 {
     tym_t ty = TYchar;
     if (sz == 2)
-        ty = TYchar16;
+        ty = TYushort;
     else if (sz == 4)
         ty = TYdchar;
     else if (sz == 8)
