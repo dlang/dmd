@@ -467,12 +467,6 @@ extern (C++) class Dsymbol : ASTNode
         return ident is null || ident.isAnonymous;
     }
 
-    extern(D) private const(char)[] prettyFormatHelper()
-    {
-        const cstr = toPrettyChars();
-        return '`' ~ cstr.toDString() ~ "`\0";
-    }
-
     /**********************************
      * Determine which Module a Dsymbol is in.
      */
