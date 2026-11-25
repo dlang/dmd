@@ -319,29 +319,11 @@ extern (C++) final class Module : Package
     Package pkg;                // if isPackageFile is true, the Package that contains this package.d
     Strings contentImportedFiles; // array of files whose content was imported
     int needmoduleinfo;
-    private ThreeState selfimports;
     private ThreeState rootimports;
     Dsymbol[void*] tagSymTab;   /// ImportC: tag symbols that conflict with other symbols used as the index
 
     private OutBuffer defines;  // collect all the #define lines here
 
-
-    /*************************************
-     * Return true if module imports itself.
-     */
-    bool selfImports()
-    {
-        //printf("Module::selfImports() %s\n", toChars());
-        if (selfimports == ThreeState.none)
-        {
-            foreach (Module m; amodules)
-                m.insearch = false;
-            selfimports = imports(this) ? ThreeState.yes : ThreeState.no;
-            foreach (Module m; amodules)
-                m.insearch = false;
-        }
-        return selfimports == ThreeState.yes;
-    }
 
     /*************************************
      * Return true if module imports root module.
