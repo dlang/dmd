@@ -1,6 +1,9 @@
 // https://issues.dlang.org/show_bug.cgi?id=20567
 // The collection at termination must not start threads for parallel marking.
 
+version (linux) {}
+else static assert(0, "reads /proc/self/task, Linux only");
+
 import core.sys.posix.dirent;
 
 // Number of threads of this process, as the kernel reports them.

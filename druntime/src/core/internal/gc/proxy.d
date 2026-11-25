@@ -31,7 +31,7 @@ private
 }
 
 // set by gc_term: the GC is collecting for the last time
-package(core.internal.gc) __gshared bool isTerminating;
+package(core.internal.gc) shared bool isTerminating;
 
 extern (C)
 {
@@ -97,7 +97,8 @@ extern (C)
     {
         if (isInstanceInit)
         {
-            isTerminating = true;
+            import core.atomic : atomicStore;
+            atomicStore(isTerminating, true);
             switch (config.cleanup)
             {
                 default:
