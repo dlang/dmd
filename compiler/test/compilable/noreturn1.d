@@ -224,3 +224,11 @@ void test24265()
     g24265() ~= 1;
     g24265()[0] = 1;
 }
+
+void testArrayHooks()
+{
+    auto a = [noreturn.init];
+    auto b = new noreturn[](3);
+    a ~= b;
+    a.length = 2;
+}

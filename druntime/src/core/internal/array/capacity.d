@@ -297,15 +297,13 @@ private size_t _d_arraysetlengthT_(Tarr : T[], T)(return ref scope Tarr arr, siz
         return newlength;
     }
 
-    const uint gcAttrs = __typeAttrs!T(cast(void*)arr.ptr) | BlkAttr.APPENDABLE;
-
     if (!arr.ptr)
     {
         assert(arr.length == 0);
         version (D_TypeInfo)
-            void* ptr = GC.malloc(newsize, gcAttrs, typeid(T));
+            void* ptr = GC.malloc(newsize, __typeAttrs!T() | BlkAttr.APPENDABLE, typeid(T));
         else
-            void* ptr = GC.malloc(newsize, gcAttrs, null);
+            void* ptr = GC.malloc(newsize, __typeAttrs!T() | BlkAttr.APPENDABLE, null);
         if (!ptr)
         {
             onOutOfMemoryError();
@@ -341,6 +339,7 @@ private size_t _d_arraysetlengthT_(Tarr : T[], T)(return ref scope Tarr arr, siz
 
     if (!gc_expandArrayUsed(newdata[0 .. oldsize], newsize, isShared))
     {
+        const uint gcAttrs = __typeAttrs!T(cast(void*)arr.ptr) | BlkAttr.APPENDABLE;
         version (D_TypeInfo)
             newdata = GC.malloc(newsize, gcAttrs, typeid(T));
         else

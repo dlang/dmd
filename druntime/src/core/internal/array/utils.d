@@ -142,16 +142,14 @@ enum uint __staticTypeAttrs(T) =
     | (!hasIndirections!T ? BlkAttr.NO_SCAN : 0)
     | (is(T == struct) && __traits(needsDestruction, T) ? BlkAttr.FINALIZE : 0);
 
-uint __typeAttrs(T)(void *copyAttrsFrom = null) @trusted pure nothrow
+uint __typeAttrs(T)(void *copyAttrsFrom = null)
 {
-    enum uint alignAttr = T.alignof ? GC.convertAlignmentToBlkAttr(T.alignof) : 0;
-
-    if (!__ctfe && copyAttrsFrom)
+    if (copyAttrsFrom)
     {
         // try to copy attrs from the given block
         auto info = GC.query(copyAttrsFrom);
         if (info.base)
-            return info.attr | alignAttr;
+            return info.attr | GC.convertAlignmentToBlkAttr(T.alignof);
     }
 
     return __staticTypeAttrs!T;
