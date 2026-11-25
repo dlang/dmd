@@ -393,7 +393,6 @@ enum
     CFGalwaysframe  = 0x20,    // always generate stack frame
     CFGnoebp        = 0x40,    // do not use EBP as general purpose register
     CFGromable      = 0x80,    // put switch tables in code segment
-    CFGeasyomf      = 0x100,   // generate Pharlap Easy-OMF format
     CFGfarvtbls     = 0x200,   // store vtables in far segments
     CFGnoinlines    = 0x400,   // do not inline functions
     CFGnowarning    = 0x800,   // disable warnings
