@@ -4646,20 +4646,35 @@ IntRange getIntRange(Expression e)
     }
 }
 /**
- * A helper function to "cast" from expressions of type noreturn to
- * any other type - noreturn is implicitly convertible to any other type.
- * However, the dmd backend does not like a naive cast from a noreturn expression
- * (particularly an `assert(0)`) so this function generates:
+ * A helper function to "cast" from expressions of type `noreturn` to
+ * any other type - `noreturn` is implicitly convertible to any other type.
  *
- * `(value, assert(0))` instead of `cast(to)(assert(0))`.
+ * When `to` is `void` or has base element type `noreturn` (e.g. `noreturn[N]`),
+ * a direct `CastExp` (`cast(to) toBeCasted`) is returned because `to` has no
+ * inhabited default initializer literal to synthesize.
  *
- * `value` is currently `to.init` however it cannot be read so could be made simpler.
+ * For other target types, the dmd backend does not accept a `TYnoreturn`
+ * operand in value-consuming expressions, so this function generates
+ * `(toBeCasted, value)` instead of `cast(to) toBeCasted`, where `value` is
+ * currently `to.init`.
+ *
  * Params:
- *   toBeCasted = Expression of type noreturn to cast
- *   to = Type to cast the expression to.
- * Returns: A CommaExp, upon any failure ErrorExp will be returned.
+ *   toBeCasted = Expression of type `noreturn` to cast
+ *   to = Type to cast the expression to
+ * Returns: A `CastExp` or `CommaExp`, or `ErrorExp` upon failure.
  */
 Expression specialNoreturnCast(Expression toBeCasted, Type to)
 {
-    return Expression.combine(toBeCasted, to.defaultInitLiteral(toBeCasted.loc));
+    Expression ce;
+    if (to.toBasetype().ty == Tvoid || to.baseElemOf().isTypeNoreturn())
+    {
+        ce = new CastExp(toBeCasted.loc, toBeCasted, to);
+        ce.type = to;
+    }
+    else
+    {
+        ce = Expression.combine(toBeCasted, to.defaultInitLiteral(toBeCasted.loc));
+    }
+
+    return ce;
 }
