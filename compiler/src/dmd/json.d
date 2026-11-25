@@ -142,13 +142,6 @@ public:
         comma();
     }
 
-    void itemBool(const bool b)
-    {
-        indent();
-        valueBool(b);
-        comma();
-    }
-
     // Json array functions
     void arrayStart()
     {
