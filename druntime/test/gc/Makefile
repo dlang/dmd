@@ -11,6 +11,11 @@ else
     TESTS+=concurrent precise_concurrent hospital
 endif
 
+ifeq ($(OS),linux)
+    # reads /proc/self/task
+    TESTS+=exitcollect
+endif
+
 VALGRIND = valgrind
 has_valgrind != command -v $(VALGRIND) > /dev/null 2>&1 && echo 1
 
