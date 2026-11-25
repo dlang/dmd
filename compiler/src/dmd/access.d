@@ -85,14 +85,9 @@ private bool hasPackageAccess(Module mod, Dsymbol s)
         {
             if (auto m = s.isModule())
             {
-                DsymbolTable dst = Package.resolve(m.md ? m.md.packages : null, null, null);
-                assert(dst);
-                Dsymbol s2 = dst.lookup(m.ident);
-                assert(s2);
-                Package p = s2.isPackage();
-                if (p && p.isPackageMod())
+                if (m.isPackageFile)
                 {
-                    pkg = p;
+                    pkg = m.pkg;
                     break;
                 }
             }
