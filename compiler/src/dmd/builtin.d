@@ -181,8 +181,10 @@ Expression eval_ctfeWrite(Loc loc, FuncDeclaration fd, Expression[] arguments)
     import dmd.ctfeexpr: resolveSlice;
     import dmd.expressionsem : toStringExp;
 
-    Expression e = arguments[0];
-    const se = resolveSlice(e).toStringExp();
+    Expression e = resolveSlice(arguments[0]);
+    if (e.op == EXP.null_)
+        return CTFEExp.voidexp;
+    const se = e.toStringExp();
     assert(se);
     const slice = se.peekString();
     fprintf(stderr, "%.*s", cast(int)slice.length, slice.ptr);

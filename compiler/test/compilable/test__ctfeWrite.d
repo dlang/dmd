@@ -38,6 +38,11 @@ int greeting(scope const char[][] values) pure nothrow @safe @nogc
     __ctfeWrite(s);
     __ctfeWrite(newline);
 
+    // Test null
+    string empty;
+    __ctfeWrite(empty);
+    __ctfeWrite(empty[0 .. 0]);
+
     // Test mutable slices
     char[10] buffer;
     fill(buffer); // Avoid potential shortcuts for literals
