@@ -940,34 +940,6 @@ extern (C++) final class Module : Package
             File.remove(docfile.toChars());
     }
 
-    /************************************
-     * Recursively look at every module this module imports,
-     * return true if it imports m.
-     * Can be used to detect circular imports.
-     */
-    int imports(Module m) nothrow
-    {
-        //printf("%s Module::imports(%s)\n", toChars(), m.toChars());
-        version (none)
-        {
-            foreach (i, Module mi; aimports)
-                printf("\t[%d] %s\n", cast(int) i, mi.toChars());
-        }
-        foreach (Module mi; aimports)
-        {
-            if (mi == m)
-                return true;
-            if (!mi.insearch)
-            {
-                mi.insearch = true;
-                int r = mi.imports(m);
-                if (r)
-                    return r;
-            }
-        }
-        return false;
-    }
-
     bool isRoot() nothrow
     {
         return this.importedFrom == this;
