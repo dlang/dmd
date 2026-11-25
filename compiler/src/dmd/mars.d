@@ -422,13 +422,6 @@ void printPredefinedVersions(ref OutBuffer buf)
     buf.writeByte('\n');
 }
 
-extern(C) void printGlobalConfigs(FILE* stream)
-{
-    OutBuffer buf;
-    printGlobalConfig(buf);
-    fputs(buf.peekChars(), stream);
-}
-
 void printGlobalConfig(ref OutBuffer buf)
 {
     buf.printf("binary    %.*s\n", cast(int)global.params.argv0.length, global.params.argv0.ptr);
