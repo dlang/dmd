@@ -745,7 +745,6 @@ extern (C++) final class Module : Package
             scope p = new CParser!AST(this, buf, cast(bool) docfile, global.errorSink, target.c, &defines, &global.compileEnv);
             global.compileEnv.masm = false;
             p.nextToken();
-            checkCompiledImport();
             members = p.parseModule();
             md = p.md;
             if (md)
@@ -753,6 +752,8 @@ extern (C++) final class Module : Package
                 this.ident = md.id;
                 dst = Package.resolve(md.packages, &this.parent, &ppack);
             }
+            // Done after parsing so an explicit `__module x.y.z;` is seen by -i matching
+            checkCompiledImport();
 
             numlines = p.linnum;
         }
