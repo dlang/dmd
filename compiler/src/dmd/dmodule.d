@@ -333,18 +333,25 @@ extern (C++) final class Module : Package
         //printf("Module::rootImports() %s\n", toChars());
         if (rootimports == ThreeState.none)
         {
-            foreach (Module m; amodules)
-                m.insearch = false;
-            rootimports = ThreeState.no;
-            foreach (Module m; amodules)
+            static bool search(Module m, ref Modules visited)
             {
-                if (m.isRoot() && imports(m))
+                foreach (mi; m.aimports)
                 {
-                    rootimports = ThreeState.yes;
-                    break;
+                    if (mi.isRoot())
+                        return true;
+                    if (mi.insearch)
+                        continue;
+                    mi.insearch = true;
+                    visited.push(mi);
+                    if (search(mi, visited))
+                        return true;
                 }
+                return false;
             }
-            foreach (Module m; amodules)
+
+            Modules visited;
+            rootimports = search(this, visited) ? ThreeState.yes : ThreeState.no;
+            foreach (m; visited)
                 m.insearch = false;
         }
         return rootimports == ThreeState.yes;
