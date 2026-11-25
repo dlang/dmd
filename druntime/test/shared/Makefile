@@ -6,7 +6,8 @@ ifneq (,$(LINK_SHARED))
         TESTS:=link linkD linkDR loadDR
     else
         TESTS:=link load linkD linkDR loadDR host finalize dynamiccast \
-               link_linkdep load_linkdep link_loaddep load_loaddep load_13414
+               link_linkdep load_linkdep link_loaddep load_loaddep load_13414 \
+               exit_nogc
     endif
 endif
 
