@@ -1724,11 +1724,37 @@ static if (0)
                 getlvalue(cg, cdb, cs, e1, 0, RM.rw);         // get addressing mode
                 assert((cs.Irm & 0xC0) != 0xC0);   // AVX1 doesn't have register source operands
                 reg_t reg = allocreg(cdb,retregs,ty);
-                cs.Iop = config.avx >= 2 ? VPBROADCASTQ : tysize(ty) == 32 ? VBROADCASTSD : PUNPCKLQDQ;
-                cs.Irex &= ~REX_W;
-                code_newreg(&cs,reg - XMM0);
-                checkSetVex(&cs,ty);
-                cdb.gen(&cs);
+                if (config.avx >= 2)
+                {
+                    cs.Iop = VPBROADCASTQ;
+                    cs.Irex &= ~REX_W;
+                    code_newreg(&cs,reg - XMM0);
+                    checkSetVex(&cs,ty);
+                    cdb.gen(&cs);
+                }
+                else if (tysize(ty) == 32)
+                {
+                    cs.Iop = VBROADCASTSD;
+                    cs.Irex &= ~REX_W;
+                    code_newreg(&cs,reg - XMM0);
+                    checkSetVex(&cs,ty);
+                    cdb.gen(&cs);
+                }
+                else
+                {
+                    // F3 0F 7E 00           MOVQ        XMM0,[RAX]
+                    cs.Iop = LODQ;
+                    cs.Irex &= ~REX_W;
+                    code_newreg(&cs,reg - XMM0);
+                    checkSetVex(&cs,ty);
+                    cdb.gen(&cs);
+                    // 66 0F 6C C0           PUNPCKLQDQ  XMM0,XMM0
+                    cs.Iop = PUNPCKLQDQ;
+                    cs.Irex &= ~REX_W;
+                    cs.Iea = modregxrmx(3,reg - XMM0,reg - XMM0);
+                    checkSetVex(&cs,ty);
+                    cdb.gen(&cs);
+                }
             }
             else
             {
