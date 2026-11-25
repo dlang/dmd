@@ -1259,7 +1259,6 @@ elem* el_convfloat(ref GlobalOptimizer go, elem* e)
 
         case TYdouble:
         case TYidouble:
-        case TYdouble_alias:
             p = &e.Vdouble;
             assert(sz == (e.Vdouble).sizeof);
             break;
@@ -1965,7 +1964,6 @@ L1:
                         break;
 
                     case TYdouble:
-                    case TYdouble_alias:
                     case TYidouble:
                         if (memcmp(&n1.EV,&n2.EV,(n1.Vdouble).sizeof))
                             return false;
@@ -2193,7 +2191,6 @@ targ_llong el_tolong(elem* e)
             result = e.Vullong;
             break;
 
-        case TYdouble_alias:
         case TYreal:
         case TYdouble:
         case TYfloat:
@@ -2467,7 +2464,6 @@ void elem_print_const(const elem* e)
             break;
 
         case TYdouble:
-        case TYdouble_alias:
             printf("%g ",cast(double)e.Vdouble);
             break;
 

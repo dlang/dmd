@@ -194,7 +194,6 @@ regm_t regmask(tym_t tym, tym_t tyf)
             return mask(1) | mask(0); // r1,r0
 
         case TYdouble:
-        case TYdouble_alias:
         case TYidouble:
         case TYreal:
         case TYireal:

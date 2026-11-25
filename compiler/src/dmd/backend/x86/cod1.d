@@ -1779,7 +1779,7 @@ void tstresult(ref CGstate cg, ref CodeBuilder cdb, regm_t regm, tym_t tym, bool
                 else
                 {
                     genmovreg(cdb, scrreg, reg);      // MOV scrreg,msreg
-                    if (tym == TYdouble || tym == TYdouble_alias)
+                    if (tym == TYdouble)
                         cdb.gen2(0xD1, modregrm(3, 4, scrreg)); // SHL scrreg,1
                 }
             }
@@ -1796,7 +1796,7 @@ void tstresult(ref CGstate cg, ref CodeBuilder cdb, regm_t regm, tym_t tym, bool
         {
             // !I32
             genmovreg(cdb, scrreg, AX);           // MOV scrreg,AX
-            if (tym == TYdouble || tym == TYdouble_alias)
+            if (tym == TYdouble)
                 cdb.gen2(0xD1 ,modregrm(3, 4, scrreg));         // SHL scrreg,1
             genorreg(cdb, scrreg, BX);            // OR scrreg,BX
             genorreg(cdb, scrreg, CX);            // OR scrreg,CX
@@ -1825,7 +1825,7 @@ void tstresult(ref CGstate cg, ref CodeBuilder cdb, regm_t regm, tym_t tym, bool
         else if (sz == 8)
         {   assert(regm == DOUBLEREGS_16);
             getregs(cdb,mAX);                  // allocate AX
-            if (tym == TYdouble || tym == TYdouble_alias)
+            if (tym == TYdouble)
                 cdb.gen2(0xD1, modregrm(3, 4, AX));       // SHL AX,1
             genorreg(cdb, AX, BX);          // OR AX,BX
             genorreg(cdb, AX, CX);          // OR AX,CX
@@ -4344,7 +4344,6 @@ private void movParams(ref CGstate cg, ref CodeBuilder cdb, elem* e, uint stacka
 
                 case TYdouble:
                 case TYidouble:
-                case TYdouble_alias:
                 case TYcdouble:
                     op = 0xDD;
                     r = 3;
@@ -5008,7 +5007,6 @@ void pushParams(ref CGstate cg, ref CodeBuilder cdb, elem* e, uint stackalign, t
 
                 case TYdouble:
                 case TYidouble:
-                case TYdouble_alias:
                 case TYcdouble:
                     op = 0xDD;
                     r = 3;
@@ -5237,9 +5235,9 @@ void loaddata(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t outretreg
         {
             reg = allocreg(cdb, regm, TYoffset);       // get a register
             int i = sz - REGSIZE;
-            loadea(cg, cdb, e, cs, 0x8B, reg, i, 0, 0);        // MOV reg,data+6
-            if (tyfloating(tym))                             // TYdouble or TYdouble_alias
-                cdb.gen2(0xD1, modregrm(3, 4, reg));            // SHL reg,1
+            loadea(cg, cdb, e, cs, 0x8B, reg, i, 0, 0);      // MOV reg,data+6
+            if (tyfloating(tym))                             // TYdouble
+                cdb.gen2(0xD1, modregrm(3, 4, reg));         // SHL reg,1
 
             while ((i -= REGSIZE) >= 0)
             {

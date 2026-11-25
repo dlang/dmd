@@ -766,7 +766,6 @@ regm_t regmask(tym_t tym, tym_t tyf)
             return mDX | mBX;
 
         case TYdouble:
-        case TYdouble_alias:
         case TYidouble:
             if (I64)
                 return mXMM0;

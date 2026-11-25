@@ -51,18 +51,15 @@ enum
     TYullong            = 0x10, // 64 bit unsigned long
     TYfloat             = 0x11, // 32 bit real
     TYdouble            = 0x12, // 64 bit real
-
-    // long double is mapped to either of the following at runtime:
-    TYdouble_alias      = 0x13, // 64 bit real (but distinct for overload purposes)
-    TYreal           = 0x14, // 80 bit real
+    TYreal              = 0x14, // 80 bit real
 
     // Add imaginary and complex types for D and C99
     TYifloat            = 0x15,
     TYidouble           = 0x16,
-    TYireal          = 0x17,
+    TYireal             = 0x17,
     TYcfloat            = 0x18,
     TYcdouble           = 0x19,
-    TYcreal          = 0x1A,
+    TYcreal             = 0x1A,
 
     TYnullptr           = 0x1C,
     TYnptr              = 0x1D, // data segment relative pointer
@@ -400,7 +397,6 @@ __gshared const(char)*[TYMAX] tystring =
         TYucent   : "ucent",
         TYfloat   : "float",
         TYdouble  : "double",
-        TYdouble_alias : "double alias",
 
         TYfloat4  : "float4",
         TYdouble2 : "double2",
@@ -631,7 +627,6 @@ __gshared byte[256] _tysize =
     TYucent   : 16,
     TYfloat   : FLOATSIZE,
     TYdouble  : DOUBLESIZE,
-    TYdouble_alias : 8,
     TYreal : -1,
 
     TYifloat   : FLOATSIZE,
@@ -741,7 +736,6 @@ __gshared byte[256] _tyalignsize =
     TYucent   : 8,
     TYfloat   : FLOATSIZE,
     TYdouble  : DOUBLESIZE,
-    TYdouble_alias : 8,
     TYreal : SET_ALIGN,
 
     TYifloat   : FLOATSIZE,
@@ -828,7 +822,7 @@ extern(D):
 
 static immutable TXptr        = [ TYnptr ];
 static immutable TXptr_nflat  = [ TYsptr,TYcptr,TYf16ptr,TYfptr,TYhptr,TYvptr,TYimmutPtr,TYsharePtr,TYrestrictPtr,TYfgPtr ];
-static immutable TXreal       = [ TYfloat,TYdouble,TYdouble_alias,TYreal,
+static immutable TXreal       = [ TYfloat,TYdouble,TYreal,
                      TYfloat4,TYdouble2,
                      TYfloat8,TYdouble4,
                      TYfloat16,TYdouble8,

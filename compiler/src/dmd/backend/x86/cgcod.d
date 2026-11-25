@@ -2866,7 +2866,7 @@ void codelem(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs,uin
                         pretregs |= BYTEREGS;
                     else if ((tyxmmreg(e.Ety) || tysimd(e.Ety)) && config.fpxmmregs)
                         pretregs |= XMMREGS;
-                    else if (tybasic(e.Ety) == TYdouble || tybasic(e.Ety) == TYdouble_alias)
+                    else if (tybasic(e.Ety) == TYdouble)
                         pretregs |= DOUBLEREGS;
                     else
                         pretregs |= ALLREGS;       /* make one             */

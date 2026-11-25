@@ -2690,10 +2690,6 @@ static if (1)
             case TYlong:
             case TYulong:
                 goto Lsignedstr;
-            case TYdouble_alias:
-                p = tystring[TYdouble];
-                ate = DW_ATE_float;
-                goto Lsigned;
             case TYfloat:
             case TYdouble:
                 ate = DW_ATE_float;
@@ -2711,7 +2707,6 @@ static if (1)
                 goto Lsignedstr;
             Lsignedstr:
                 p = tystring[ty];
-            Lsigned:
                 code = DWARFAbbrev.write!(abbrevTypeBasic);
                 idx = cast(uint)debug_info.buf.length();
                 debug_info.buf.writeuLEB128(code);        // abbreviation code
