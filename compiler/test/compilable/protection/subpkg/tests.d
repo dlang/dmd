@@ -10,3 +10,7 @@ import samepkg = protection.subpkg.explicit;
 
 static assert ( is(typeof(samepkg.commonAncestorFoo())));
 static assert ( is(typeof(samepkg.samePkgFoo())));
+
+import pkgmod = protection.subpkg;
+
+static assert ( is(typeof(pkgmod.packageModFoo())));
