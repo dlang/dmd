@@ -721,7 +721,6 @@ regm_t regmask(tym_t tym, tym_t tyf)
 
         case TYbool:
         case TYwchar_t:
-        case TYchar16:
         case TYchar:
         case TYschar:
         case TYuchar:

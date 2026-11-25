@@ -1931,7 +1931,6 @@ private void newfamlist(famlist* fl, tym_t ty)
 
         case TYshort:
         case TYushort:
-        case TYchar16:
         case TYwchar_t:             // BUG: what about 4 byte wchar_t's?
             c.Vshort = 1;
             break;
@@ -3253,7 +3252,6 @@ private bool flcmp(const ref famlist f1, const ref famlist f2)
 
             case TYshort:
             case TYushort:
-            case TYchar16:
             case TYwchar_t:     // BUG: what about 4 byte wchar_t's?
             case_short:
                 if (t2.Vshort == 1 ||

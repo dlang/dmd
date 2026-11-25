@@ -36,8 +36,6 @@ enum
     TYchar              = 1,
     TYschar             = 2,    // signed char
     TYuchar             = 3,    // unsigned char
-    TYchar8             = 4,
-    TYchar16            = 5,
     TYshort             = 6,
     TYwchar_t           = 7,
     TYushort            = 8,    // unsigned short
@@ -389,8 +387,6 @@ __gshared const(char)*[TYMAX] tystring =
     const(char)*[TYMAX] ret = [
         TYbool    : "bool",
         TYchar    : "char",
-        TYchar8   : "char8_t",
-        TYchar16  : "char16_t",
         TYshort   : "short",
 
         TYenum    : "enum",
@@ -558,8 +554,6 @@ private enum _tyrelax_init = (){
             case TYbool:      tym = TYchar;  break;
             case TYschar:     tym = TYchar;  break;
             case TYuchar:     tym = TYchar;  break;
-            case TYchar8:     tym = TYchar;  break;
-            case TYchar16:    tym = TYint;   break;
 
             case TYshort:     tym = TYint;   break;
             case TYushort:    tym = TYint;   break;
@@ -614,8 +608,6 @@ __gshared byte[256] _tysize =
     TYchar    : 1,
     TYschar   : 1,
     TYuchar   : 1,
-    TYchar8   : 1,
-    TYchar16  : 2,
     TYshort   : SHORTSIZE,
     TYwchar_t : 2,
     TYushort  : SHORTSIZE,
@@ -724,8 +716,6 @@ __gshared byte[256] _tyalignsize =
     TYchar    : 1,
     TYschar   : 1,
     TYuchar   : 1,
-    TYchar8   : 1,
-    TYchar16  : 2,
     TYshort   : SHORTSIZE,
     TYwchar_t : 2,
     TYushort  : SHORTSIZE,
@@ -846,7 +836,7 @@ static immutable TXintegral   = [ TYbool,TYchar,TYschar,TYuchar,TYshort,
                      TYlong8,TYulong8,TYllong4,TYullong4,
                      TYschar64,TYuchar64,TYshort32,TYushort32,
                      TYlong16,TYulong16,TYllong8,TYullong8,
-                     TYchar16,TYcent,TYucent,
+                     TYcent,TYucent,
                    ];
 static immutable TXref        = [ TYnref,TYref ];
 static immutable TXfunc       = [ TYnfunc,TYnpfunc,TYnsfunc,TYifunc,TYmfunc,TYjfunc,TYhfunc ];
@@ -855,7 +845,7 @@ static immutable TXfunc_nflat = [ TYffunc,TYfpfunc,TYf16func,TYfsfunc,TYnsysfunc
 static immutable TXuns        = [ TYuchar,TYushort,TYuint,TYulong,
                      TYwchar_t,
                      TYuchar16,TYushort8,TYulong4,TYullong2,
-                     TYdchar,TYullong,TYucent,TYchar16 ];
+                     TYdchar,TYullong,TYucent ];
 static immutable TXnullptr    = [ TYnullptr ];
 static immutable TXfv         = [ TYfptr, TYvptr ];
 static immutable TXfarfunc    = [ TYffunc,TYfpfunc,TYfsfunc,TYfsysfunc ];
@@ -864,7 +854,7 @@ static immutable TXpasfunc_nf = [ TYfpfunc,TYf16func,TYfsfunc, ];
 static immutable TXrevfunc    = [ TYnpfunc,TYjfunc ];
 static immutable TXrevfunc_nf = [ TYfpfunc,TYf16func, ];
 static immutable TXshort      = [ TYbool,TYchar,TYschar,TYuchar,TYshort,
-                      TYwchar_t,TYushort,TYchar16 ];
+                      TYwchar_t,TYushort ];
 static immutable TXaggregate  = [ TYstruct,TYarray ];
 static immutable TXxmmreg     = [
                      TYfloat,TYdouble,TYifloat,TYidouble,

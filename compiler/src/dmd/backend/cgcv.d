@@ -633,7 +633,6 @@ L1:
         case TYchar:
         case TYschar:
         case TYuchar:
-        case TYchar16:
         case TYshort:
         case TYushort:
         case TYint:
@@ -920,8 +919,6 @@ __gshared ubyte[TYMAX] dttab =
     TYchar    : 0x80,
     TYschar   : 0x80,
     TYuchar   : 0x84,
-    TYchar8   : 0x84,
-    TYchar16  : 0x85,
     TYshort   : 0x81,
     TYwchar_t : 0x85,
     TYushort  : 0x85,
@@ -1027,8 +1024,6 @@ __gshared ushort[TYMAX] dttab4 =
     TYchar    : 0x70,
     TYschar   : 0x10,
     TYuchar   : 0x20,
-    TYchar8   : 0x20,
-    TYchar16  : 0x21,
     TYshort   : 0x11,
     TYwchar_t : 0x71,
     TYushort  : 0x21,

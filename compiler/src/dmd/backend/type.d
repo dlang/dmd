@@ -640,7 +640,6 @@ void type_init()
     tstypes[TYdchar]   = type_allocbasic(TYdchar);
     tstypes[TYvoid]    = type_allocbasic(TYvoid);
     tstypes[TYnullptr] = type_allocbasic(TYnullptr);
-    tstypes[TYchar16]  = type_allocbasic(TYchar16);
     tstypes[TYuchar]   = type_allocbasic(TYuchar);
     tstypes[TYschar]   = type_allocbasic(TYschar);
     tstypes[TYchar]    = type_allocbasic(TYchar);
