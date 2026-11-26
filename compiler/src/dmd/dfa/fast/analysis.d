@@ -202,10 +202,14 @@ struct DFAAnalyzer
             });
         }
 
+        // A ref return carries its referred value separately from its storage.
+        DFAConsequence refReturnValue;
+
         foreach (i, list; alr)
         {
             ParameterDFAInfo* paramInfo = list.each[i].paramInfo;
             DFAObject* sourceObject = list.each[i].lr.getContextObject;
+            DFAObject* argumentValue = sourceObject;
             DFAObject* cellOrObject = sourceObject;
 
             // A by-ref argument of a value type has no object of its own,
@@ -250,7 +254,23 @@ struct DFAAnalyzer
 
                 ParameterDFAInfo.EscapedRelationship rel = cast(
                         ParameterDFAInfo.EscapedRelationship)(escapesInto & 0x3);
-                handleRelationshipConsequence(rel, ret.getContext, cellOrObject);
+                DFAObject* returnSource = cellOrObject;
+                if (retParamInfo.isByRef)
+                {
+                    if (rel == ParameterDFAInfo.EscapedRelationship.PointerTo && paramInfo.isByRef)
+                    {
+                        // Preserve the alias's storage separately from its value.
+                        if (argumentValue !is null)
+                            refReturnValue.obj = dfaCommon.makeObject(refReturnValue.obj, argumentValue);
+                        DFALatticeRef storage = list.each[i].lr.copy;
+                        transferAddressOf(storage);
+                        returnSource = storage.getContextObject;
+                    }
+                    else
+                        handleRelationshipConsequence(rel, &refReturnValue, cellOrObject);
+                }
+                if (returnSource !is null)
+                    handleRelationshipConsequence(rel, ret.getContext, returnSource);
 
                 outputParamId++;
                 escapesInto >>= 2;
@@ -325,6 +345,18 @@ struct DFAAnalyzer
                     }
                 }
             }
+        }
+
+        if (retParamInfo.isByRef)
+        {
+            // The by-ref result's storage is an alias; obj tracks the value it refers to.
+            DFAVar* var = dfaCommon.allocator.makeVar(null);
+            var.isByRef = true;
+            var.isNullable = true;
+            var.storageFor = ret.getContextObject;
+            DFAConsequence* result = ret.addConsequence(var, ret.getContext);
+            result.obj = refReturnValue.obj;
+            ret.setContext(result);
         }
     }
 
@@ -1523,6 +1555,11 @@ struct DFAAnalyzer
         DFAVar* assignToCtx = assignTo.getContextVar;
         DFAVar* lrCtx;
         DFAConsequence* lrCctx = lr.getContext(lrCtx);
+        if (assignToCtx is dfaCommon.getReturnVariable && assignToCtx.isByRef
+            && lrCtx !is null && lrCtx.isByRef && lrCtx.storageFor !is null)
+        {
+            lrCctx.obj = lrCtx.storageFor;
+        }
         const noLR = lrCctx is null;
         const lrIsTruthy = !noLR ? lrCctx.truthiness == Truthiness.True : false;
         const unmodellable = lrCtx !is null && !lrCtx.isModellable;
@@ -1557,26 +1594,19 @@ struct DFAAnalyzer
                 assignToCtx.refsTo = lrCtx;
             }
 
+            if (construct && assignToCtx.isByRef && assignToCtx.var !is null)
+            {
+                DFALatticeRef storage = lr.copy;
+                transferAddressOf(storage);
+                assignToCtx.storageFor = storage.getContextObject;
+            }
+
             // *var = expr;
             // is very different from:
             // var = expr;
 
             if (lrCctx !is null && lrCctx.obj !is null)
             {
-                if (construct && assignToCtx.isByRef)
-                {
-                    // By-ref variables that are not parameters (parameters won't call this transfer function),
-                    //  will obtain their object from the initializer expression.
-
-                    // int other;
-                    // ref var = other;
-
-                    // int* other;
-                    // ref int* var = other;
-
-                    assignToCtx.storageFor = dfaCommon.makeObject(lrCctx.obj);
-                }
-
                 if (assignToCtx.isScope && (lrCctx.obj.minimumDeclaredAtDepth == -1
                         || lrCctx.obj.minimumDeclaredAtDepth > dfaCommon.currentDFAScope.depth))
                 {
@@ -1769,7 +1799,8 @@ struct DFAAnalyzer
                 }
             });
 
-            if ((!assignToCtx.haveBase && assignToCtx.var is null)
+            if ((!assignToCtx.haveBase && assignToCtx.var is null
+                    && assignToCtx !is dfaCommon.getReturnVariable)
                     || (assignToCtx.haveBase && !exactlyOneRoot))
             {
                 if (lrCctx !is null && lrCctx.obj !is null)
@@ -2634,6 +2665,17 @@ struct DFAAnalyzer
                 else
                 {
                     // We didn't get an object, and yeah we should've
+                    unknown = true;
+                    return;
+                }
+            }
+            else if (isOffsetOfStorage && var.isNullable)
+            {
+                // Indexed elements live in the pointee, not the variable's cell.
+                if (cctx !is null && cctx.obj !is null)
+                    storage = cctx.obj;
+                else
+                {
                     unknown = true;
                     return;
                 }

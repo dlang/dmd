@@ -974,7 +974,10 @@ struct ExpressionWalker
                     DFAConsequence* newCctx = ret.setContext(indexVar);
 
                     if (lhsObject !is null)
-                        newCctx.obj = dfaCommon.makeObject(lhsObject);
+                    {
+                        newCctx.obj = dfaCommon.makeObject();
+                        newCctx.obj.derivedFrom = lhsObject;
+                    }
                 }
 
                 return ret;
@@ -1007,10 +1010,14 @@ struct ExpressionWalker
                     DFAConsequence* newCctx = base.addConsequence(asSliceVar);
                     base.setContext(newCctx);
 
-                    if (baseCctx !is null && baseCctx.obj !is null)
-                        newCctx.obj = baseCctx.obj;
-                    else if (baseCtx !is null && !baseCtx.haveBase)
+                    if (baseCtx !is null && !baseCtx.haveBase && baseCtx.isStaticArray)
+                    {
+                        // `staticArr[]` aliases the array's own storage: root at
+                        // the cell, not the value the variable last held.
                         newCctx.obj = dfaCommon.makeObject(baseCtx);
+                    }
+                    else if (baseCctx !is null && baseCctx.obj !is null)
+                        newCctx.obj = baseCctx.obj;
 
                     return base;
                 }
@@ -1052,6 +1059,15 @@ struct ExpressionWalker
 
                 DFAConsequence* newCctx = ret.addConsequence(asSliceVar);
                 ret.setContext(newCctx);
+
+                if (baseCtx !is null && !baseCtx.haveBase && baseCtx.isStaticArray)
+                {
+                    // Bounded slice of a static array (`arr[lwr .. upr]`): as with
+                    // `arr[]`, the result aliases the array's own storage.
+                    newCctx.obj = dfaCommon.makeObject(baseCtx);
+                }
+                else if (baseCctx !is null && baseCctx.obj !is null)
+                    newCctx.obj = baseCctx.obj;
 
                 if (asSliceVar !is null)
                 {
@@ -2708,6 +2724,12 @@ struct ExpressionWalker
         }
 
         this.seeConvergeFunctionCall(ret, returnInfo, alr, loc);
+        if (returnInfo.isByRef)
+        {
+            DFAVar* var = ret.getContextVar;
+            var.isStaticArray = toCallFunctionType !is null
+                && toCallFunctionType.next.isTypeSArray !is null;
+        }
         return ret;
     }
 
