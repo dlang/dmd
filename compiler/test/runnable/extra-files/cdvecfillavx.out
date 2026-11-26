@@ -121,9 +121,10 @@ Disassembly of section .text._D9cdvecfill4testFmZNhG2m:
 Disassembly of section .text._D9cdvecfill4testFPmZNhG2m:
 
 0000000000000000 <_D9cdvecfill4testFPmZNhG2m>:
-   0:	c5 f9 6c 07          	vpunpcklqdq xmm0,xmm0,XMMWORD PTR [rdi]
-   4:	c3                   	ret
-   5:	00 00                	add    BYTE PTR [rax],al
+   0:	c5 fa 7e 07          	vmovq  xmm0,QWORD PTR [rdi]
+   4:	c5 f9 6c c0          	vpunpcklqdq xmm0,xmm0,xmm0
+   8:	c3                   	ret
+   9:	00 00                	add    BYTE PTR [rax],al
 	...
 
 Disassembly of section .text._D9cdvecfill4testFlZNhG2l:
@@ -137,9 +138,10 @@ Disassembly of section .text._D9cdvecfill4testFlZNhG2l:
 Disassembly of section .text._D9cdvecfill4testFPlZNhG2l:
 
 0000000000000000 <_D9cdvecfill4testFPlZNhG2l>:
-   0:	c5 f9 6c 07          	vpunpcklqdq xmm0,xmm0,XMMWORD PTR [rdi]
-   4:	c3                   	ret
-   5:	00 00                	add    BYTE PTR [rax],al
+   0:	c5 fa 7e 07          	vmovq  xmm0,QWORD PTR [rdi]
+   4:	c5 f9 6c c0          	vpunpcklqdq xmm0,xmm0,xmm0
+   8:	c3                   	ret
+   9:	00 00                	add    BYTE PTR [rax],al
 	...
 
 Disassembly of section .text._D9cdvecfill4testFfZNhG4f:
