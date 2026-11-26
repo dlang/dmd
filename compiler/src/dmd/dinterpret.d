@@ -182,6 +182,13 @@ public Expression ctfeInterpretForPragmaMsg(Expression e)
     return e;
 }
 
+/*************************************
+ * Hook to test another CTFE engine.
+ * It gets the function and its arguments, and returns the result of the call.
+ * If it returns null, the interpreter runs the call as usual.
+ */
+public __gshared Expression function(FuncDeclaration fd, Expressions* arguments) ctfeEngine;
+
 public Expression getValue(VarDeclaration vd)
 {
     return ctfeGlobals.stack.getValue(vd);
@@ -574,6 +581,10 @@ private Expression interpretFunction(UnionExp* pue, FuncDeclaration fd, InterSta
         }
         eargs[i] = earg;
     }
+
+    if (ctfeEngine && !istate && !thisarg)
+        if (auto result = ctfeEngine(fd, &eargs))
+            return result;
 
     // Now that we've evaluated all the arguments, we can start the frame
     // (this is the moment when the 'call' actually takes place).
