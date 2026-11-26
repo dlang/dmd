@@ -475,12 +475,14 @@ extern (C) void dmd_coverSourcePath(string path);
 extern (C) void dmd_coverDestPath(string path);
 
 /**
- * Enable merging of coverage reports with existing data.
+ * Choose whether to combine this run with a saved coverage listing.
+ * Execution counts add across runs. For a line covered by a Boolean
+ * registration in this run, the merged result is 1 if either run hit it.
+ * A saved listing contains no coverage-mode information. Use separate output
+ * directories or start a fresh listing when switching between modes.
  *
  * Params:
- *  flag = enable/disable coverage merge mode
- * Note:
- *  This is a dmd specific setting.
+ *  flag = true to merge with the saved listing, false to overwrite it
  */
 extern (C) void dmd_coverSetMerge(bool flag);
 

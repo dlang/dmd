@@ -1,0 +1,5 @@
+Boolean overlap
+count only
+mixed
+unhit
+saved hit
