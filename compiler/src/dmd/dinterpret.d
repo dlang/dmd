@@ -4309,6 +4309,8 @@ public:
                 foreach (j, newelem; *newelems)
                 {
                     newelem = paintTypeOntoLiteral(elemtype, newelem);
+                    if (elemtype.toBasetype().ty == Tsarray)
+                        newelem = copyLiteral(newelem).copy();
                     if (needsPostblit)
                     {
                         Expression x = evaluatePostblit(istate, newelem);

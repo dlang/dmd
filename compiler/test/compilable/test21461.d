@@ -87,3 +87,14 @@ int fromConstParam(const uint[2] arr)
     return copy[1];
 }
 static assert(fromConstParam([4, 8]) == 8);
+
+// Slice assignment of nested static arrays.
+int[2][2] sliceAssign()
+{
+    int[2][2] s = [[1, 1], [1, 1]];
+    int[2][2] t;
+    t[] = s[];
+    s[0][0] = 9;
+    return t;
+}
+static assert(sliceAssign() == [[1, 1], [1, 1]]);
