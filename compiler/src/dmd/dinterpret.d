@@ -562,7 +562,7 @@ private Expression interpretFunction(UnionExp* pue, FuncDeclaration fd, InterSta
             /* Struct literals are passed by value, but we don't need to
              * copy them if they are passed as const
              */
-            if (earg.op == EXP.structLiteral && !(fparam.storageClass & (STC.const_ | STC.immutable_)))
+            if ((earg.op == EXP.structLiteral || ta.ty == Tsarray) && !(fparam.storageClass & (STC.const_ | STC.immutable_)))
                 earg = copyLiteral(earg).copy();
         }
         if (auto tee = earg.isThrownExceptionExp())

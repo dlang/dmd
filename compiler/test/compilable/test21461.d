@@ -98,3 +98,13 @@ int[2][2] sliceAssign()
     return t;
 }
 static assert(sliceAssign() == [[1, 1], [1, 1]]);
+
+// A static array passed by value.
+int[2] byValue()
+{
+    static void mod(int[2] p) { p[0] = 9; }
+    int[2] s = [1, 1];
+    mod(s);
+    return s;
+}
+static assert(byValue() == [1, 1]);
