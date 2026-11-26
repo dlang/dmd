@@ -38,6 +38,10 @@ struct Bar test = {
     .u.f = 13
 };
 
+struct Bar test2 = {
+    .b.x = 6
+};
+
 int main()
 {
     assert(test.b.x == 5);
@@ -48,4 +52,5 @@ int main()
     assert(test.arr[1] == 11);
     assert(test.u.f == 13);
     assert(test.u.g == 13);
+    assert(test2.arr[0] == 0);
 }
