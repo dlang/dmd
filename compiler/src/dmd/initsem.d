@@ -39,6 +39,7 @@ import dmd.location;
 import dmd.mtype;
 import dmd.opover;
 import dmd.optimize;
+import dmd.root.aav;
 import dmd.safe : setUnsafe;
 import dmd.semantic2;
 import dmd.statement;
@@ -874,6 +875,8 @@ Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedIn
             {
                 return err();
             }
+
+            AssocArray!(VarDeclaration, ArrayInitializer) arrayFields;
             const nfields = sd.fields.length;
             size_t fieldi = 0;
 
@@ -960,17 +963,20 @@ Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedIn
                                  * but if your object is set to null on decl, you can't use designators anymore
                                  * and D does well to default initialize for us
                                  */
-                                auto ai = field._init.isArrayInitializer();
 
-                                if (ai is null)
+                                auto slot = arrayFields.getLvalue(field);
+                                if (*slot is null)
                                 {
-                                    ai = new ArrayInitializer(ci.loc);
-                                    subsi.addInit(id, ai);
-                                    field._init = ai;
+                                    if (auto ai = field._init.isArrayInitializer())
+                                        *slot = ai;
+                                    else
+                                        *slot = new ArrayInitializer(ci.loc);
+
+                                    subsi.addInit(id, *slot);
                                 }
 
                                 auto ndx = (*dlist)[i+1].exp;
-                                ai.addInit(ndx, di.initializer);
+                                slot.addInit(ndx, di.initializer);
                                 ++index;
                                 continue Loop1;
                             }
