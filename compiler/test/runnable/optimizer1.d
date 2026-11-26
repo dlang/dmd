@@ -428,19 +428,6 @@ void test24327()
     assert(f_24327() == 1);
 }
 
-int f_24328(long p)
-{
-    int v = 0;
-    if (0 < p - 1)
-        v = 1;
-    return v;
-}
-
-void test24328()
-{
-    assert(f_24328(long.min) == 1);
-}
-
 int f_24325b()
 {
     int n = 0;
@@ -457,7 +444,28 @@ void test24325b()
 {
     assert(f_24325b() == 9);
 }
+}
 
+/***********************************************/
+// https://github.com/dlang/dmd/issues/24328
+int f(long p)
+{
+    int v = 0;
+    if (0 < p - 1)
+        v = 1;
+    return v;
+}
+
+void test24328()
+{
+    assert(f(long.min) == 1); // fails
+}
+
+/***********************************************/
+// https://github.com/dlang/dmd/issues/24329
+
+static if (0)
+{
 int f_24329()
 {
     int n = 0;
@@ -991,7 +999,7 @@ void main()
     //test24309d();
     //test24325a();
     //test24327();
-    //test24328();
+    test24328();
     //test24325b();
     //test24329();
     test24330();

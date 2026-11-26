@@ -2916,6 +2916,8 @@ void cdcmp(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
                 if (m & (m - 1))    // if more than one free register
                     goto L2;
             }
+
+            static if (0) // https://github.com/dlang/dmd/issues/24328
             if ((e1.Eoper == OPstrcmp || (OTassign(e1.Eoper) && sz <= REGSIZE)) &&
                 !boolres(e2) && !evalinregister(e1))
             {
@@ -2924,6 +2926,8 @@ void cdcmp(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
                 freenode(e2);
                 break;
             }
+
+            static if (0) // https://github.com/dlang/dmd/issues/24328
             if (sz <= REGSIZE && !boolres(e2) && e1.Eoper == OPadd && pretregs == mPSW)
             {
                 retregs |= mPSW;
@@ -2931,6 +2935,7 @@ void cdcmp(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
                 freenode(e2);
                 break;
             }
+
             scodelem(cg,cdb,e1,retregs,0,true);  // compute left leaf
             if (sz == 1)
             {
