@@ -2440,6 +2440,7 @@ class Lexer
         int d;
         bool err = false;
         bool overflow = false;
+        bool binaryFloatSuffix = false;
         bool anyBinaryDigitsNoSingleUS = false;
         bool anyHexDigitsNoSingleUS = false;
         char errorDigit = 0;
@@ -2538,7 +2539,14 @@ class Lexer
                 if (base != 16)
                 {
                     if (c == 'e' || c == 'E' || c == 'f' || c == 'F')
+                    {
+                        if (base == 2 && (c == 'f' || c == 'F') && !Ccompile)
+                        {
+                            binaryFloatSuffix = true;
+                            goto Ldone;
+                        }
                         goto Lreal;
+                    }
                 }
                 if (c >= 'a')
                     d = c + 10 - 'a';
@@ -2622,6 +2630,20 @@ class Lexer
 
         if (Ccompile)
             return cnumber(base, n);
+
+        if (binaryFloatSuffix)
+        {
+            t.floatvalue = cast(real_t)n;
+            TOK result = TOK.float32Literal;
+            if (*p == 'i' || *p == 'I')
+            {
+                if (*p == 'I')
+                    error("use 'i' suffix instead of 'I'");
+                p++;
+                result = TOK.imaginary32Literal;
+            }
+            return result;
+        }
 
         enum FLAGS : int
         {
