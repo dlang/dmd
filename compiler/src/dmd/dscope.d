@@ -207,6 +207,9 @@ extern (C++) struct Scope
     uint[void*] anchorCounts;  /// lookup duplicate anchor name count
     Identifier prevAnchor;     /// qualified symbol name of last doc anchor
 
+    int idCounter;    /// disambiguator for `Identifier.generateIdWithLoc`, set per `static foreach` /
+                      /// unrolled `foreach` iteration so generated identifiers are unique and stable
+
     extern (D) __gshared Scope* freelist;
 
     extern (D) static Scope* alloc()
