@@ -3181,7 +3181,9 @@ private elem* elandand(elem* e, Goal goal)
         else                            // e1 && (x,0)  =>  e1 , (x,0)
         {
             if (e2 == e.E2)
-            {   e.Eoper = OPcomma;
+            {
+                e.Eoper = OPcomma;
+                e.E2 = el_una(OPbool, TYbool, e.E2);
                 goto L3;
             }
         }

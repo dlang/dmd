@@ -801,11 +801,25 @@ version (D_AVX)
         assert(f_24343c(5)[0] == 0x30012);
     }
 }
+}
 
-int g_24345();
+/****************************************************/
+// https://github.com/dlang/dmd/issues/24345
+
+int g_24345() { return 1; }
 
 bool f_24345() { return g_24345() && bswap(0UL); }
 
+void test24345()
+{
+    assert(!f_24345());
+}
+
+/****************************************************/
+// https://github.com/dlang/dmd/issues/24346
+
+static if (0)
+{
 pragma(inline, true) ulong z_24346(double x) { return 0; }
 
 real f_24346()
@@ -1024,6 +1038,7 @@ void main()
     //version (D_AVX2) test24343a();
     //version (D_SIMD) test24343b();
     //version (D_AVX) test24343c();
+    test24345();
     //test24351a();
     //test24351g();
     //test24351b();
