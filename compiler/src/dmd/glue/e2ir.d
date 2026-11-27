@@ -216,7 +216,12 @@ package(dmd.glue)
 Symbol* toStringSymbol(const(char)* str, size_t len, size_t sz)
 {
     //printf("toStringSymbol() %s\n", str);
-    auto sv = stringTab.update(str, len * sz);
+    import dmd.common.outbuffer : OutBuffer;
+    OutBuffer key;
+    key.setsize(0);
+    key.writeByte(cast(ubyte)sz);
+    key.write(str[0 .. len * sz]);
+    auto sv = stringTab.update(cast(const(char)*)key[].ptr, key.length);
     if (sv.value)
         return sv.value;
 
@@ -1221,24 +1226,8 @@ elem* toElem(Expression e, ref IRState irs)
         }
         else if (tb.ty == Tpointer)
         {
-            if (config.objfmt == OBJ_MACH && target.isAArch64)
-            {
-                Symbol* si = toStringSymbol(se);
-                e = el_ptr(si);
-            }
-            else
-            {
-                e = el_calloc();
-                e.Eoper = OPstring;
-                // freed in el_free
-                string s;
-                const n = cast(int)se.numberOfCodeUnits(0, s);
-                const len = cast(size_t)((n + 1) * se.sz);
-                e.Vstring = cast(char *)mem_malloc2(cast(uint) len);
-                se.writeTo(e.Vstring, true);
-                e.Vstrlen = len;
-                e.Ety = TYnptr;
-            }
+            Symbol* si = toStringSymbol(se);
+            e = el_ptr(si);
         }
         else
         {
