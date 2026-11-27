@@ -18,6 +18,7 @@ generated/
 -trace.log
 .dub
 dub.selections.json
+/SYSCONFDIR.imp
 
 # Visual Studio files
 *.exe

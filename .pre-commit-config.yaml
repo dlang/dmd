@@ -25,3 +25,11 @@ repos:
   rev: 0.38.0
   hooks:
     - id: check-github-workflows
+- repo: local
+  hooks:
+    - id: changelog-file-names
+      name: changelog entries are named dmd.*.dd or druntime.*.dd
+      language: fail
+      entry: changelog entries must be named dmd.<name>.dd or druntime.<name>.dd
+      files: ^changelog/
+      exclude: ^changelog/(README\.md|(dmd|druntime)\.[^/]*\.dd)$
