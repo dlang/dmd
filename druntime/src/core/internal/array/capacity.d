@@ -255,6 +255,7 @@ private size_t _d_arraysetlengthT_(Tarr : T[], T)(return ref scope Tarr arr, siz
     import core.checkedint : mulu;
     import core.exception : onFinalizeError, onOutOfMemoryError;
     import core.stdc.string : memcpy, memset;
+    import core.internal.array.utils : __typeAttrs;
     import core.internal.traits : hasElaborateCopyConstructor, Unqual;
     import core.lifetime : emplace;
     import core.memory;
@@ -296,12 +297,10 @@ private size_t _d_arraysetlengthT_(Tarr : T[], T)(return ref scope Tarr arr, siz
         return newlength;
     }
 
-    enum uint gcAttrs = BlkAttr.APPENDABLE | GC.convertAlignmentToBlkAttr(T.alignof)
-        | (is(T == struct) && __traits(hasMember, T, "xdtor") ? BlkAttr.FINALIZE : 0);
-
     if (!arr.ptr)
     {
         assert(arr.length == 0);
+        enum gcAttrs = __typeAttrs!T() | BlkAttr.APPENDABLE;
         version (D_TypeInfo)
             void* ptr = GC.malloc(newsize, gcAttrs, typeid(T));
         else
@@ -341,6 +340,7 @@ private size_t _d_arraysetlengthT_(Tarr : T[], T)(return ref scope Tarr arr, siz
 
     if (!gc_expandArrayUsed(newdata[0 .. oldsize], newsize, isShared))
     {
+        const uint gcAttrs = __typeAttrs!T(cast(void*)arr.ptr) | BlkAttr.APPENDABLE;
         version (D_TypeInfo)
             newdata = GC.malloc(newsize, gcAttrs, typeid(T));
         else
@@ -410,4 +410,41 @@ private size_t _d_arraysetlengthT_(Tarr : T[], T)(return ref scope Tarr arr, siz
     // the backing storage directly to verify initialization.
     foreach (s; (() @trusted => *cast(S[]*) &arr2)())
         assert(s == S.init);
+}
+
+// https://github.com/dlang/dmd/issues/24424
+// https://github.com/dlang/dmd/issues/24425
+// https://github.com/dlang/dmd/issues/24426
+@system unittest
+{
+    import core.memory : GC;
+
+    ubyte[] b;
+    b.length = 64;
+    assert(GC.query(b.ptr).attr & GC.BlkAttr.NO_SCAN);
+
+    int*[] c = new int*[](2);
+    GC.setAttr(c.ptr, GC.BlkAttr.NO_SCAN);
+    c.length = 64;
+    assert(GC.query(c.ptr).attr & GC.BlkAttr.NO_SCAN);
+
+    static struct WithDtor
+    {
+        int x;
+        ~this() {}
+    }
+
+    WithDtor[] dtors;
+    dtors.length = 4;
+    assert((GC.query(dtors.ptr).attr & (GC.BlkAttr.FINALIZE | GC.BlkAttr.NO_SCAN)) ==
+        (GC.BlkAttr.FINALIZE | GC.BlkAttr.NO_SCAN));
+
+    static struct PodWithXdtorField
+    {
+        int xdtor;
+    }
+
+    PodWithXdtorField[] pod;
+    pod.length = 4;
+    assert((GC.query(pod.ptr).attr & GC.BlkAttr.FINALIZE) == 0);
 }
