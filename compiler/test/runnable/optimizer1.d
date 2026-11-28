@@ -835,8 +835,6 @@ void test24346()
 /****************************************************/
 // https://github.com/dlang/dmd/issues/24347
 
-static if (0)
-{
 ulong toU_24347(real x) { return 0 ? cast(ulong)x : 0; }
 
 real f_24347()
@@ -846,20 +844,34 @@ real f_24347()
     return d0 - d1;
 }
 
+/****************************************************/
+// https://github.com/dlang/dmd/issues/24348
+
+static if (0)
+{
 version (D_SIMD)
 {
     float4 f_24348(float4 v) { return cast(float4)(cast(float4)(0 >= v) > v); }
 }
+
+/****************************************************/
+// https://github.com/dlang/dmd/issues/24349
 
 version (D_SIMD)
 {
     ushort8 f_24349(ushort8 p) { return 0 - (p * 1); }
 }
 
+/****************************************************/
+// https://github.com/dlang/dmd/issues/24350
+
 version (D_SIMD)
 {
     int4 f_24350(int4 v) { return 1 ^ (v <= v); }
 }
+
+/****************************************************/
+// https://github.com/dlang/dmd/issues/24351
 
 double f_24351a(double x) { return 0.0 - x; }
 
