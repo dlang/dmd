@@ -435,6 +435,10 @@ static ~this()
         stack_freelist = n;
     }
 
+    // nothing to merge; synchronized would allocate with the GC
+    if (!root)
+        return;
+
     synchronized        // protects groot
     {
         // Merge thread local root into global groot

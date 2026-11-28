@@ -1342,7 +1342,9 @@ class ConservativeGC : GC
         // when collecting.
         static size_t go(Gcx* gcx) nothrow
         {
-            return gcx.fullcollect(true, false); // standard stop the world
+            import core.atomic : atomicLoad;
+            import core.internal.gc.proxy : isTerminating;
+            return gcx.fullcollect(true, atomicLoad(isTerminating)); // standard stop the world
         }
         immutable result = runLocked!go(gcx);
 

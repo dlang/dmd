@@ -30,6 +30,9 @@ private
     GC instance() { return _instance; }
 }
 
+// set by gc_term: the GC is collecting for the last time
+package(core.internal.gc) shared bool isTerminating;
+
 extern (C)
 {
     import core.attribute : weak;
@@ -94,6 +97,8 @@ extern (C)
     {
         if (isInstanceInit)
         {
+            import core.atomic : atomicStore;
+            atomicStore(isTerminating, true);
             switch (config.cleanup)
             {
                 default:
