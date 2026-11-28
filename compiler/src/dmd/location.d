@@ -74,7 +74,8 @@ nothrow:
     extern (C++) static Loc singleFilename(const char* filename)
     {
         Loc result;
-        locFileTable ~= new BaseLoc(filename.toDString, null, locIndex, 0, [0]);
+        locFileTable ~= new BaseLoc(filename.toDString, null, locIndex, 0);
+        locFileTable[$ - 1].lines.push(0);
         result.index = locIndex++;
         return result;
     }
@@ -333,7 +334,8 @@ private size_t fileTableIndex(uint index) nothrow @nogc
  */
 BaseLoc* newBaseLoc(const(char)* filename, const(char)[] fileContent) nothrow
 {
-    locFileTable ~= new BaseLoc(filename.toDString, fileContent, locIndex, 1, [0]);
+    locFileTable ~= new BaseLoc(filename.toDString, fileContent, locIndex, 1);
+    locFileTable[$ - 1].lines.push(0);
     // Careful: the endloc of a FuncDeclaration can
     // point to 1 past the very last byte in the file, so account for that
     locIndex += fileContent.length + 1;
@@ -385,9 +387,9 @@ struct BaseLoc
     const(char)[] fileContents; /// Source file contents
     uint startIndex; /// Subtract this from Loc.index to get file offset
     int startLine = 1; /// Line number at index 0
-    uint[] lines; /// For each line, the file offset at which it starts. At index 0 there's always a 0 entry.
+    Array!uint lines; /// For each line, the file offset at which it starts. At index 0 there's always a 0 entry.
     uint startColumn = 1; /// Column number at byte offset 0 of the first line
-    BaseLoc[] substitutions; /// Substitutions from #line / #file directives
+    BaseLoc*[] substitutions; /// Substitutions from #line / #file directives
 
     /// Cache for the last line lookup
     private size_t lastLineIndex = 0;
@@ -397,7 +399,7 @@ struct BaseLoc
     /// Register that a new line starts at `offset` bytes from the start of the source file
     void newLine(uint offset)
     {
-        lines ~= offset;
+        lines.push(offset);
     }
 
     /// Construct a `Loc` entry for the start of the source file + `offset` bytes
@@ -419,11 +421,11 @@ struct BaseLoc
     {
         auto fname = filename.toDString;
         if (substitutions.length == 0)
-            substitutions ~= BaseLoc(this.filename, null, 0, 0);
+            substitutions ~= new BaseLoc(this.filename, null, 0, 0);
 
         if (fname.length == 0)
             fname = substitutions[$ - 1].filename;
-        substitutions ~= BaseLoc(fname, null, offset, cast(int) (line - lines.length + startLine - 2));
+        substitutions ~= new BaseLoc(fname, null, offset, cast(int) (line - lines.length + startLine - 2));
     }
 
     /// Returns: `loc` modified by substitutions from #file / #line directives
