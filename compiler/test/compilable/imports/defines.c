@@ -69,3 +69,13 @@ int pr16199c()
 #define BARE_CALL DOUBLE(5)          // bare function-like macro call (no outer parens)
 #define PAREN_CALL (DOUBLE(5))       // parenthesized call (already works)
 #define WRAPPER(x) DOUBLE(x)         // function-like macro calling another macro
+
+// leading `~`, e.g. curl.h's `#define CURLSSH_AUTH_ANY ~0`
+#define TILDE_ZERO ~0
+#define TILDE_CALL ~DOUBLE(5)
+#define TILDE_TILDE ~~5       // double complement
+#define TILDE_PAREN ~(1 | 2)  // tilde over a parenthesized sub-expression
+
+// leading `!`, same precedence tier as `~`
+#define NOT_ZERO !0
+#define NOT_CALL !DOUBLE(0)
