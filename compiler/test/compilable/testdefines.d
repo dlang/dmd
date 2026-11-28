@@ -45,3 +45,8 @@ static assert(DOUBLE(5) == 10);
 static assert(BARE_CALL == 10);      // bare call now works
 static assert(PAREN_CALL == 10);     // parenthesized already worked
 static assert(WRAPPER(3) == 6);      // function-like macro calling another macro
+
+// bare identifier aliases, e.g. curl.h's `#define CURL_GLOBAL_DEFAULT CURL_GLOBAL_ALL`
+static assert(ALIAS_TARGET == 42);
+static assert(ALIAS_SOURCE == 42);
+static assert(ALIAS_OF_ALIAS == 42);
