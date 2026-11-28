@@ -1489,6 +1489,10 @@ static if (1)
 @trusted
 void shrinkLongDoubleConstantIfPossible(elem* e)
 {
+    /* This is disabled due to https://github.com/dlang/dmd/issues/24346
+     * It could be reinstated during instruction generation time
+     */
+    static if (0)
     if (e.Eoper == OPconst && e.Ety == TYreal)
     {
         /* Check to see if it can be converted into a double (this happens
