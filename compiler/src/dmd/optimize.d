@@ -237,7 +237,7 @@ package void setLengthVarIfKnown(VarDeclaration lengthVar, Expression arr)
         len = tsa.dim.toInteger();
     }
     Expression dollar = new IntegerExp(Loc.initial, len, Type.tsize_t);
-    lengthVar._init = new ExpInitializer(Loc.initial, dollar);
+    lengthVar._init = expInitializer(Loc.initial, dollar);
     lengthVar.storage_class |= STC.static_ | STC.const_;
 }
 
@@ -258,7 +258,7 @@ package void setLengthVarIfKnown(VarDeclaration lengthVar, Type type)
         return; // we don't know the length yet
     const len = tsa.dim.toInteger();
     Expression dollar = new IntegerExp(Loc.initial, len, Type.tsize_t);
-    lengthVar._init = new ExpInitializer(Loc.initial, dollar);
+    lengthVar._init = expInitializer(Loc.initial, dollar);
     lengthVar.storage_class |= STC.static_ | STC.const_;
 }
 

@@ -437,7 +437,7 @@ VarDeclaration copyToTemp(STC stc, const char[] name, Expression e)
     assert(name[0] == '_' && name[1] == '_');
     auto vd = new VarDeclaration(e.loc, e.type,
         Identifier.generateId(name),
-        new ExpInitializer(e.loc, e));
+        expInitializer(e.loc, e));
     vd.storage_class = stc | STC.temp | STC.ctfe; // temporary is always CTFEable
     return vd;
 }

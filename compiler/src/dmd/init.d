@@ -111,6 +111,11 @@ extern (C++) final class VoidInitializer : Initializer
     }
 }
 
+VoidInitializer voidInitializer(Loc loc) @safe
+{
+    return new VoidInitializer(loc);
+}
+
 /***********************************************************
  * The C23 default initializer `{ }`
  */
@@ -238,6 +243,11 @@ extern (C++) final class ExpInitializer : Initializer
     {
         v.visit(this);
     }
+}
+
+ExpInitializer expInitializer(Loc loc, Expression exp) @safe
+{
+    return new ExpInitializer(loc, exp);
 }
 
 /*********************************************

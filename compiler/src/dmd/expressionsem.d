@@ -6435,7 +6435,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         else //global variables
         {
             Identifier ident = Identifier.generateId("__cl");
-            auto tmp = new VarDeclaration(cle.loc, t, ident, new ExpInitializer(cle.loc, e));
+            auto tmp = new VarDeclaration(cle.loc, t, ident, expInitializer(cle.loc, e));
 
             // static const type ???
             tmp.storage_class = STC.static_ | STC.const_ | STC.ctfe;
@@ -8011,7 +8011,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     if (auto ie = (*exp.arguments)[0].isIdentifierExp())
                     {
                         TypeExp te = cast(TypeExp)exp.e1;
-                        auto initializer = new VoidInitializer(ie.loc);
+                        auto initializer = voidInitializer(ie.loc);
                         Dsymbol s = new VarDeclaration(ie.loc, te.type, ie.ident, initializer);
                         auto decls = new Dsymbols(1);
                         (*decls)[0] = s;
@@ -20054,7 +20054,7 @@ private Expression buildAAIndexRValueX(Type t, Expression eaa, Expression ekey, 
     if (sc.func && arrayBoundsCheck(sc.func))
     {
         // __aaget = _d_aaGetRvalueX(aa, key), __aaget ? __aaget : onRangeError(__FILE__, __LINE__)
-        auto ei = new ExpInitializer(loc, e0);
+        auto ei = expInitializer(loc, e0);
         auto id = Identifier.generateId("__aaget");
         auto vardecl = new VarDeclaration(loc, null, id, ei, STC.exptemp);
         auto declexp = new DeclarationExp(loc, vardecl);

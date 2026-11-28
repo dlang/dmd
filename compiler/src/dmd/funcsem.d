@@ -2839,7 +2839,7 @@ void buildResultVar(FuncDeclaration fd, Scope* sc, Type tret)
          * fbody.dsymbolSemantic() running, vresult.type might be modified.
          */
         fd.vresult = new VarDeclaration(loc, tret, Id.result, null);
-        fd.vresult._init = new VoidInitializer(loc); // hdrgen requires _init
+        fd.vresult._init = voidInitializer(loc); // hdrgen requires _init
         fd.vresult.storage_class |= STC.nodtor | STC.temp;
         if (!fd.isVirtual())
             fd.vresult.storage_class |= STC.const_;
@@ -3045,7 +3045,7 @@ void buildEnsureRequire(FuncDeclaration thisfd)
             {
                 auto rloc = r.ensure.loc;
                 auto resultId = new IdentifierExp(rloc, Id.result);
-                auto init = new ExpInitializer(rloc, resultId);
+                auto init = expInitializer(rloc, resultId);
                 auto stc = STC.ref_ | STC.temp | STC.result;
                 auto decl = new VarDeclaration(rloc, null, r.id, init, stc);
                 auto sdecl = new ExpStatement(rloc, decl);
@@ -3220,7 +3220,7 @@ Statement mergeFensure(FuncDeclaration fd, Statement sf, Identifier oid, Express
                  * https://issues.dlang.org/show_bug.cgi?id=10479
                  */
                 Expression* eresult = &(*params)[0];
-                auto ei = new ExpInitializer(Loc.initial, *eresult);
+                auto ei = expInitializer(Loc.initial, *eresult);
                 auto v = new VarDeclaration(Loc.initial, t1, Identifier.generateId("__covres"), ei);
                 v.storage_class |= STC.temp;
                 auto de = new DeclarationExp(Loc.initial, v);

@@ -2680,7 +2680,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                                     break;
                                 }
                         }
-                        dsym._init = new ExpInitializer(dsym.loc, ale);
+                        dsym._init = expInitializer(dsym.loc, ale);
                     }
                 }
             }
@@ -3235,7 +3235,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 Expression e = tv.defaultInitLiteral(dsym.loc);
                 e = new BlitExp(dsym.loc, new VarExp(dsym.loc, dsym), e);
                 e = e.expressionSemantic(sc);
-                dsym._init = new ExpInitializer(dsym.loc, e);
+                dsym._init = expInitializer(dsym.loc, e);
                 goto Ldtor;
             }
             if (tv.ty == Tstruct && tv.isTypeStruct().sym.zeroInit)
@@ -3249,7 +3249,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 Expression e = IntegerExp.literal!0;
                 e = new BlitExp(dsym.loc, new VarExp(dsym.loc, dsym), e);
                 e.type = dsym.type;      // don't type check this, it would fail
-                dsym._init = new ExpInitializer(dsym.loc, e);
+                dsym._init = expInitializer(dsym.loc, e);
                 goto Ldtor;
             }
             if (dsym.type.baseElemOf().ty == Tvoid)
@@ -3258,7 +3258,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             }
             else if (auto e = dsym.type.defaultInit(dsym.loc))
             {
-                dsym._init = new ExpInitializer(dsym.loc, e);
+                dsym._init = expInitializer(dsym.loc, e);
             }
 
             // Default initializer is always a blit
@@ -8085,7 +8085,7 @@ private extern(C++) class SearchVisitor : Visitor
              */
             auto v = new VarDeclaration(loc, Type.tsize_t, Id.dollar, null);
             Expression e = new IntegerExp(Loc.initial, tt.arguments.length, Type.tsize_t);
-            v._init = new ExpInitializer(Loc.initial, e);
+            v._init = expInitializer(Loc.initial, e);
             v.storage_class |= STC.temp | STC.static_ | STC.const_;
             v.dsymbolSemantic(sc);
             return v;
@@ -8100,7 +8100,7 @@ private extern(C++) class SearchVisitor : Visitor
              */
             auto v = new VarDeclaration(loc, Type.tsize_t, Id.dollar, null);
             Expression e = new IntegerExp(Loc.initial, td.objects.length, Type.tsize_t);
-            v._init = new ExpInitializer(Loc.initial, e);
+            v._init = expInitializer(Loc.initial, e);
             v.storage_class |= STC.temp | STC.static_ | STC.const_;
             v.dsymbolSemantic(ass._scope);
             return setResult(v);
@@ -8163,7 +8163,7 @@ private extern(C++) class SearchVisitor : Visitor
                  * length will be a const.
                  */
                 Expression e = new IntegerExp(Loc.initial, tupexp.exps.length, Type.tsize_t);
-                v = new VarDeclaration(loc, Type.tsize_t, Id.dollar, new ExpInitializer(Loc.initial, e));
+                v = new VarDeclaration(loc, Type.tsize_t, Id.dollar, expInitializer(Loc.initial, e));
                 v.storage_class |= STC.temp | STC.static_ | STC.const_;
             }
             else if (ce.type && (t = ce.type.toBasetype()) !is null && (t.ty == Tstruct || t.ty == Tclass))
@@ -8221,7 +8221,7 @@ private extern(C++) class SearchVisitor : Visitor
                 t = e.type.toBasetype();
                 if (t && t.ty == Tfunction)
                     e = new CallExp(e.loc, e);
-                v = new VarDeclaration(loc, null, Id.dollar, new ExpInitializer(Loc.initial, e));
+                v = new VarDeclaration(loc, null, Id.dollar, expInitializer(Loc.initial, e));
                 v.storage_class |= STC.temp | STC.ctfe | STC.rvalue;
             }
             else
@@ -8238,12 +8238,12 @@ private extern(C++) class SearchVisitor : Visitor
                 auto tsa = ce.type ? ce.type.isTypeSArray() : null;
                 if (tsa)
                 {
-                    auto e = new ExpInitializer(loc, tsa.dim);
+                    auto e = expInitializer(loc, tsa.dim);
                     v = new VarDeclaration(loc, tsa.dim.type, Id.dollar, e, STC.manifest);
                 }
                 else
                 {
-                    auto e = new VoidInitializer(Loc.initial);
+                    auto e = voidInitializer(Loc.initial);
                     e.type = Type.tsize_t;
                     v = new VarDeclaration(loc, Type.tsize_t, Id.dollar, e);
                     v.storage_class |= STC.temp | STC.ctfe; // it's never a true static variable
@@ -9601,7 +9601,7 @@ private void lowerUnpack(UnpackDeclaration upd, Scope* sc)
         if (auto var = d.isVarDeclaration())
         {
             assert (!var._init);
-            var._init = new ExpInitializer(exp.loc, exp);
+            var._init = expInitializer(exp.loc, exp);
         }
         else if (auto unp = d.isUnpackDeclaration())
         {

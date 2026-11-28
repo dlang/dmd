@@ -320,7 +320,7 @@ Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedIn
                 if (idxvalue >= amax)
                 {
                     eSink.error(i.loc, "array index %llu overflow", idxvalue);
-                    errors = true;
+                    return err();
                 }
                 length = cast(uint)idxvalue;
             }
@@ -1328,7 +1328,7 @@ Initializer inferInitializerType(Initializer init, Scope* sc, Type itype, ErrorS
                     // sanity check: some arbitrary limit that allows a 32-bit process to continue
                     if (nidx > uint.max / 32)
                     {
-                        eSink.error(init.loc, "array index %lld not supported", nidx);
+                        eSink.error(init.loc, "array index %llu overflow", nidx);
                         return new ErrorInitializer();
                     }
                     idx = cast(uint)nidx;
@@ -1341,7 +1341,7 @@ Initializer inferInitializerType(Initializer init, Scope* sc, Type itype, ErrorS
                 }
                 else if ((*values)[idx])
                 {
-                    eSink.error(init.loc, "array index %d initialized twice", cast(int)idx);
+                    eSink.error(init.loc, "duplicate initializations for index `%d`", cast(int)idx);
                     return new ErrorInitializer();
                 }
             }

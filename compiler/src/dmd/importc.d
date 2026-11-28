@@ -215,7 +215,7 @@ void addDefaultCInitializer(VarDeclaration dsym)
     Type t = dsym.type;
     if (t.isTypeSArray() && t.isTypeSArray().isIncomplete())
     {
-        dsym._init = new VoidInitializer(dsym.loc);
+        dsym._init = voidInitializer(dsym.loc);
         return; // incomplete arrays will be diagnosed later
     }
 
