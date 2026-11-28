@@ -159,6 +159,8 @@ extern (C) int rt_term()
         rt_moduleTlsDtor();
         thread_joinAll();
         rt_moduleDtor();
+        // shared module destructors can start threads; gc_term and thread_term need them gone
+        thread_joinAll();
         gc_term();
         thread_term();
         return 1;
