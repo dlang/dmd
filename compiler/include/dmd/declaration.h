@@ -121,6 +121,8 @@ namespace dmd
     #define STCvolatile           0x40000000000000ULL    /// destined for volatile in the back end
     #define STCctfeOnly           0x80000000000000ULL    /// `@__ctfe` - can only be used at compile time
 
+    #define STChidden             0x100000000000000ULL   /// `core.attribute.hidden` symbol visibility
+
 #define STC_TYPECTOR    (STCconst | STCimmutable | STCshared | STCwild)
 #define STC_FUNCATTR    (STCref | STCnothrow | STCnogc | STCpure | STCproperty | STCsafe | STCtrusted | STCsystem | STCctfeOnly)
 

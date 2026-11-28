@@ -434,6 +434,7 @@ enum
     CFG3pic         = 0x80000, // position independent code
     CFG3pie         = 0x10_0000, // position independent executable (CFG3pic also set)
     CFG3ibt         = 0x20_0000, // indirect branch tracking
+    CFG3hidden      = 0x40_0000, // hidden visibility for definitions
 }
 
 alias config_flags4_t = uint;

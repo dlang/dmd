@@ -1733,7 +1733,7 @@ assert(rel.r_symbolnum);
         nlist_64 sym;
         sym.n_strx = mach_addmangled(s);
         sym.n_type = N_EXT | N_SECT;
-        if (s.Sflags & SFLhidden)
+        if (s.Sflags & SFLhidden || config.flags3 & CFG3hidden && !(s.Sflags & SFLexport))
             sym.n_type |= N_PEXT; // private extern
         sym.n_desc = 0;
         if (s.Sclass == SC.comdat)
@@ -1762,6 +1762,8 @@ assert(rel.r_symbolnum);
         sym.n_strx = mach_addmangled(s);
         sym.n_value = s.Soffset;
         sym.n_type = N_EXT | N_UNDF;
+        if (s.Sflags & SFLhidden)
+            sym.n_type |= N_PEXT;
         sym.n_desc = tyfunc(s.ty()) ? REFERENCE_FLAG_UNDEFINED_LAZY
                                      : REFERENCE_FLAG_UNDEFINED_NON_LAZY;
         sym.n_sect = 0;
@@ -2656,6 +2658,7 @@ debug
 void MachObj_export_symbol(Symbol* s,uint argsize)
 {
     //dbg_printf("MachObj_export_symbol(%s,%d)\n",s.Sident.ptr,argsize);
+    s.Sflags |= SFLexport;
 }
 
 /*******************************
@@ -2852,8 +2855,18 @@ int MachObj_common_block(Symbol* s,targ_size_t size,targ_size_t count)
 
     // can't have code or thread local comdef's
     assert(!(s.ty() & (mTYcs | mTYthread)));
-    // support for hidden comdefs not implemented
-    assert(!(s.Sflags & SFLhidden));
+    // Private extern common symbols need storage in this object. Emit a weak
+    // definition so multiple common definitions can still be coalesced.
+    if (s.Sflags & SFLhidden || config.flags3 & CFG3hidden)
+    {
+        s.Sclass = SC.comdat;
+        s.Sseg = UDATA;
+        s.Sfl = FL.udata;
+        MachObj_data_start(s, size, UDATA);
+        MachObj_pubdef(UDATA, s, s.Soffset);
+        MachObj_lidata(UDATA, s.Soffset, cast(size_t)(size * count));
+        return 0;
+    }
 
     Comdef comdef = void;
     comdef.sym = s;

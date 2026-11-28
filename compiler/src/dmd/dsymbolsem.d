@@ -2316,6 +2316,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         }
 
+        checkSymbolVisibility(dsym, sc);
+
         AggregateDeclaration ad = dsym.isThis();
         if (ad)
             dsym.storage_class |= ad.storage_class & STC.TYPECTOR;
@@ -9774,6 +9776,39 @@ extern(C++) class ConditionIncludeVisitor : Visitor
         }
         // TODO: call include recursively?
         symbols = upd.decl;
+    }
+}
+
+/**
+ * Resolve the compiler-recognized visibility UDA as declaration state during
+ * semantic analysis. Explicit export protection is handled by code generation.
+ */
+void checkSymbolVisibility(Declaration declaration, Scope* sc)
+{
+    import dmd.attrib : isEnumAttribute;
+
+    if (!declaration.userAttribDecl)
+        return;
+
+    void applyVisibility(Expression e)
+    {
+        if (auto tuple = e.isTupleExp())
+        {
+            foreach (element; *tuple.exps)
+                applyVisibility(element);
+        }
+        else if (isEnumAttribute(e, Id.udaHidden))
+            declaration.storage_class |= STC.hidden;
+    }
+
+    // Keep deferred CTFE and UDA validation for semantic2.
+    for (auto uda = declaration.userAttribDecl; uda; uda = uda.userAttribDecl)
+    {
+        arrayExpressionSemantic(uda.atts.peekSlice(), uda._scope ? uda._scope : sc, true);
+        foreach (e; uda.atts.peekSlice())
+            applyVisibility(e);
+        if (uda.userAttribDecl is uda)
+            break;
     }
 }
 

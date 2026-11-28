@@ -247,6 +247,9 @@ Symbol* toSymbol(Dsymbol s)
                 s.Sflags |= SFLartifical;
             if (isNRVO)
                 s.Sflags |= SFLnodebug;
+            if ((config.objfmt == OBJ_ELF || config.objfmt == OBJ_MACH) &&
+                vd.isDataseg() && vd.storage_class & STC.hidden && !vd.isExport())
+                s.Sflags |= SFLhidden;
             if (vd.noUnderscore)
                 s.Sflags |= SFLnounderscore;
 
@@ -484,6 +487,9 @@ Symbol* toSymbol(Dsymbol s)
             auto s = symbol_calloc(id[0 .. strlen(id)]);
 
             s.prettyIdent = fd.toPrettyChars(true);
+            if ((config.objfmt == OBJ_ELF || config.objfmt == OBJ_MACH) &&
+                fd.storage_class & STC.hidden && !fd.isExport())
+                s.Sflags |= SFLhidden;
 
             /* Make C static functions SCstatic
              */

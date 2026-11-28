@@ -1004,7 +1004,7 @@ dmd -cov -unittest myprog.d
             "$(UL
                $(LI $(I default): <hidden> for Windows targets without $(SWLINK -shared), otherwise <public>)
                $(LI $(I hidden):  Only export symbols marked with `export`)
-               $(LI $(I public):  Export all symbols)
+               $(LI $(I public):  Export all symbols except those marked `@hidden`)
             )",
         ),
         Option("vnan",

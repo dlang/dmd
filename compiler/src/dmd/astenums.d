@@ -122,6 +122,8 @@ enum STC : ulong  // transfer changes to declaration.h
     volatile_           = 0x40_0000_0000_0000,   /// destined for volatile in the back end
     ctfeOnly            = 0x80_0000_0000_0000,   /// `@__ctfe` - can only be used at compile time
 
+    hidden              = 0x100_0000_0000_0000,  /// `core.attribute.hidden` symbol visibility
+
     safeGroup = STC.safe | STC.trusted | STC.system,
     IOR  = STC.constscoperef | STC.in_ | STC.ref_ | STC.out_,
     TYPECTOR = (STC.const_ | STC.immutable_ | STC.shared_ | STC.wild),
@@ -141,7 +143,7 @@ enum STC : ulong  // transfer changes to declaration.h
     flowThruAggregate = STC.safeGroup,    /// for an AggregateDeclaration
     flowThruFunction = ~(STC.auto_ | STC.scope_ | STC.static_ | STC.extern_ | STC.abstract_ | STC.deprecated_ | STC.override_ |
                          STC.TYPECTOR | STC.final_ | STC.tls | STC.gshared | STC.ref_ | STC.return_ | STC.property |
-                         STC.nothrow_ | STC.pure_ | STC.safe | STC.trusted | STC.system | STC.ctfeOnly), /// for a FuncDeclaration
+                         STC.nothrow_ | STC.pure_ | STC.safe | STC.trusted | STC.system | STC.ctfeOnly | STC.hidden), /// for a FuncDeclaration
 
 }
 
