@@ -525,6 +525,7 @@ immutable Msgtable[] msgtable =
     { "va_list_tag", "__va_list_tag" },
     { "va_arg" },
     { "pack" },
+    { "comment" },
     { "show" },
     { "push" },
     { "pop" },
