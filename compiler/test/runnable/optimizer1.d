@@ -818,8 +818,6 @@ void test24345()
 /****************************************************/
 // https://github.com/dlang/dmd/issues/24346
 
-static if (0)
-{
 pragma(inline, true) ulong z_24346(double x) { return 0; }
 
 real f_24346()
@@ -829,6 +827,16 @@ real f_24346()
     return d;
 }
 
+void test24346()
+{
+    f_24346();
+}
+
+/****************************************************/
+// https://github.com/dlang/dmd/issues/24347
+
+static if (0)
+{
 ulong toU_24347(real x) { return 0 ? cast(ulong)x : 0; }
 
 real f_24347()
@@ -1039,6 +1047,7 @@ void main()
     //version (D_SIMD) test24343b();
     //version (D_AVX) test24343c();
     test24345();
+    test24346();
     //test24351a();
     //test24351g();
     //test24351b();
