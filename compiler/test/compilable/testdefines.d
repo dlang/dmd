@@ -45,3 +45,13 @@ static assert(DOUBLE(5) == 10);
 static assert(BARE_CALL == 10);      // bare call now works
 static assert(PAREN_CALL == 10);     // parenthesized already worked
 static assert(WRAPPER(3) == 6);      // function-like macro calling another macro
+
+// leading `~`, e.g. curl.h's `#define CURLSSH_AUTH_ANY ~0`
+static assert(TILDE_ZERO == ~0);
+static assert(TILDE_CALL == ~10);
+static assert(TILDE_TILDE == ~~5);
+static assert(TILDE_PAREN == ~(1 | 2));
+
+// leading `!`, same precedence tier as `~`
+static assert(NOT_ZERO == !0);
+static assert(NOT_CALL == !0);
