@@ -324,6 +324,16 @@ class SymbolDeclaration final : public Declaration
 public:
     AggregateDeclaration *dsym;
 
+    enum class Kind : unsigned char
+    {
+        initializer,
+        vtbl,
+        interfaces,
+    };
+    Kind kind;
+
+    bool isDataseg() override;
+
     // Eliminate need for dynamic_cast
     void accept(Visitor *v) override { v->visit(this); }
 };

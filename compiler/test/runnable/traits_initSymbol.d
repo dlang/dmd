@@ -6,7 +6,8 @@ struct Zero
 void testZero()
 {
     auto zeroInit = __traits(initSymbol, Zero);
-    static assert(is(typeof(zeroInit) == const(void[])));
+    static assert(is(typeof(zeroInit) == SymbolSlice!(const(void))));
+    static assert(is(typeof(zeroInit) : const(void)[]));
 
     assert(zeroInit.ptr is null);
     assert(zeroInit.length == Zero.sizeof);
@@ -20,7 +21,8 @@ struct NonZero
 void testNonZero()
 {
     auto nonZeroInit = __traits(initSymbol, NonZero);
-    static assert(is(typeof(nonZeroInit) == const(void[])));
+    static assert(is(typeof(nonZeroInit) == SymbolSlice!(const(void))));
+    static assert(is(typeof(nonZeroInit) : const(void)[]));
 
     assert(nonZeroInit.ptr);
     assert(nonZeroInit.length == NonZero.sizeof);
@@ -35,7 +37,8 @@ class C
 void testClass()
 {
     auto cInit = __traits(initSymbol, C);
-    static assert(is(typeof(cInit) == const(void[])));
+    static assert(is(typeof(cInit) == SymbolSlice!(const(void))));
+    static assert(is(typeof(cInit) : const(void)[]));
 
     assert(cInit.ptr);
     assert(cInit.length == __traits(classInstanceSize, C));
